@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meu Controle Financeiro</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <button id="btnToggleSidebar">☰</button> <!-- NOVO -->
+    <div id="modalOverlay" class="modal-overlay"></div> <!-- NOVO -->
+    <div class="app-container">
+        <aside class="sidebar">
+            <h2>Menu</h2>
+            <button id="btnNovaTransacao">Nova transação</button>
+            <button id="btnGerenciarCartoes">Cartões de crédito</button>
+            <button id="btnMenuOrcamentos">Orçamentos</button>
+            <button id="btnGestaoDados">Gestão de dados</button>
+
+            <section class="financial-summary">
+                <h2>Resumo Financeiro</h2>
+                 <div class="summary-item">
+                    <span>Receitas do mês:</span>
+                    <span id="totalReceitas">R$ 0,00</span>
+                </div>
+                <div class="summary-item">
+                    <span>Despesas do mês:</span>
+                    <span id="totalDespesas">R$ 0,00</span>
+                </div>
+                <div class="summary-item saldo">
+                    <span>Saldo do mês:</span>
+                    <span id="saldoMes">R$ 0,00</span>
+                </div>
+            </section>
+        </aside>
+
+        <main class="main-content">
+            <header class="main-header">
+                <h1>Meu Controle Financeiro</h1>
+                <div class="month-navigation">
+                    <button id="prevMonthBtn" title="Mês anterior"><</button>
+                    <span id="currentMonthDisplay">Carregando...</span>
+                    <button id="nextMonthBtn" title="Próximo mês">></button>
+                </div>
+            </header>
+
+            <section class="transactions-list">
+                <h2>Transações</h2>
+                <ul id="listaTransacoes">
+                    <!-- Transações via JS -->
+                </ul>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal Nova Transação / Edição -->
+    <div id="modalNovaTransacao" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalNovaTransacaoTitulo">Nova Transação (Passo 1 de X)</h2>
+                <span class="close-button" data-modal-id="modalNovaTransacao">×</span>
+            </div>
+            <div class="modal-body">
+                <div>
+                    <label for="tipoTransacao">Tipo de transação:</label>
+                    <select id="tipoTransacao">
+                        <option value="">-- Selecione --</option>
+                        <option value="receita">Receita</option>
+                        <option value="despesa">Despesa</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="nomeTransacao">Nome:</label>
+                    <input type="text" id="nomeTransacao" placeholder="Ex: Salário, Aluguel">
+                </div>
+                <p id="quickAddFeedback" class="form-note" style="display: none; color: #27ae60; font-weight: bold;"></p>
+                <div id="passo2Container" style="display: none;"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary close-button-footer" data-modal-id="modalNovaTransacao">Cancelar</button>
+                <button id="btnVoltarTransacao" class="btn-secondary" style="display: none;">Voltar</button>
+                <button id="btnAvancarTransacao" class="btn-primary">Avançar</button>
+                <button id="btnSalvarTransacao" class="btn-primary" style="display: none;">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Cadastrar/Editar Cartão -->
+    <div id="modalCadastrarCartao" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalCartaoTitulo">Cadastrar Novo Cartão</h2>
+                <span class="close-button" data-modal-id="modalCadastrarCartao">×</span>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="cartaoEditId">
+                <div>
+                    <label for="nomeCartao">Nome do Cartão:</label>
+                    <input type="text" id="nomeCartao" placeholder="Ex: Nubank Roxinho, Inter Gold" required>
+                </div>
+                <div>
+                    <label for="diaVencimentoFatura">Dia de Vencimento da Fatura:</label>
+                    <input type="number" id="diaVencimentoFatura" min="1" max="31" placeholder="Ex: 10" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary close-button-footer" data-modal-id="modalCadastrarCartao">Cancelar</button>
+                <button id="btnSalvarCartaoModal" class="btn-primary">Salvar Cartão</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Gerenciar Orçamentos -->
+    <div id="modalOrcamentos" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalOrcamentoTitulo">Gerenciar Orçamentos</h2>
+                <span class="close-button" data-modal-id="modalOrcamentos">×</span>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="orcamentoEditId">
+                <div class="orcamento-form">
+                    <input type="text" id="nomeOrcamento" placeholder="Nome (Ex: Supermercado)">
+                    <input type="number" id="valorOrcamento" step="0.01" placeholder="Valor (R$)">
+                    <input type="number" id="diaOrcamento" min="1" max="31" placeholder="Dia">
+                    <button id="btnSalvarOrcamento" class="btn-primary">Salvar</button>
+                </div>
+                <hr>
+                <h3>Orçamentos Cadastrados</h3>
+                <ul id="listaOrcamentos">
+                    <!-- Orçamentos via JS -->
+                </ul>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary close-button-footer" data-modal-id="modalOrcamentos">Fechar</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal para Detalhes do Orçamento -->
+    <div id="modalDetalhesOrcamento" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="orcamentoDetalhesTitulo">Detalhes do Orçamento</h2>
+                <span class="close-button" data-modal-id="modalDetalhesOrcamento">×</span>
+            </div>
+            <div class="modal-body">
+                <div class="orcamento-summary-details">
+                    <p><strong>Valor Total:</strong> <span id="orcamentoDetalhesTotal">R$ 0,00</span></p>
+                    <p><strong>Total Gasto:</strong> <span id="orcamentoDetalhesGasto">R$ 0,00</span></p>
+                    <p><strong>Valor Restante:</strong> <span id="orcamentoDetalhesRestante">R$ 0,00</span></p>
+                </div>
+                <hr>
+                <h3>Gastos Vinculados neste Mês:</h3>
+                <ul id="listaGastosOrcamento"></ul>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary close-button-footer" data-modal-id="modalDetalhesOrcamento">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Detalhes da Fatura do Cartão -->
+    <div id="modalDetalhesFaturaCartao" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title-container">
+                    <!-- [ALTERADO] Adicionados botões de navegação da fatura -->
+                    <button id="btnFaturaAnterior" title="Fatura Anterior"><</button>
+                    <h2 id="faturaCartaoNomeTitulo">Detalhes da Fatura</h2>
+                    <button id="btnFaturaProxima" title="Próxima Fatura">></button>
+                    <button id="btnAddDespesaFromFatura" title="Adicionar Despesa nesta Fatura">➕</button>
+                    <button id="btnAjustesFatura" title="Ajustes da Fatura (Cashback, etc)">⚙️</button>
+                </div>
+                <span class="close-button" data-modal-id="modalDetalhesFaturaCartao">×</span>
+            </div>
+            <div class="modal-body">
+                <p><strong>Total da Fatura:</strong> <span id="faturaCartaoTotalValor">R$ 0,00</span></p>
+                <p><strong>Vencimento da Fatura:</strong> <span id="faturaCartaoDataVencimento">DD/MM/AAAA</span></p>
+                <h3>Compras da Fatura:</h3>
+                <ul id="listaComprasFaturaCartao"></ul>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary close-button-footer" data-modal-id="modalDetalhesFaturaCartao">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalAjustesFatura" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalAjustesFaturaTitulo">Ajustes da Fatura</h2>
+                <span class="close-button" data-modal-id="modalAjustesFatura">×</span>
+            </div>
+            <div class="modal-body">
+                <div class="ajuste-form">
+                    <input type="text" id="descricaoAjuste" placeholder="Descrição (Ex: Cashback)">
+                    <input type="number" id="valorAjuste" step="0.01" placeholder="Valor do desconto">
+                    <button id="btnSalvarAjuste" class="btn-primary">Salvar Ajuste</button>
+                </div>
+                <hr>
+                <h3>Ajustes Aplicados</h3>
+                <ul id="listaAjustesFatura"></ul>
+                <p class="ajuste-total"><strong>Total de Ajustes:</strong> <span id="totalAjustesValor">R$ 0,00</span></p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary close-button-footer" data-modal-id="modalAjustesFatura">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal unificado para gerenciar cartões -->
+    <div id="modalGerenciarCartoes" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Gerenciar Cartões de Crédito</h2>
+                <span class="close-button" data-modal-id="modalGerenciarCartoes">×</span>
+            </div>
+            <div class="modal-body">
+                <ul id="listaCartoesCadastrados"></ul>
+            </div>
+            <div class="modal-footer">
+                <button id="btnAbrirModalCadastroCartao" class="btn-primary">Cadastrar Novo Cartão</button>
+                <button class="btn-secondary close-button-footer" data-modal-id="modalGerenciarCartoes">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Gestão de Dados -->
+    <div id="modalGestaoDados" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Gestão de Dados</h2>
+                <span class="close-button" data-modal-id="modalGestaoDados">×</span>
+            </div>
+            <div class="modal-body">
+                <p>Faça backup dos seus dados ou restaure um backup anterior.</p>
+                <div class="gestao-dados-acoes">
+                    <button id="btnExportarDados" class="btn-primary">Exportar Dados</button>
+                    <hr>
+                    <label for="arquivoImportacao" class="btn-primary btn-import-label">Importar Dados</label>
+                    <input type="file" id="arquivoImportacao" accept=".json" style="display: none;">
+                    <p id="nomeArquivoImportar" style="margin-top: 5px; font-style: italic;"></p>
+                </div>
+                 <p class="form-note" style="margin-top: 15px;">
+                    <strong>Atenção:</strong> A importação de dados substituirá todos os dados atuais no aplicativo. 
+                    Certifique-se de que o arquivo selecionado é um backup válido deste aplicativo.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary close-button-footer" data-modal-id="modalGestaoDados">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Confirmar Ação em Série -->
+    <div id="modalConfirmarAcaoSerie" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalConfirmarAcaoSerieTitulo">Ação em Transação Recorrente/Parcelada</h2>
+                <span class="close-button" data-modal-id="modalConfirmarAcaoSerie">×</span>
+            </div>
+            <div class="modal-body">
+                <p id="modalConfirmarAcaoSerieTexto">Esta transação faz parte de uma série. Como você deseja prosseguir?</p>
+                <div class="modal-body-buttons">
+                    <button id="btnAcaoSerieApenasEsta" class="btn-secondary">Apenas esta</button>
+                    <button id="btnAcaoSerieToda" class="btn-primary">Toda a série</button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary close-button-footer" data-modal-id="modalConfirmarAcaoSerie">Cancelar</button>
+            </div>
+        </div>
+    </div>
+    <!-- NOVOS MOLDES (TEMPLATES) PARA OS FORMULÁRIOS -->
+<template id="template-form-receita">
+    <p><strong><span class="form-title-action">Nova</span> Receita: <span class="form-title-name"></span></strong></p>
+    <div>
+        <label for="valorReceita">Valor (R$):</label>
+        <input type="number" id="valorReceita" step="0.01" placeholder="0,00" required>
+    </div>
+    <div>
+        <label for="dataEntradaReceita">Data de entrada:</label>
+        <input type="date" id="dataEntradaReceita" required>
+    </div>
+    <div>
+        <label for="frequenciaReceita">Frequência:</label>
+        <select id="frequenciaReceita">
+            <option value="unica">Única</option>
+            <option value="recorrente">Recorrente</option>
+        </select>
+    </div>
+</template>
+
+<template id="template-form-despesa">
+    <p><strong><span class="form-title-action">Nova</span> Despesa: <span class="form-title-name"></span></strong></p>
+    <div>
+        <label for="categoriaDespesa">Categoria:</label>
+        <select id="categoriaDespesa" required>
+            <option value="">-- Selecione --</option>
+            <option value="ordinaria">Ordinária</option>
+            <option value="cartao_credito">Cartão de crédito</option>
+        </select>
+    </div>
+    <div id="formCamposAdicionaisDespesa"></div>
+</template>
+
+<template id="template-form-despesa-ordinaria">
+    <div>
+        <label for="frequenciaDespesaOrd">Frequência:</label>
+        <select id="frequenciaDespesaOrd">
+            <option value="unica">Única</option>
+            <option value="recorrente">Recorrente</option>
+            <option value="parcelada">Parcelada</option>
+        </select>
+    </div>
+    <div>
+        <label for="valorDespesaOrd">Valor (R$):</label>
+        <input type="number" id="valorDespesaOrd" step="0.01" placeholder="0,00" required>
+    </div>
+    <div>
+        <label for="dataVencimentoDespesaOrd">Data de vencimento:</label>
+        <input type="date" id="dataVencimentoDespesaOrd" required>
+    </div>
+    <div id="camposParceladaOrd" style="display:none;">
+        <label for="tipoCadastroParcelaOrd">Cadastrar por:</label>
+        <select id="tipoCadastroParcelaOrd">
+            <option value="valor_total">Valor total da compra</option>
+            <option value="valor_parcela">Valor da parcela</option>
+        </select>
+        <label for="qtdParcelasOrd">Quantidade de parcelas:</label>
+        <input type="number" id="qtdParcelasOrd" min="1">
+        <div id="campoParcelaAtualOrd">
+            <label for="parcelaAtualOrd">Parcela atual (Nº):</label>
+            <input type="number" id="parcelaAtualOrd" min="1" value="1">
+        </div>
+    </div>
+</template>
+
+<template id="template-form-despesa-cartao">
+    <div>
+        <label for="cartaoDespesa">Selecionar Cartão:</label>
+        <select id="cartaoDespesa" required>
+            <!-- Opções de cartão serão inseridas pelo JS -->
+        </select>
+    </div>
+    <div>
+        <label for="orcamentoVinculado">Vincular ao Orçamento:</label>
+        <select id="orcamentoVinculado">
+            <!-- Opções de orçamento serão inseridas pelo JS -->
+        </select>
+    </div>
+    <div>
+        <label for="frequenciaDespesaCartao">Frequência:</label>
+        <select id="frequenciaDespesaCartao">
+            <option value="unica">Única</option>
+            <option value="recorrente">Recorrente</option>
+            <option value="parcelada">Parcelada</option>
+        </select>
+    </div>
+    <div id="camposParcelamentoCartao" style="display:none;">
+        <div>
+            <label for="tipoCadastroParcelaCartao">Cadastrar por:</label>
+            <select id="tipoCadastroParcelaCartao">
+                <option value="valor_total">Valor total da compra</option>
+                <option value="valor_parcela">Valor da parcela</option>
+            </select>
+        </div>
+        <div id="valorContainerCartaoParcelado">
+            <label for="valorDespesaCartaoParcelada">Valor (R$):</label>
+            <input type="number" id="valorDespesaCartaoParcelada" step="0.01" placeholder="0,00">
+        </div>
+        <div>
+            <label for="qtdParcelasCartao">Quantidade de parcelas:</label>
+            <input type="number" id="qtdParcelasCartao" min="1">
+        </div>
+        <div id="campoParcelaAtualCartao">
+            <label for="parcelaAtualCartao">Parcela atual (Nº):</label>
+            <input type="number" id="parcelaAtualCartao" min="1" value="1">
+        </div>
+    </div>
+    <div id="valorContainerCartaoUnicaRecorrente">
+        <label for="valorDespesaCartaoUnicaRecorrente">Valor (R$):</label>
+        <input type="number" id="valorDespesaCartaoUnicaRecorrente" step="0.01" placeholder="0,00">
+    </div>
+</template>
+
+    <!-- SDKs (Software Development Kits) do Firebase -->
+    <!-- Estes scripts permitem que nosso aplicativo se conecte aos serviços do Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    
+    <script src="script.js"></script>
+</body>
+</html>
