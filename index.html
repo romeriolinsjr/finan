@@ -190,13 +190,15 @@
         <div class="modal-content">
             <div class="modal-header">
                 <div class="modal-title-container">
-                    <!-- [ALTERADO] Adicionados botões de navegação da fatura -->
                     <button id="btnFaturaAnterior" title="Fatura Anterior"><</button>
                     <h2 id="faturaCartaoNomeTitulo">Detalhes da Fatura</h2>
                     <button id="btnFaturaProxima" title="Próxima Fatura">></button>
-                    <button id="btnAddDespesaFromFatura" title="Adicionar Despesa nesta Fatura">➕</button>
-                    <button id="btnAjustesFatura" title="Ajustes da Fatura (Cashback, etc)">⚙️</button>
-                </div>
+                    <!-- NOVO: Agrupador para os botões de ação -->
+                    <div class="modal-header-actions">
+                        <button id="btnAddDespesaFromFatura" title="Adicionar Despesa nesta Fatura">➕</button>
+                        <button id="btnAjustesFatura" title="Ajustes da Fatura (Cashback, etc)">⚙️</button>
+                    </div>
+                </div>                
                 <span class="close-button" data-modal-id="modalDetalhesFaturaCartao">×</span>
             </div>
             <div class="modal-body">

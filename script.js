@@ -1010,8 +1010,16 @@ if (btnSalvarTransacao) {
     if (prevMonthBtn) { prevMonthBtn.addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() - 1); updateMonthDisplay(); }); }
     if (nextMonthBtn) { nextMonthBtn.addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() + 1); updateMonthDisplay(); }); }
     if (btnAddDespesaFromFatura) { btnAddDespesaFromFatura.addEventListener('click', () => { const cartaoId = parseInt(btnAddDespesaFromFatura.dataset.cartaoId); const cartaoNome = btnAddDespesaFromFatura.dataset.cartaoNome; if (cartaoId && cartaoNome) { fecharModalEspecifico(modalDetalhesFaturaCartao); abrirModalDespesaCartaoRapida(cartaoId, cartaoNome); } }); }
-    if (btnAjustesFatura) { btnAjustesFatura.addEventListener('click', () => { const cartaoId = parseInt(btnAjustesFatura.dataset.cartaoId); const mesAno = btnAjustesFatura.dataset.mesAnoReferencia; if (cartaoId && mesAno) { abrirModalAjustesFatura(cartaoId, mesAno); } }); }
-    
+        if (btnAjustesFatura) {
+        btnAjustesFatura.addEventListener('click', () => {
+            // CORREÇÃO: Removido o parseInt. O ID do cartão é uma string.
+            const cartaoId = btnAjustesFatura.dataset.cartaoId;
+            const mesAno = btnAjustesFatura.dataset.mesAnoReferencia;
+            if (cartaoId && mesAno) {
+                abrirModalAjustesFatura(cartaoId, mesAno);
+            }
+        });
+    }
         if (btnFaturaAnterior) {
         btnFaturaAnterior.addEventListener('click', () => {
             if (!currentFaturaDate) return;
@@ -1761,32 +1769,69 @@ function renderizarTransacoesDoMes() {
         const totalAjustes = calcularTotalAjustes(cartaoId, mesAno);
         totalAjustesValorSpan.textContent = formatCurrency(totalAjustes);
     }
-    if (btnSalvarAjuste) {
-        btnSalvarAjuste.addEventListener('click', () => {
+        if (btnSalvarAjuste) {
+        btnSalvarAjuste.addEventListener('click', async () => { // Tornando a função assíncrona
+            if (!currentUser) { alert("Erro: Você precisa estar logado."); return; }
+            
             const descricao = descricaoAjusteInput.value.trim();
             const valor = parseFloat(valorAjusteInput.value);
-            const cartaoId = parseInt(modalAjustesFatura.dataset.cartaoId);
+            // CORREÇÃO: O ID do cartão e o mês/ano são strings
+            const cartaoId = modalAjustesFatura.dataset.cartaoId;
             const mesAno = modalAjustesFatura.dataset.mesAno;
+
             if (!descricao) { alert("A descrição do ajuste é obrigatória."); descricaoAjusteInput.focus(); return; }
             if (isNaN(valor) || valor <= 0) { alert("O valor do ajuste deve ser um número positivo."); valorAjusteInput.focus(); return; }
-            const novoAjuste = { id: Date.now(), cartaoId: cartaoId, mesAnoReferencia: mesAno, descricao: descricao, valor: valor };
-            ajustesFatura.push(novoAjuste);
-            atualizarTudo();
-            popularModalAjustes(cartaoId, mesAno);
-            descricaoAjusteInput.value = '';
-            valorAjusteInput.value = '';
-            descricaoAjusteInput.focus();
+            
+            // O ID do ajuste será gerado automaticamente pelo Firestore
+            const novoAjuste = {
+                cartaoId: cartaoId,
+                mesAnoReferencia: mesAno,
+                descricao: descricao,
+                valor: valor
+            };
+
+            try {
+                // Adiciona o novo ajuste à coleção no Firestore
+                const ajustesCollectionRef = db.collection('users').doc(currentUser.uid).collection('ajustesFatura');
+                await ajustesCollectionRef.add(novoAjuste);
+                
+                console.log("Ajuste de fatura salvo com sucesso no Firestore.");
+
+                // Limpa os campos para o próximo ajuste
+                descricaoAjusteInput.value = '';
+                valorAjusteInput.value = '';
+                descricaoAjusteInput.focus();
+                
+                // O ouvinte em tempo real (`onSnapshot`) cuidará de atualizar a tela automaticamente.
+
+            } catch (error) {
+                console.error("Erro ao salvar ajuste no Firestore:", error);
+                alert("Ocorreu um erro ao salvar o ajuste.");
+            }
         });
     }
-    if (listaAjustesFaturaUl) {
-        listaAjustesFaturaUl.addEventListener('click', (event) => {
+        if (listaAjustesFaturaUl) {
+        listaAjustesFaturaUl.addEventListener('click', async (event) => { // Tornando a função assíncrona
             if (event.target.classList.contains('btn-delete-ajuste')) {
-                const ajusteId = parseInt(event.target.dataset.id);
-                const cartaoId = parseInt(modalAjustesFatura.dataset.cartaoId);
-                const mesAno = modalAjustesFatura.dataset.mesAno;
-                ajustesFatura = ajustesFatura.filter(a => a.id !== ajusteId);
-                atualizarTudo();
-                popularModalAjustes(cartaoId, mesAno);
+                if (!currentUser) { alert("Erro: Você precisa estar logado."); return; }
+
+                // O ID do ajuste agora é uma string do Firestore
+                const ajusteId = event.target.dataset.id;
+                
+                if (ajusteId && window.confirm("Tem certeza que deseja excluir este ajuste?")) {
+                    try {
+                        // Deleta o documento de ajuste diretamente no Firestore
+                        const ajusteRef = db.collection('users').doc(currentUser.uid).collection('ajustesFatura').doc(ajusteId);
+                        await ajusteRef.delete();
+
+                        console.log("Ajuste excluído com sucesso do Firestore.");
+                        // O ouvinte em tempo real cuidará de atualizar a lista.
+
+                    } catch (error) {
+                        console.error("Erro ao excluir ajuste no Firestore:", error);
+                        alert("Ocorreu um erro ao excluir o ajuste.");
+                    }
+                }
             }
         });
     }
