@@ -549,6 +549,7 @@ body {
 
 .ajuste-form {
     display: flex;
+    flex-wrap: wrap; /* NOVO: Permite que os itens quebrem para a linha de baixo */
     gap: 10px;
     align-items: center;
     margin-bottom: 15px;
@@ -556,6 +557,7 @@ body {
 .ajuste-form input[type="text"] {
     flex-grow: 1;
     margin-bottom: 0;
+    min-width: 150px; /* NOVO: Garante uma largura mínima antes de quebrar a linha */
 }
 .ajuste-form input[type="number"] {
     width: 150px;
@@ -564,6 +566,18 @@ body {
 .ajuste-form button {
     padding: 10px 15px;
     white-space: nowrap;
+}
+
+/* NOVO: Regra específica para telas pequenas (mobile) */
+@media (max-width: 500px) {
+    .ajuste-form {
+        flex-direction: column; /* Coloca os itens em coluna */
+        align-items: stretch;   /* Faz com que todos ocupem a largura total */
+    }
+
+    .ajuste-form input[type="number"] {
+        width: 100%; /* Ocupa a largura toda, igual aos outros */
+    }
 }
 #modalAjustesFatura hr, #modalOrcamentos hr, #modalDetalhesOrcamento hr {
     border: none;
