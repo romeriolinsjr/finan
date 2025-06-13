@@ -85,6 +85,31 @@
         </div>
     </div>
 
+        <!-- NOVO: Modal de Autenticação (Login / Cadastro) -->
+    <div id="modalAuth" class="modal" style="display: flex;"> <!-- Começa visível por padrão -->
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalAuthTitulo">Login</h2>
+            </div>
+            <div class="modal-body">
+                <p id="authFeedback" class="form-note" style="display: none; color: #e74c3c;"></p>
+                <div>
+                    <label for="emailInput">Email:</label>
+                    <input type="email" id="emailInput" placeholder="seu.email@exemplo.com" required>
+                </div>
+                <div>
+                    <label for="passwordInput">Senha:</label>
+                    <input type="password" id="passwordInput" placeholder="Pelo menos 6 caracteres" required>
+                </div>
+            </div>
+            <div class="modal-footer" style="flex-direction: column; gap: 10px;">
+                <button id="btnAuthAction" class="btn-primary" style="width: 100%; margin: 0;">Entrar</button>
+                <button id="btnToggleAuthMode" class="btn-link" style="background: none; border: none; color: #3498db; cursor: pointer;">Não tem uma conta? Cadastre-se</button>
+                <button id="btnLogout" class="btn-secondary" style="display: none; width: 100%; margin: 0;">Sair (Logout)</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal Cadastrar/Editar Cartão -->
     <div id="modalCadastrarCartao" class="modal">
         <div class="modal-content">

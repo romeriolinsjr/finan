@@ -154,6 +154,203 @@ document.addEventListener('DOMContentLoaded', () => {
     // Variável para guardar informações do usuário quando ele estiver logado
     let currentUser = null; 
 
+        // --- Elementos do DOM - Autenticação ---
+    const modalAuth = document.getElementById('modalAuth');
+    const modalAuthTitulo = document.getElementById('modalAuthTitulo');
+    const authFeedback = document.getElementById('authFeedback');
+    const emailInput = document.getElementById('emailInput');
+    const passwordInput = document.getElementById('passwordInput');
+    const btnAuthAction = document.getElementById('btnAuthAction');
+    const btnToggleAuthMode = document.getElementById('btnToggleAuthMode');
+    const btnLogout = document.getElementById('btnLogout');
+
+    // --- Estado da Autenticação ---
+    let isRegisterMode = false;
+
+    // --- Lógica de Autenticação (O "Porteiro" do App) ---
+
+        // Esta função é o coração da autenticação. O Firebase a chama automaticamente.
+    auth.onAuthStateChanged(user => {
+        const appContainer = document.querySelector('.app-container');
+
+        if (user) {
+            // 1. O USUÁRIO ESTÁ LOGADO
+            console.log("Usuário logado:", user.email, "ID:", user.uid);
+            currentUser = user; 
+
+            // Esconde a tela de login e mostra o app principal
+            modalAuth.style.display = 'none';
+            appContainer.style.display = 'flex';
+
+            // Adiciona o botão de Sair no menu lateral, se já não estiver lá
+            const sidebar = document.querySelector('.sidebar');
+            if (sidebar && !sidebar.contains(btnLogout)) {
+                sidebar.appendChild(btnLogout);
+            }
+            btnLogout.style.display = 'block'; // Garante que o botão esteja visível
+            
+            inicializarErenderizarApp();
+
+        } else {
+            // 2. O USUÁRIO NÃO ESTÁ LOGADO
+            console.log("Nenhum usuário logado.");
+            currentUser = null;
+
+            // Mostra a tela de login e esconde o app principal
+            modalAuth.style.display = 'flex';
+            appContainer.style.display = 'none';
+            
+            // Esconde o botão de logout
+            btnLogout.style.display = 'none';
+            
+            // Limpa os dados da tela
+            transacoes = [];
+            cartoes = [];
+            orcamentos = [];
+            ajustesFatura = [];
+            orcamentosFechados = [];
+            atualizarTudo(); // Limpa a UI
+        }
+    });
+
+    // Função para lidar com o clique no botão "Entrar" / "Cadastrar"
+    btnAuthAction.addEventListener('click', () => {
+        const email = emailInput.value;
+        const password = passwordInput.value;
+
+        if (!email || !password) {
+            mostrarFeedbackAuth("Por favor, preencha o e-mail e a senha.", true);
+            return;
+        }
+
+        if (isRegisterMode) {
+            // Modo Cadastro
+            auth.createUserWithEmailAndPassword(email, password)
+                .then(userCredential => {
+                    console.log("Usuário cadastrado com sucesso!", userCredential.user);
+                    // O onAuthStateChanged será acionado automaticamente, tratando o resto.
+                })
+                .catch(error => {
+                    console.error("Erro ao cadastrar:", error.message);
+                    mostrarFeedbackAuth(traduzirErroAuth(error.code), true);
+                });
+        } else {
+            // Modo Login
+            auth.signInWithEmailAndPassword(email, password)
+                .then(userCredential => {
+                    console.log("Usuário logado com sucesso!", userCredential.user);
+                    // O onAuthStateChanged será acionado automaticamente, tratando o resto.
+                })
+                .catch(error => {
+                    console.error("Erro ao logar:", error.message);
+                    mostrarFeedbackAuth(traduzirErroAuth(error.code), true);
+                });
+        }
+    });
+
+    // Função para alternar entre as telas de Login e Cadastro
+    btnToggleAuthMode.addEventListener('click', () => {
+        isRegisterMode = !isRegisterMode; // Inverte o modo
+        
+        modalAuthTitulo.textContent = isRegisterMode ? "Cadastre-se" : "Login";
+        btnAuthAction.textContent = isRegisterMode ? "Criar Conta" : "Entrar";
+        btnToggleAuthMode.textContent = isRegisterMode ? "Já tem uma conta? Faça login" : "Não tem uma conta? Cadastre-se";
+        authFeedback.style.display = 'none'; // Esconde mensagens de erro antigas
+    });
+
+    // Função para fazer logout
+    btnLogout.addEventListener('click', () => {
+        if (confirm("Tem certeza que deseja sair?")) {
+            auth.signOut().then(() => {
+                console.log("Logout realizado com sucesso.");
+                // O onAuthStateChanged será acionado automaticamente, tratando o resto.
+            }).catch(error => {
+                console.error("Erro ao fazer logout:", error);
+            });
+        }
+    });
+
+    // Funções auxiliares para feedback e tradução de erros
+    function mostrarFeedbackAuth(mensagem, isError = false) {
+        authFeedback.textContent = mensagem;
+        authFeedback.style.color = isError ? '#e74c3c' : '#27ae60';
+        authFeedback.style.display = 'block';
+    }
+
+    function traduzirErroAuth(errorCode) {
+        switch (errorCode) {
+            case 'auth/invalid-email':
+                return 'O formato do e-mail é inválido.';
+            case 'auth/user-not-found':
+                return 'Nenhum usuário encontrado com este e-mail.';
+            case 'auth/wrong-password':
+                return 'Senha incorreta. Tente novamente.';
+            case 'auth/email-already-in-use':
+                return 'Este e-mail já está cadastrado.';
+            case 'auth/weak-password':
+                return 'A senha precisa ter no mínimo 6 caracteres.';
+            default:
+                return 'Ocorreu um erro. Tente novamente.';
+        }
+    }
+
+                // Função para configurar os "ouvintes" em tempo real do Firestore
+    function carregarDadosDoFirestore() {
+        if (!currentUser) return;
+
+        console.log("Configurando ouvintes em tempo real para o usuário:", currentUser.uid);
+        const userCollections = db.collection('users').doc(currentUser.uid);
+
+        // --- Ouvinte para Transações ---
+        userCollections.collection('transacoes').onSnapshot(snapshot => {
+            transacoes = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+            console.log("Dados de 'transacoes' atualizados em tempo real.");
+            updateMonthDisplay();
+        }, error => console.error("Erro no ouvinte de transações:", error));
+
+        // --- Ouvinte para Cartões ---
+        userCollections.collection('cartoes').onSnapshot(snapshot => {
+            cartoes = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+            console.log("Dados de 'cartoes' atualizados em tempo real.");
+            updateMonthDisplay();
+        }, error => console.error("Erro no ouvinte de cartões:", error));
+
+        // --- Ouvinte para Orçamentos ---
+        userCollections.collection('orcamentos').onSnapshot(snapshot => {
+            orcamentos = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+            console.log("Dados de 'orcamentos' atualizados em tempo real.");
+            updateMonthDisplay();
+        }, error => console.error("Erro no ouvinte de orçamentos:", error));
+
+        // --- Ouvinte para Orçamentos Fechados ---
+        userCollections.collection('orcamentosFechados').onSnapshot(snapshot => {
+            orcamentosFechados = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+            console.log("Dados de 'orcamentosFechados' atualizados em tempo real.");
+            updateMonthDisplay();
+        }, error => console.error("Erro no ouvinte de orçamentosFechados:", error));
+
+        // --- Ouvinte para Ajustes de Fatura ---
+        userCollections.collection('ajustesFatura').onSnapshot(snapshot => {
+            ajustesFatura = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+            console.log("Dados de 'ajustesFatura' atualizados em tempo real.");
+            updateMonthDisplay();
+        }, error => console.error("Erro no ouvinte de ajustesFatura:", error));
+    }
+
+    // Função para agrupar a inicialização do app (agora é 'async')
+    async function inicializarErenderizarApp() {
+        // Mostra um feedback de carregamento (opcional, mas bom para o usuário)
+        currentMonthDisplay.textContent = 'Carregando dados...';
+        listaTransacoesUl.innerHTML = '<li>Carregando...</li>';
+
+        // 1. Substitui a leitura do LocalStorage pela busca no Firestore
+        await carregarDadosDoFirestore();
+        
+        // 2. O resto da lógica continua a mesma, mas agora com os dados da nuvem
+        verificarEGerarTransacoesFuturas(); // Gera transações recorrentes se necessário
+        updateMonthDisplay(); // Renderiza a tela com os dados atualizados
+    }
+
     // --- Funções de Persistência ---
     function salvarDadosNoLocalStorage() { try { localStorage.setItem(CHAVE_TRANSACOES, JSON.stringify(transacoes)); localStorage.setItem(CHAVE_CARTOES, JSON.stringify(cartoes)); localStorage.setItem(CHAVE_AJUSTES, JSON.stringify(ajustesFatura)); localStorage.setItem(CHAVE_ORCAMENTOS, JSON.stringify(orcamentos)); localStorage.setItem(CHAVE_ORCAMENTOS_FECHADOS, JSON.stringify(orcamentosFechados)); console.log("Dados salvos no LocalStorage."); } catch (error) { console.error("Erro ao salvar dados no LocalStorage:", error); } }
     function inicializarTransacoes() { const dadosSalvos = localStorage.getItem(CHAVE_TRANSACOES); if (dadosSalvos) { try { const transacoesSalvas = JSON.parse(dadosSalvos); return Array.isArray(transacoesSalvas) ? transacoesSalvas : []; } catch (e) { return []; } } return []; }
@@ -331,9 +528,10 @@ function carregarFormularioReceita(transacao = null) {
     if (transacao && transacao.frequencia) {
         freqSelect.value = transacao.frequencia;
     }
-    if (isEditMode && (transacao?.frequencia === CONSTS.FREQUENCIA.RECORRENTE || transacao?.frequencia === CONSTS.FREQUENCIA.PARCELADA)) {
+        // CORREÇÃO: Desabilita a alteração de frequência em QUALQUER modo de edição.
+    if (isEditMode) {
         freqSelect.disabled = true;
-        freqSelect.insertAdjacentHTML('afterend', '<small class="form-note">Frequência não pode ser alterada para transações existentes.</small>');
+        freqSelect.insertAdjacentHTML('afterend', '<small class="form-note">A frequência não pode ser alterada em uma transação existente.</small>');
     }
     if (editingSerieId) {
         dataEntradaInput.disabled = true;
@@ -417,9 +615,12 @@ function carregarFormularioDespesaOrdinaria(container, transacao = null) {
         }
     }
 
-    if (isEditMode && (transacao?.frequencia === CONSTS.FREQUENCIA.PARCELADA || transacao?.frequencia === CONSTS.FREQUENCIA.RECORRENTE)) {
+        // CORREÇÃO: Desabilita a alteração de frequência em QUALQUER modo de edição.
+    if (isEditMode) {
         frequenciaSelect.disabled = true;
-        frequenciaSelect.insertAdjacentHTML('afterend', '<small class="form-note">Frequência não pode ser alterada.</small>');
+        frequenciaSelect.insertAdjacentHTML('afterend', '<small class="form-note">A frequência não pode ser alterada em uma transação existente.</small>');
+        
+        // Mantém a lógica para desabilitar os campos de parcelamento se for o caso
         if (transacao?.frequencia === CONSTS.FREQUENCIA.PARCELADA) {
             tipoCadastroParcelaSelect.disabled = true;
             qtdParcelasInput.disabled = true;
@@ -577,11 +778,13 @@ function obterDadosDoFormulario() {
             } else {
                 dados.valor = parseFloat(passo2Container.querySelector('#valorDespesaCartaoUnicaRecorrente').value) || 0;
             }
-            const cartaoEl = passo2Container.querySelector('#cartaoDespesa');
-            dados.cartaoId = parseInt(cartaoEl.value);
+        const cartaoEl = passo2Container.querySelector('#cartaoDespesa');
+            // Mantém o ID do cartão como string, que é o formato do Firestore.
+            dados.cartaoId = cartaoEl.value; 
             dados.cartaoNome = cartaoEl.options[cartaoEl.selectedIndex].text;
             const orcamentoEl = passo2Container.querySelector('#orcamentoVinculado');
-            dados.orcamentoId = orcamentoEl && orcamentoEl.value ? parseInt(orcamentoEl.value) : null;
+            // CORREÇÃO: Pega o ID do orçamento (string) diretamente, sem parseInt().
+            dados.orcamentoId = orcamentoEl && orcamentoEl.value ? orcamentoEl.value : null;
         }
     }
     return dados;
@@ -598,7 +801,10 @@ function validarDadosDaTransacao(dados) {
     if (dados.categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA && !dados.dataVencimento) {
         alert("Data de vencimento é obrigatória."); return false;
     }
-    if (dados.categoria === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO && (!dados.cartaoId || isNaN(dados.cartaoId))) {
+    
+    // CORREÇÃO: A validação agora apenas checa se o campo 'cartaoId' não está vazio.
+    // Como o ID é uma string, a verificação isNaN() foi removida.
+    if (dados.categoria === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO && !dados.cartaoId) {
         alert("Selecione um cartão válido."); return false;
     }
     
@@ -612,141 +818,186 @@ function validarDadosDaTransacao(dados) {
     }
     return true;
 }
-
 // BLOCO CORRIGIDO PARA SUBSTITUIR A FUNÇÃO 'atualizarTransacaoExistente'
 
-function atualizarTransacaoExistente(dados) {
-    const transacaoOriginal = transacoes.find(t => t.id === editingTransactionId);
-    if (!transacaoOriginal) {
-        alert("Erro: Transação para edição não encontrada.");
+async function atualizarTransacaoExistente(dados) {
+    if (!currentUser) {
+        alert("Erro: Nenhum usuário logado.");
         return false;
     }
 
-    // Edição de toda a série
-    if (editingSerieId) {
-        transacoes.forEach(t => {
-            if (t.serieId === editingSerieId) {
-                t.valor = dados.valor;
-                // --- CORREÇÃO APLICADA AQUI ---
-                t.nome = (t.frequencia === CONSTS.FREQUENCIA.PARCELADA)
-                    ? `${dados.nomeBase} (${t.parcelaAtual}/${t.totalParcelas})`
+    // Prepara o objeto com os dados atualizados a serem salvos
+    const dadosParaAtualizar = {
+        nome: dados.nomeBase,
+        valor: dados.valor,
+        dataEntrada: dados.dataEntrada || null,
+        dataVencimento: dados.dataVencimento || null,
+        categoria: dados.categoria || null,
+        cartaoId: dados.cartaoId || null,
+        orcamentoId: dados.orcamentoId || null,
+    };
+
+    try {
+        if (editingSerieId) {
+            // ATUALIZAR UMA SÉRIE INTEIRA
+            console.log("Atualizando toda a série no Firestore:", editingSerieId);
+            const querySnapshot = await db.collection('users').doc(currentUser.uid).collection('transacoes').where('serieId', '==', editingSerieId).get();
+            
+            const batch = db.batch();
+            querySnapshot.docs.forEach(doc => {
+                const transacaoOriginal = doc.data();
+                const nomeAtualizado = (transacaoOriginal.frequencia === CONSTS.FREQUENCIA.PARCELADA)
+                    ? `${dados.nomeBase} (${transacaoOriginal.parcelaAtual}/${transacaoOriginal.totalParcelas})`
                     : dados.nomeBase;
-            }
-        });
-    } else { // Edição de uma única transação
-        const transacaoIndex = transacoes.findIndex(t => t.id === editingTransactionId);
-        // --- CORREÇÃO APLICADA AQUI ---
-        // Combinamos a transação existente com os novos dados, incluindo o 'nome'.
-        let transacaoEditada = {
-            ...transacoes[transacaoIndex],
-            ...dados,
-            nome: dados.nomeBase // Garantimos que o nome seja atualizado.
-        };
-        delete transacaoEditada.nomeBase; // Limpamos a propriedade temporária
-        
-        transacoes[transacaoIndex] = transacaoEditada;
+                
+                batch.update(doc.ref, { 
+                    valor: dados.valor,
+                    nome: nomeAtualizado
+                    // Nota: Outros campos como data não são alterados em série na lógica atual.
+                });
+            });
+            await batch.commit();
+            console.log("Série atualizada com sucesso.");
+
+        } else {
+            // ATUALIZAR UMA ÚNICA TRANSAÇÃO
+            const docRef = db.collection('users').doc(currentUser.uid).collection('transacoes').doc(editingTransactionId);
+            await docRef.update(dadosParaAtualizar);
+            console.log("Transação única atualizada no Firestore:", editingTransactionId);
+        }
+        return true;
+    } catch (error) {
+        console.error("Erro ao atualizar transação no Firestore:", error);
+        alert("Ocorreu um erro ao atualizar a transação.");
+        return false;
     }
-    return true;
 }
 
-// BLOCO CORRIGIDO PARA SUBSTITUIR A FUNÇÃO 'adicionarNovasTransacoes'
+async function adicionarNovasTransacoes(dados) {
+    if (!currentUser) {
+        alert("Erro: Nenhum usuário logado para salvar a transação.");
+        return false;
+    }
 
-function adicionarNovasTransacoes(dados) {
     let transacoesParaAdicionar = [];
-    let ultimoId = transacoes.length > 0 ? Math.max(0, ...transacoes.map(t => t.id)) : 0;
     const mesAnoReferenciaBase = getMesAnoChave(currentDate);
 
-    // --- CORREÇÃO APLICADA AQUI ---
-    // Agora, garantimos que a propriedade 'nome' seja criada corretamente desde o início.
-    const novaTransacaoBase = {
-        ...dados,
-        nome: dados.nomeBase, // Atribui o nome corretamente
-        id: 0,
-        mesAnoReferencia: mesAnoReferenciaBase,
-        paga: false,
-        serieId: null
-    };
-    delete novaTransacaoBase.nomeBase; // Remove a propriedade temporária e desnecessária
-
-    if (dados.frequencia === CONSTS.FREQUENCIA.PARCELADA || dados.frequencia === CONSTS.FREQUENCIA.RECORRENTE) {
-        const serieId = Date.now() + Math.random();
-        novaTransacaoBase.serieId = serieId;
+    if (dados.frequencia === CONSTS.FREQUENCIA.RECORRENTE || dados.frequencia === CONSTS.FREQUENCIA.PARCELADA) {
+        // LÓGICA PARA SÉRIES (RECORRENTE/PARCELADA)
+        const serieId = db.collection('users').doc().id; 
+        
+        const baseObject = { ...dados };
+        delete baseObject.nomeBase;
+        delete baseObject.id;
 
         if (dados.frequencia === CONSTS.FREQUENCIA.PARCELADA) {
             const totalParcelas = dados.totalParcelas;
             let valorDaParcela = (dados.tipoCadastroParcela === CONSTS.CADASTRO_PARCELA.VALOR_TOTAL)
                 ? parseFloat((dados.valor / totalParcelas).toFixed(2))
                 : dados.valor;
-            
             let parcelaInicial = dados.parcelaAtual || 1;
+
             for (let i = 0; i < (totalParcelas - parcelaInicial + 1); i++) {
-                ultimoId++;
                 let dataTransacaoParcela = new Date(parseDateString(dados.dataEntrada || dados.dataVencimento));
                 dataTransacaoParcela.setMonth(dataTransacaoParcela.getMonth() + i);
-                
                 let mesReferenciaParcela = new Date(currentDate);
                 mesReferenciaParcela.setMonth(mesReferenciaParcela.getMonth() + i);
 
                 transacoesParaAdicionar.push({
-                    ...novaTransacaoBase,
-                    id: ultimoId,
+                    ...baseObject,
+                    serieId: serieId,
                     valor: valorDaParcela,
                     parcelaAtual: parcelaInicial + i,
+                    totalParcelas: totalParcelas,
                     dataVencimento: dados.tipo === CONSTS.TIPO_TRANSACAO.DESPESA ? dataTransacaoParcela.toISOString().split('T')[0] : null,
                     dataEntrada: dados.tipo === CONSTS.TIPO_TRANSACAO.RECEITA ? dataTransacaoParcela.toISOString().split('T')[0] : null,
                     mesAnoReferencia: getMesAnoChave(mesReferenciaParcela),
                     nome: `${dados.nomeBase} (${parcelaInicial + i}/${totalParcelas})`
                 });
             }
-        } else { // Recorrente
+        } else { // Lógica para RECORRENTE
             for (let i = 0; i < CONSTS.RECORRENCIA_MESES; i++) {
-                ultimoId++;
                 let dataTransacaoRecorrente = new Date(parseDateString(dados.dataEntrada || dados.dataVencimento));
                 dataTransacaoRecorrente.setMonth(dataTransacaoRecorrente.getMonth() + i);
-
                 let mesReferenciaRecorrente = new Date(currentDate);
                 mesReferenciaRecorrente.setMonth(mesReferenciaRecorrente.getMonth() + i);
 
                 transacoesParaAdicionar.push({
-                    ...novaTransacaoBase,
-                    id: ultimoId,
+                    ...baseObject,
+                    serieId: serieId,
                     mesAnoReferencia: getMesAnoChave(mesReferenciaRecorrente),
-                    dataEntrada: dados.tipo === CONSTS.TIPO_TRANSACAO.RECEITA ? dataTransacaoRecorrente.toISOString().split('T')[0] : novaTransacaoBase.dataEntrada,
-                    dataVencimento: dados.tipo === CONSTS.TIPO_TRANSACAO.DESPESA ? dataTransacaoRecorrente.toISOString().split('T')[0] : novaTransacaoBase.dataVencimento,
+                    dataEntrada: dados.tipo === CONSTS.TIPO_TRANSACAO.RECEITA ? dataTransacaoRecorrente.toISOString().split('T')[0] : null,
+                    dataVencimento: dados.tipo === CONSTS.TIPO_TRANSACAO.DESPESA ? dataTransacaoRecorrente.toISOString().split('T')[0] : null,
+                    nome: dados.nomeBase
                 });
             }
         }
-    } else { // Transação Única
-        novaTransacaoBase.id = ++ultimoId;
-        transacoesParaAdicionar.push(novaTransacaoBase);
+    } else { // Transação Única - LÓGICA CORRIGIDA E EXPLÍCITA
+        
+        const transacaoUnica = {
+            // Informações base
+            nome: dados.nomeBase,
+            tipo: dados.tipo,
+            frequencia: dados.frequencia,
+            valor: dados.valor,
+            paga: false,
+            serieId: null,
+            mesAnoReferencia: mesAnoReferenciaBase,
+            // Informações condicionais (com valor padrão 'null')
+            categoria: dados.categoria || null,
+            dataEntrada: dados.dataEntrada || null,
+            dataVencimento: dados.dataVencimento || null,
+            cartaoId: dados.cartaoId || null,
+            orcamentoId: dados.orcamentoId || null
+        };
+        
+        transacoesParaAdicionar.push(transacaoUnica);
     }
 
     if (transacoesParaAdicionar.length > 0) {
-        transacoes.push(...transacoesParaAdicionar);
-        return true;
+        const batch = db.batch();
+        const transacoesCollectionRef = db.collection('users').doc(currentUser.uid).collection('transacoes');
+
+        transacoesParaAdicionar.forEach(transacao => {
+            const newDocRef = transacoesCollectionRef.doc();
+            batch.set(newDocRef, transacao);
+        });
+
+        try {
+            await batch.commit();
+            console.log(`${transacoesParaAdicionar.length} transação(ões) salvas no Firestore.`);
+            return true;
+        } catch (error) {
+            console.error("Erro ao salvar transações em lote no Firestore:", error);
+            alert("Ocorreu um erro ao salvar a transação. Tente novamente.");
+            return false;
+        }
     }
     return false;
 }
 
-
-// --- Listener do Botão Salvar (Refatorado) ---
+// --- Listener do Botão Salvar (Refatorado e Assíncrono) ---
 if (btnSalvarTransacao) {
-    btnSalvarTransacao.addEventListener('click', () => {
+    btnSalvarTransacao.addEventListener('click', async () => { // Adicionado 'async'
         const dadosFormulario = obterDadosDoFormulario();
         
         if (!validarDadosDaTransacao(dadosFormulario)) {
-            return; // Interrompe se a validação falhar
+            return; 
         }
 
         let sucesso = false;
         if (isEditMode) {
-            sucesso = atualizarTransacaoExistente(dadosFormulario);
+            // AINDA USA A LÓGICA ANTIGA. VAMOS MUDAR DEPOIS.
+            sucesso = await atualizarTransacaoExistente(dadosFormulario); 
         } else {
-            sucesso = adicionarNovasTransacoes(dadosFormulario);
+            // AGORA SALVA NO FIRESTORE
+            sucesso = await adicionarNovasTransacoes(dadosFormulario);
         }
 
         if (sucesso) {
-            atualizarTudo();
+            // APÓS O SUCESSO, RECARREGA OS DADOS DA NUVEM E ATUALIZA A TELA
+            await inicializarErenderizarApp();
+            
             if (isQuickAddMode && !isEditMode) {
                 resetFormParaNovaDespesaCartao();
             } else {
@@ -761,11 +1012,18 @@ if (btnSalvarTransacao) {
     if (btnAddDespesaFromFatura) { btnAddDespesaFromFatura.addEventListener('click', () => { const cartaoId = parseInt(btnAddDespesaFromFatura.dataset.cartaoId); const cartaoNome = btnAddDespesaFromFatura.dataset.cartaoNome; if (cartaoId && cartaoNome) { fecharModalEspecifico(modalDetalhesFaturaCartao); abrirModalDespesaCartaoRapida(cartaoId, cartaoNome); } }); }
     if (btnAjustesFatura) { btnAjustesFatura.addEventListener('click', () => { const cartaoId = parseInt(btnAjustesFatura.dataset.cartaoId); const mesAno = btnAjustesFatura.dataset.mesAnoReferencia; if (cartaoId && mesAno) { abrirModalAjustesFatura(cartaoId, mesAno); } }); }
     
-    if (btnFaturaAnterior) {
+        if (btnFaturaAnterior) {
         btnFaturaAnterior.addEventListener('click', () => {
             if (!currentFaturaDate) return;
             currentFaturaDate.setMonth(currentFaturaDate.getMonth() - 1);
-            const cartaoId = parseInt(faturaCartaoNomeTitulo.dataset.cartaoId);
+            
+            // CORREÇÃO: Pega o ID do dataset do título do modal, sem parseInt.
+            const cartaoId = faturaCartaoNomeTitulo.dataset.cartaoId;
+            if (!cartaoId) {
+                console.error("Não foi possível encontrar o ID do cartão para navegar a fatura.");
+                return;
+            }
+
             const novoMesAno = getMesAnoChave(currentFaturaDate);
             popularModalDetalhesFatura(cartaoId, novoMesAno);
         });
@@ -775,172 +1033,221 @@ if (btnSalvarTransacao) {
         btnFaturaProxima.addEventListener('click', () => {
             if (!currentFaturaDate) return;
             currentFaturaDate.setMonth(currentFaturaDate.getMonth() + 1);
-            const cartaoId = parseInt(faturaCartaoNomeTitulo.dataset.cartaoId);
+
+            // CORREÇÃO: Pega o ID do dataset do título do modal, sem parseInt.
+            const cartaoId = faturaCartaoNomeTitulo.dataset.cartaoId;
+            if (!cartaoId) {
+                console.error("Não foi possível encontrar o ID do cartão para navegar a fatura.");
+                return;
+            }
+
             const novoMesAno = getMesAnoChave(currentFaturaDate);
             popularModalDetalhesFatura(cartaoId, novoMesAno);
         });
     }
     
-    function handleTransactionListClick(event, ulElement, isInModal = false) {
+                        async function handleTransactionListClick(event, ulElement, isInModal = false) {
         const target = event.target;
-        const buttonContainer = target.closest('button');
+        const button = target.closest('button');
         const listItem = target.closest('li.transaction-item');
+
         if (!listItem) return;
 
+        // LÓGICA CENTRALIZADA: Verifica se o clique foi no botão de cadeado
+        if (button && (button.classList.contains('btn-fechar-orcamento') || button.classList.contains('btn-abrir-orcamento'))) {
+            await handleFecharAbrirOrcamento(button); // Chama a função correta
+            return; // E para a execução aqui
+        }
+
+        // --- LÓGICA DO CHECKBOX ---
+        if (target.type === 'checkbox') {
+            event.stopPropagation();
+            const marcarComoPaga = target.checked;
+            const isFaturaCheckbox = target.classList.contains('fatura-checkbox');
+            
+            listItem.classList.toggle('paga', marcarComoPaga);
+            const valueDateContainer = listItem.querySelector('.transaction-value-date');
+            if (valueDateContainer) {
+                const statusSpanExistente = valueDateContainer.querySelector('.status-paga');
+                if (marcarComoPaga && !statusSpanExistente) {
+                    const statusSpan = document.createElement('span');
+                    statusSpan.classList.add('status-paga');
+                    statusSpan.textContent = 'Paga';
+                    valueDateContainer.appendChild(statusSpan);
+                } else if (!marcarComoPaga && statusSpanExistente) {
+                    statusSpanExistente.remove();
+                }
+            }
+
+            if (isFaturaCheckbox) {
+                const cartaoId = target.dataset.cartaoId;
+                const mesAnoFatura = target.dataset.mesAnoFatura;
+                atualizarStatusPagoFatura(cartaoId, mesAnoFatura, marcarComoPaga);
+            } else {
+                const transacaoId = target.dataset.transactionId;
+                if (transacaoId) {
+                    atualizarStatusPago(transacaoId, marcarComoPaga);
+                }
+            }
+            return;
+        }
+
+        // --- AJUSTE DE VENCIMENTO DA FATURA ---
         const btnVencimento = target.closest('.btn-vencimento-adjust');
         if (btnVencimento) {
             event.stopPropagation();
-            const cartaoId = parseInt(btnVencimento.dataset.cartaoId);
+            const cartaoId = btnVencimento.dataset.cartaoId;
             const cartao = cartoes.find(c => c.id === cartaoId);
-            if (!cartao) return;
-    
+            if (!cartao || !currentUser) return;
+        
             const novoEstado = !cartao.vencimentoNoMesSeguinte;
             const msg = novoEstado 
                 ? `Deseja configurar este cartão para que suas faturas sempre vençam no mês seguinte?\n\nEsta regra será aplicada a todos os meses.`
                 : `Deseja reverter a regra e fazer com que as faturas deste cartão voltem a vencer no mês corrente?`;
-    
+        
             if (window.confirm(msg)) {
-                cartao.vencimentoNoMesSeguinte = novoEstado;
-                atualizarTudo();
+                try {
+                    const cartaoRef = db.collection('users').doc(currentUser.uid).collection('cartoes').doc(cartaoId);
+                    await cartaoRef.update({ vencimentoNoMesSeguinte: novoEstado });
+                    console.log("Regra de vencimento do cartão atualizada no Firestore.");
+                    // O ouvinte cuidará da atualização da tela
+                } catch (error) {
+                    console.error("Erro ao atualizar regra de vencimento:", error);
+                    alert("Ocorreu um erro ao salvar a alteração.");
+                }
             }
             return;
         }
 
-        const btnFecharOrcamento = target.closest('.btn-fechar-orcamento');
-        if (btnFecharOrcamento) {
-            event.stopPropagation();
-            const orcamentoId = parseInt(btnFecharOrcamento.dataset.id);
-            const orcamento = orcamentos.find(o => o.id === orcamentoId);
-            if (orcamento && window.confirm(`Tem certeza que deseja fechar o orçamento "${orcamento.nome}" para este mês? Esta ação pode ser revertida.`)) {
-                orcamentosFechados.push({ orcamentoId: orcamentoId, mesAno: getMesAnoChave(currentDate) });
-                atualizarTudo();
-            }
-            return;
-        }
-
-        const btnAbrirOrcamento = target.closest('.btn-abrir-orcamento');
-        if (btnAbrirOrcamento) {
-            event.stopPropagation();
-            const orcamentoId = parseInt(btnAbrirOrcamento.dataset.id);
-            const mesAnoAtual = getMesAnoChave(currentDate);
-            const orcamento = orcamentos.find(o => o.id === orcamentoId);
-            if (orcamento && window.confirm(`Deseja reabrir o orçamento "${orcamento.nome}" para este mês?`)) {
-                orcamentosFechados = orcamentosFechados.filter(o => !(o.orcamentoId === orcamentoId && o.mesAno === mesAnoAtual));
-                atualizarTudo();
-            }
-            return;
-        }
-
-        if (!buttonContainer) {
+        // --- LÓGICA DOS OUTROS BOTÕES ---
+        if (!button) {
             if (listItem.classList.contains('orcamento')) {
-                const orcamentoId = parseInt(listItem.dataset.orcamentoId.replace('orcamento-', ''));
+                const orcamentoId = listItem.dataset.orcamentoId.replace('orcamento-', '');
                 abrirModalDetalhesOrcamento(orcamentoId, getMesAnoChave(currentDate));
-                return;
             }
-            const checkbox = listItem.querySelector('input[type="checkbox"]');
-            if (checkbox) {
-                checkbox.checked = !checkbox.checked;
-                const clickEvent = new MouseEvent('click', { bubbles: true });
-                checkbox.dispatchEvent(clickEvent);
-            }
-        }
-
-        const viewFaturaButton = target.closest('.btn-view-fatura');
-        if (viewFaturaButton) {
-            event.stopPropagation();
-            const cartaoId = parseInt(viewFaturaButton.dataset.cartaoId);
-            const mesAno = viewFaturaButton.dataset.mesAnoFatura;
-            abrirModalDetalhesFatura(cartaoId, mesAno);
             return;
         }
-   
-        // BLOCO CORRIGIDO PARA COLAR NO LUGAR
-
-if (target.type === 'checkbox' && target.closest('.transaction-item')) {
-    event.stopPropagation(); 
-    const checkbox = target;
-    const listItem = checkbox.closest('.transaction-item');
-    const marcarComoPaga = checkbox.checked;
-
-    // Ação 1: Atualizar o dado no array de transações
-    const isFaturaCheckbox = checkbox.classList.contains('fatura-checkbox');
-    if (isFaturaCheckbox) {
-        const cartaoIdFatura = parseInt(checkbox.dataset.cartaoId);
-        const mesAnoFatura = checkbox.dataset.mesAnoFatura;
-        transacoes.forEach(t => {
-            if (t.tipo === CONSTS.TIPO_TRANSACAO.DESPESA && t.categoria === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO && t.cartaoId === cartaoIdFatura && t.mesAnoReferencia === mesAnoFatura) {
-                t.paga = marcarComoPaga;
+        
+        if (button.classList.contains('btn-view-fatura')) {
+            event.stopPropagation();
+            const cartaoId = button.dataset.cartaoId;
+            const mesAno = button.dataset.mesAnoFatura;
+            if (cartaoId && mesAno) {
+                abrirModalDetalhesFatura(cartaoId, mesAno);
+            } else {
+                console.error("Não foi possível obter cartaoId ou mesAno do botão da fatura.");
             }
-        });
-    } else { 
-        const transacaoId = parseInt(checkbox.dataset.transactionId);
+            return;
+        }
+        
+        const transacaoId = button.dataset.id;
+        if (!transacaoId) return;
+
         const transacao = transacoes.find(t => t.id === transacaoId);
-        if (transacao && transacao.tipo === CONSTS.TIPO_TRANSACAO.DESPESA) {
-            transacao.paga = marcarComoPaga;
+        if (!transacao) {
+            console.error("Transação não encontrada no array local. ID:", transacaoId);
+            return;
         }
-    }
+        
+        const isSerie = transacao.serieId;
 
-    // Ação 2: Atualizar a interface gráfica IMEDIATAMENTE
-    const valueDateContainer = listItem.querySelector('.transaction-value-date');
-    if (marcarComoPaga) {
-        listItem.classList.add('paga');
-        if (valueDateContainer) {
-            // Remove qualquer 'Paga' antigo para não duplicar
-            const spanExistente = valueDateContainer.querySelector('.status-paga');
-            if(spanExistente) spanExistente.remove();
-
-            // Adiciona o novo span 'Paga'
-            const statusSpan = document.createElement('span');
-            statusSpan.classList.add('status-paga');
-            statusSpan.textContent = 'Paga';
-            valueDateContainer.appendChild(statusSpan);
-        }
-    } else {
-        listItem.classList.remove('paga');
-        if (valueDateContainer) {
-            // Encontra e remove o span 'Paga'
-            const statusSpan = valueDateContainer.querySelector('.status-paga');
-            if (statusSpan) {
-                statusSpan.remove();
+        if (button.classList.contains('btn-delete')) {
+            if (isSerie) {
+                abrirModalConfirmarAcaoSerie(transacaoId, CONSTS.ACAO_SERIE.EXCLUIR);
+            } else {
+                if (window.confirm(`Tem certeza que deseja excluir "${transacao.nome}"?`)) {
+                    await excluirTransacaoUnica(transacaoId, isInModal);
+                }
+            }
+        } else if (button.classList.contains('btn-edit')) {
+            if (isInModal) fecharModalEspecifico(modalDetalhesFaturaCartao);
+            if (isSerie) {
+                abrirModalConfirmarAcaoSerie(transacaoId, CONSTS.ACAO_SERIE.EDITAR);
+            } else {
+                abrirModalEspecifico(modalNovaTransacao, transacaoId, 'transacao');
             }
         }
-    }
-
-    // Ação 3: Salvar e atualizar o resumo
-    salvarDadosNoLocalStorage();
-    atualizarResumoFinanceiro();
-    return; 
-}
-       
-        const transacaoId = buttonContainer?.dataset.id ? parseInt(buttonContainer.dataset.id) : null; 
-        if (!transacaoId) return; 
-        const transacao = transacoes.find(t => t.id === transacaoId); 
-        if (!transacao) return; 
-        const isSerie = transacao.frequencia === CONSTS.FREQUENCIA.PARCELADA || transacao.frequencia === CONSTS.FREQUENCIA.RECORRENTE; 
-        if (buttonContainer.classList.contains('btn-delete')) { 
-            if (isSerie) { 
-                abrirModalConfirmarAcaoSerie(transacaoId, CONSTS.ACAO_SERIE.EXCLUIR); 
-            } else { 
-                if (window.confirm(`Tem certeza que deseja excluir "${transacao.nome}"?`)) { 
-                    excluirTransacaoUnica(transacaoId, isInModal); 
-                } 
-            } 
-        } else if (buttonContainer.classList.contains('btn-edit')) { 
-            if (isInModal) fecharModalEspecifico(modalDetalhesFaturaCartao); 
-            if (isSerie) { 
-                abrirModalConfirmarAcaoSerie(transacaoId, CONSTS.ACAO_SERIE.EDITAR); 
-            } else { 
-                abrirModalEspecifico(modalNovaTransacao, transacaoId, 'transacao'); 
-            } 
-        } 
     }
 
     if (listaTransacoesUl) { listaTransacoesUl.addEventListener('click', (event) => handleTransactionListClick(event, listaTransacoesUl, false)); }
     if (listaComprasFaturaCartaoUl) { listaComprasFaturaCartaoUl.addEventListener('click', (event) => handleTransactionListClick(event, listaComprasFaturaCartaoUl, true)); }
     function abrirModalConfirmarAcaoSerie(transacaoId, acao) { if (!modalConfirmarAcaoSerie) return; const transacao = transacoes.find(t => t.id === transacaoId); if (!transacao) return; modalConfirmarAcaoSerie.dataset.transacaoId = transacaoId; modalConfirmarAcaoSerie.dataset.serieId = transacao.serieId; modalConfirmarAcaoSerie.dataset.acao = acao; if (acao === CONSTS.ACAO_SERIE.EXCLUIR) { modalConfirmarAcaoSerieTitulo.textContent = "Excluir Transação em Série"; modalConfirmarAcaoSerieTexto.textContent = `Deseja excluir apenas a transação "${transacao.nome}" deste mês, ou todas as transações desta série?`; } else if (acao === CONSTS.ACAO_SERIE.EDITAR) { modalConfirmarAcaoSerieTitulo.textContent = "Editar Transação em Série"; modalConfirmarAcaoSerieTexto.textContent = `Deseja editar apenas esta transação, ou aplicar as alterações a todas as transações desta série?`; } modalConfirmarAcaoSerie.style.display = 'flex'; }
-    if (btnAcaoSerieApenasEsta) { btnAcaoSerieApenasEsta.addEventListener('click', () => { const transacaoId = parseInt(modalConfirmarAcaoSerie.dataset.transacaoId); const acao = modalConfirmarAcaoSerie.dataset.acao; fecharModalEspecifico(modalConfirmarAcaoSerie); if (acao === CONSTS.ACAO_SERIE.EXCLUIR) { excluirTransacaoUnica(transacaoId); } else if (acao === CONSTS.ACAO_SERIE.EDITAR) { abrirModalEspecifico(modalNovaTransacao, transacaoId, 'transacao'); } }); }
-    if (btnAcaoSerieToda) { btnAcaoSerieToda.addEventListener('click', () => { const transacaoId = parseInt(modalConfirmarAcaoSerie.dataset.transacaoId); const serieId = parseFloat(modalConfirmarAcaoSerie.dataset.serieId); const acao = modalConfirmarAcaoSerie.dataset.acao; fecharModalEspecifico(modalConfirmarAcaoSerie); if (!serieId) { alert("Erro: ID da série não encontrado."); return; } if (acao === CONSTS.ACAO_SERIE.EXCLUIR) { transacoes = transacoes.filter(t => t.serieId !== serieId); alert("Toda a série de transações foi excluída."); atualizarTudo(); } else if (acao === CONSTS.ACAO_SERIE.EDITAR) { editingSerieId = serieId; abrirModalEspecifico(modalNovaTransacao, transacaoId, 'transacao'); } }); }
-    function excluirTransacaoUnica(transacaoId, isInModal = false) { transacoes = transacoes.filter(t => t.id !== transacaoId); if (isInModal && modalDetalhesFaturaCartao && modalDetalhesFaturaCartao.style.display === 'flex') { const cartaoIdDetalhes = faturaCartaoNomeTitulo ? parseInt(faturaCartaoNomeTitulo.dataset.cartaoId) : null; const mesAnoDetalhes = faturaCartaoNomeTitulo ? faturaCartaoNomeTitulo.dataset.mesAno : null; if (cartaoIdDetalhes && mesAnoDetalhes) popularModalDetalhesFatura(cartaoIdDetalhes, mesAnoDetalhes); } atualizarTudo(); }
+    if (btnAcaoSerieApenasEsta) {
+        btnAcaoSerieApenasEsta.addEventListener('click', async () => { // Adicionado async
+            // CORREÇÃO: Removemos o parseInt. O ID agora é tratado como string.
+            const transacaoId = modalConfirmarAcaoSerie.dataset.transacaoId; 
+            const acao = modalConfirmarAcaoSerie.dataset.acao;
+            fecharModalEspecifico(modalConfirmarAcaoSerie);
+
+            if (acao === CONSTS.ACAO_SERIE.EXCLUIR) {
+                // A função de exclusão já é async
+                await excluirTransacaoUnica(transacaoId);
+            } else if (acao === CONSTS.ACAO_SERIE.EDITAR) {
+                // A edição de uma única instância não precisa da série
+                editingSerieId = null; 
+                abrirModalEspecifico(modalNovaTransacao, transacaoId, 'transacao');
+            }
+        });
+    }        if (btnAcaoSerieToda) {
+        btnAcaoSerieToda.addEventListener('click', async () => { // Adicionado async
+            const transacaoId = modalConfirmarAcaoSerie.dataset.transacaoId;
+            const serieId = modalConfirmarAcaoSerie.dataset.serieId; // serieId é uma string, não precisa de parseFloat
+            const acao = modalConfirmarAcaoSerie.dataset.acao;
+            fecharModalEspecifico(modalConfirmarAcaoSerie);
+
+            if (!currentUser) { alert("Erro: Nenhum usuário logado."); return; }
+            if (!serieId) { alert("Erro: ID da série não encontrado."); return; }
+
+            if (acao === CONSTS.ACAO_SERIE.EXCLUIR) {
+                console.log("Excluindo toda a série:", serieId);
+                const querySnapshot = await db.collection('users').doc(currentUser.uid).collection('transacoes').where('serieId', '==', serieId).get();
+                
+                const batch = db.batch();
+                querySnapshot.docs.forEach(doc => {
+                    batch.delete(doc.ref); // Adiciona cada exclusão ao lote
+                });
+
+                try {
+                    await batch.commit(); // Executa a exclusão em lote
+                    alert("Toda a série de transações foi excluída.");
+                    await inicializarErenderizarApp(); // Recarrega os dados e atualiza a tela
+                } catch (error) {
+                    console.error("Erro ao excluir série de transações:", error);
+                    alert("Ocorreu um erro ao excluir a série.");
+                }
+
+            } else if (acao === CONSTS.ACAO_SERIE.EDITAR) {
+                editingSerieId = serieId;
+                abrirModalEspecifico(modalNovaTransacao, transacaoId, 'transacao');
+            }
+        });
+    }
+        async function excluirTransacaoUnica(transacaoId, isInModal = false) {
+        if (!currentUser) {
+            alert("Erro: Nenhum usuário logado.");
+            return;
+        }
+
+        try {
+            // Deleta o documento específico no Firestore
+            await db.collection('users').doc(currentUser.uid).collection('transacoes').doc(transacaoId).delete();
+            console.log("Transação única excluída do Firestore:", transacaoId);
+
+            // Atualiza a tela após a exclusão
+            if (isInModal && modalDetalhesFaturaCartao && modalDetalhesFaturaCartao.style.display === 'flex') {
+                const cartaoIdDetalhes = faturaCartaoNomeTitulo ? parseInt(faturaCartaoNomeTitulo.dataset.cartaoId) : null;
+                const mesAnoDetalhes = faturaCartaoNomeTitulo ? faturaCartaoNomeTitulo.dataset.mesAno : null;
+                // Recarrega os dados para atualizar o modal da fatura
+                await inicializarErenderizarApp();
+                if (cartaoIdDetalhes && mesAnoDetalhes) popularModalDetalhesFatura(cartaoIdDetalhes, mesAnoDetalhes);
+            } else {
+                await inicializarErenderizarApp();
+            }
+        } catch (error) {
+            console.error("Erro ao excluir transação no Firestore:", error);
+            alert("Ocorreu um erro ao excluir a transação.");
+        }
+    }
     function atualizarTudo() { renderizarTransacoesDoMes(); salvarDadosNoLocalStorage(); }
     
     // --- Fatura do Cartão, Renderização e Gestão de Dados ---
@@ -949,8 +1256,88 @@ if (target.type === 'checkbox' && target.closest('.transaction-item')) {
         popularModalDetalhesFatura(cartaoId, mesAnoFatura);
         abrirModalEspecifico(modalDetalhesFaturaCartao, null, 'detalhesFatura');
     }
-    function popularModalDetalhesFatura(cartaoId, mesAnoFatura) { if (!faturaCartaoNomeTitulo || !faturaCartaoTotalValor || !faturaCartaoDataVencimento || !listaComprasFaturaCartaoUl || !btnAddDespesaFromFatura || !btnAjustesFatura) return; const cartao = cartoes.find(c => c.id === cartaoId); if (!cartao) { console.error("Cartão não encontrado para detalhes:", cartaoId); return; } btnAddDespesaFromFatura.dataset.cartaoId = cartao.id; btnAddDespesaFromFatura.dataset.cartaoNome = cartao.nome; btnAjustesFatura.dataset.cartaoId = cartao.id; btnAjustesFatura.dataset.mesAnoReferencia = mesAnoFatura; faturaCartaoNomeTitulo.dataset.cartaoId = cartaoId; faturaCartaoNomeTitulo.dataset.mesAno = mesAnoFatura; faturaCartaoNomeTitulo.textContent = `Fatura ${cartao.nome} - ${mesAnoFatura.substring(5, 7)}/${mesAnoFatura.substring(0, 4)}`; const [ano, mes] = mesAnoFatura.split('-').map(Number); const dataVenc = new Date(ano, mes - 1, cartao.diaVencimentoFatura); faturaCartaoDataVencimento.textContent = dataVenc.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }); const comprasDaFatura = transacoes.filter(t => t.tipo === CONSTS.TIPO_TRANSACAO.DESPESA && t.categoria === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO && t.cartaoId === cartaoId && t.mesAnoReferencia === mesAnoFatura); const ajustesDaFatura = ajustesFatura.filter(a => a.cartaoId === cartaoId && a.mesAnoReferencia === mesAnoFatura); const totalFaturaBruto = comprasDaFatura.reduce((total, compra) => total + compra.valor, 0); const totalAjustes = ajustesDaFatura.reduce((total, ajuste) => total + ajuste.valor, 0); faturaCartaoTotalValor.textContent = formatCurrency(totalFaturaBruto - totalAjustes); let itensParaRenderizar = [ ...comprasDaFatura.map(c => ({ ...c, renderType: 'compra' })), ...ajustesDaFatura.map(a => ({ ...a, renderType: 'ajuste' })) ]; itensParaRenderizar.sort((a, b) => { if (a.renderType === 'ajuste' && b.renderType === 'compra') return 1; if (a.renderType === 'compra' && b.renderType === 'ajuste') return -1; if (a.renderType === 'ajuste' && b.renderType === 'ajuste') return 0; const prioridade = { [CONSTS.FREQUENCIA.RECORRENTE]: 1, [CONSTS.FREQUENCIA.PARCELADA]: 2, [CONSTS.FREQUENCIA.UNICA]: 3 }; const prioridadeA = prioridade[a.frequencia] || 4; const prioridadeB = prioridade[b.frequencia] || 4; if (prioridadeA !== prioridadeB) { return prioridadeA - prioridadeB; } if (a.frequencia === CONSTS.FREQUENCIA.PARCELADA && b.frequencia === CONSTS.FREQUENCIA.PARCELADA) { const restantesA = (a.totalParcelas || 0) - (a.parcelaAtual || 0); const restantesB = (b.totalParcelas || 0) - (b.parcelaAtual || 0); if (restantesA !== restantesB) { return restantesA - restantesB; } } return a.nome.localeCompare(b.nome); }); listaComprasFaturaCartaoUl.innerHTML = ''; if (itensParaRenderizar.length === 0) { listaComprasFaturaCartaoUl.innerHTML = '<li>Nenhuma compra ou ajuste nesta fatura.</li>'; return; } itensParaRenderizar.forEach(item => { const li = document.createElement('li'); li.classList.add('transaction-item'); if (item.renderType === 'compra') { li.dataset.transactionId = item.id; li.dataset.id = item.id; const detailsDiv = document.createElement('div'); detailsDiv.classList.add('transaction-details'); detailsDiv.innerHTML = `<span class="compra-nome">${item.nome}</span><span class="compra-valor">${formatCurrency(item.valor)}</span>`; const actionsDiv = document.createElement('div'); actionsDiv.classList.add('transaction-actions'); const editButton = document.createElement('button'); editButton.classList.add('btn-edit'); editButton.innerHTML = '✎'; editButton.title = "Editar Compra"; editButton.dataset.id = item.id; actionsDiv.appendChild(editButton); const deleteButton = document.createElement('button'); deleteButton.classList.add('btn-delete'); deleteButton.innerHTML = '✖'; deleteButton.title = "Excluir Compra"; deleteButton.dataset.id = item.id; actionsDiv.appendChild(deleteButton); li.appendChild(detailsDiv); li.appendChild(actionsDiv); } else if (item.renderType === 'ajuste') { li.classList.add('ajuste-fatura-item'); li.innerHTML = `<div class="transaction-details"><span class="compra-nome">${item.descricao}</span><span class="compra-valor">- ${formatCurrency(item.valor)}</span></div>`; } listaComprasFaturaCartaoUl.appendChild(li); }); }
+        function popularModalDetalhesFatura(cartaoId, mesAnoFatura) {
+        if (!faturaCartaoNomeTitulo || !faturaCartaoTotalValor || !faturaCartaoDataVencimento || !listaComprasFaturaCartaoUl || !btnAddDespesaFromFatura || !btnAjustesFatura) return;
+        
+        // CORREÇÃO: Comparação de ID como string
+        const cartao = cartoes.find(c => c.id === cartaoId);
+        if (!cartao) {
+            console.error("Cartão não encontrado para detalhes:", cartaoId);
+            faturaCartaoNomeTitulo.textContent = "Cartão não encontrado";
+            listaComprasFaturaCartaoUl.innerHTML = '<li>Ocorreu um erro ao carregar os detalhes.</li>';
+            return;
+        }
 
+        btnAddDespesaFromFatura.dataset.cartaoId = cartao.id;
+        btnAddDespesaFromFatura.dataset.cartaoNome = cartao.nome;
+        btnAjustesFatura.dataset.cartaoId = cartao.id;
+        btnAjustesFatura.dataset.mesAnoReferencia = mesAnoFatura;
+        faturaCartaoNomeTitulo.dataset.cartaoId = cartaoId;
+        faturaCartaoNomeTitulo.dataset.mesAno = mesAnoFatura;
+        faturaCartaoNomeTitulo.textContent = `Fatura ${cartao.nome} - ${mesAnoFatura.substring(5, 7)}/${mesAnoFatura.substring(0, 4)}`;
+
+        const [ano, mes] = mesAnoFatura.split('-').map(Number);
+        const dataVenc = new Date(ano, mes - 1, cartao.diaVencimentoFatura);
+        faturaCartaoDataVencimento.textContent = dataVenc.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+        // CORREÇÃO: A comparação `t.cartaoId === cartaoId` agora funciona (string com string)
+        const comprasDaFatura = transacoes.filter(t => 
+            t.categoria === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO && 
+            t.cartaoId === cartaoId && 
+            t.mesAnoReferencia === mesAnoFatura
+        );
+
+        const ajustesDaFatura = ajustesFatura.filter(a => a.cartaoId === cartaoId && a.mesAnoReferencia === mesAnoFatura);
+        
+        const totalFaturaBruto = comprasDaFatura.reduce((total, compra) => total + compra.valor, 0);
+        const totalAjustes = ajustesDaFatura.reduce((total, ajuste) => total + ajuste.valor, 0);
+        faturaCartaoTotalValor.textContent = formatCurrency(totalFaturaBruto - totalAjustes);
+
+        let itensParaRenderizar = [
+            ...comprasDaFatura.map(c => ({ ...c, renderType: 'compra' })),
+            ...ajustesDaFatura.map(a => ({ ...a, renderType: 'ajuste' }))
+        ];
+        
+        // Ordenação e renderização (sem alterações aqui)
+        itensParaRenderizar.sort((a, b) => { if (a.renderType === 'ajuste' && b.renderType === 'compra') return 1; if (a.renderType === 'compra' && b.renderType === 'ajuste') return -1; if (a.renderType === 'ajuste' && b.renderType === 'ajuste') return 0; const prioridade = { [CONSTS.FREQUENCIA.RECORRENTE]: 1, [CONSTS.FREQUENCIA.PARCELADA]: 2, [CONSTS.FREQUENCIA.UNICA]: 3 }; const prioridadeA = prioridade[a.frequencia] || 4; const prioridadeB = prioridade[b.frequencia] || 4; if (prioridadeA !== prioridadeB) { return prioridadeA - prioridadeB; } if (a.frequencia === CONSTS.FREQUENCIA.PARCELADA && b.frequencia === CONSTS.FREQUENCIA.PARCELADA) { const restantesA = (a.totalParcelas || 0) - (a.parcelaAtual || 0); const restantesB = (b.totalParcelas || 0) - (b.parcelaAtual || 0); if (restantesA !== restantesB) { return restantesA - restantesB; } } return a.nome.localeCompare(b.nome); });
+        
+        listaComprasFaturaCartaoUl.innerHTML = '';
+        if (itensParaRenderizar.length === 0) {
+            listaComprasFaturaCartaoUl.innerHTML = '<li>Nenhuma compra ou ajuste nesta fatura.</li>';
+            return;
+        }
+        itensParaRenderizar.forEach(item => {
+            const li = document.createElement('li');
+            li.classList.add('transaction-item');
+            if (item.renderType === 'compra') {
+                li.dataset.transactionId = item.id;
+                li.dataset.id = item.id;
+                const detailsDiv = document.createElement('div');
+                detailsDiv.classList.add('transaction-details');
+                detailsDiv.innerHTML = `<span class="compra-nome">${item.nome}</span><span class="compra-valor">${formatCurrency(item.valor)}</span>`;
+                const actionsDiv = document.createElement('div');
+                actionsDiv.classList.add('transaction-actions');
+                const editButton = document.createElement('button');
+                editButton.classList.add('btn-edit');
+                editButton.innerHTML = '✎';
+                editButton.title = "Editar Compra";
+                editButton.dataset.id = item.id;
+                actionsDiv.appendChild(editButton);
+                const deleteButton = document.createElement('button');
+                deleteButton.classList.add('btn-delete');
+                deleteButton.innerHTML = '✖';
+                deleteButton.title = "Excluir Compra";
+                deleteButton.dataset.id = item.id;
+                actionsDiv.appendChild(deleteButton);
+                li.appendChild(detailsDiv);
+                li.appendChild(actionsDiv);
+            } else if (item.renderType === 'ajuste') {
+                li.classList.add('ajuste-fatura-item');
+                li.innerHTML = `<div class="transaction-details"><span class="compra-nome">${item.descricao}</span><span class="compra-valor">- ${formatCurrency(item.valor)}</span></div>`;
+            }
+            listaComprasFaturaCartaoUl.appendChild(li);
+        });
+    }
 // BLOCO DE CÓDIGO PARA SUBSTITUIR A FUNÇÃO 'renderizarTransacoesDoMes' E ADICIONAR AS FUNÇÕES AUXILIARES
 
 // --- Novas Funções Auxiliares de Renderização ---
@@ -1059,7 +1446,8 @@ function criarElementoOrcamento(item, actionsDiv) {
         actionButton.innerHTML = '🔒';
         actionButton.title = "Fechar orçamento do mês";
     }
-    actionButton.dataset.id = item.orcamentoId;
+    actionButton.dataset.orcamentoId = item.orcamentoId;
+    actionButton.dataset.mesAno = mesAnoAtual;
     actionsDiv.appendChild(actionButton);
     
     return `<div class="transaction-main-info">
@@ -1108,13 +1496,27 @@ function renderizarTransacoesDoMes() {
         faturasAgrupadas[dc.cartaoId].totalValor += dc.valor; 
         if (!dc.paga) faturasAgrupadas[dc.cartaoId].todasPagas = false; 
     });
-    Object.values(faturasAgrupadas).forEach(fatura => {
+        Object.values(faturasAgrupadas).forEach(fatura => {
         const [ano, mes] = mesAnoAtual.split('-').map(Number);
         const ajusteDeMes = fatura.vencimentoNoMesSeguinte ? 1 : 0;
         const dataVencimentoFatura = new Date(ano, (mes - 1) + ajusteDeMes, fatura.diaVencimentoFatura);
         const totalAjustes = calcularTotalAjustes(fatura.cartaoId, mesAnoAtual);
         const valorFinalFatura = fatura.totalValor - totalAjustes;
-        itensParaRenderizar.push({ id: `fatura-${fatura.cartaoId}-${mesAnoAtual}`, tipoDisplay: CONSTS.TIPO_RENDERIZACAO.FATURA, cartaoId: fatura.cartaoId, nome: `Fatura ${fatura.cartaoNome}`, valor: valorFinalFatura, dataOrdenacao: dataVencimentoFatura, dataVencimentoDisplay: dataVencimentoFatura.toISOString().split('T')[0], paga: fatura.todasPagas, mesAnoReferencia: mesAnoAtual, vencimentoNoMesSeguinte: fatura.vencimentoNoMesSeguinte });
+        
+        // A propriedade 'id' do item renderizado agora é o próprio ID do cartão,
+        // garantindo que ele seja pego corretamente pelo `handleTransactionListClick`.
+        itensParaRenderizar.push({ 
+            id: fatura.cartaoId, // CORREÇÃO APLICADA AQUI
+            tipoDisplay: CONSTS.TIPO_RENDERIZACAO.FATURA, 
+            cartaoId: fatura.cartaoId, 
+            nome: `Fatura ${fatura.cartaoNome}`, 
+            valor: valorFinalFatura, 
+            dataOrdenacao: dataVencimentoFatura, 
+            dataVencimentoDisplay: dataVencimentoFatura.toISOString().split('T')[0], 
+            paga: fatura.todasPagas, 
+            mesAnoReferencia: mesAnoAtual, 
+            vencimentoNoMesSeguinte: fatura.vencimentoNoMesSeguinte 
+        });
     });
     
     // Passo 4: Coletar os orçamentos
@@ -1137,9 +1539,20 @@ function renderizarTransacoesDoMes() {
         return dateA - dateB;
     });
 
-    if (itensParaRenderizar.length === 0) { const liEmpty = document.createElement('li'); liEmpty.textContent = "Nenhuma transação para este mês."; liEmpty.style.textAlign = 'center'; liEmpty.style.padding = '20px'; liEmpty.style.color = '#777'; listaTransacoesUl.appendChild(liEmpty); return; }
+        // Passo 6: Sempre atualizar o resumo financeiro, independentemente de haver itens.
+    atualizarResumoFinanceiro();
+
+    if (itensParaRenderizar.length === 0) { 
+        const liEmpty = document.createElement('li'); 
+        liEmpty.textContent = "Nenhuma transação para este mês."; 
+        liEmpty.style.textAlign = 'center'; 
+        liEmpty.style.padding = '20px'; 
+        liEmpty.style.color = '#777'; 
+        listaTransacoesUl.appendChild(liEmpty); 
+        return; 
+    }
     
-    // Passo 6: Renderizar cada item usando as funções auxiliares
+    // Passo 7: Renderizar cada item usando as funções auxiliares
     itensParaRenderizar.forEach(item => {
         const li = document.createElement('li');
         li.classList.add('transaction-item');
@@ -1184,17 +1597,67 @@ function renderizarTransacoesDoMes() {
         li.appendChild(actionsDiv);
         listaTransacoesUl.appendChild(li);
     });
-
-    atualizarResumoFinanceiro();
 }
     // --- Lógica de Cartões, Ajustes e Gestão de Dados ---
     if (btnGerenciarCartoes) { btnGerenciarCartoes.addEventListener('click', () => { abrirModalEspecifico(modalGerenciarCartoes, null, 'gerenciarCartoes'); }); }
     if (btnAbrirModalCadastroCartao) { btnAbrirModalCadastroCartao.addEventListener('click', () => { fecharModalEspecifico(modalGerenciarCartoes); abrirModalEspecifico(modalCadastrarCartao, null, 'cartaoCadastroEdicao'); }); }
-    if (btnSalvarCartaoModalBtn) { btnSalvarCartaoModalBtn.addEventListener('click', () => { if (!nomeCartaoInputModal || !diaVencimentoFaturaInputModal) return; const nome = nomeCartaoInputModal.value.trim(); const diaVencimento = parseInt(diaVencimentoFaturaInputModal.value); if (!nome) { alert("Por favor, informe o nome do cartão."); nomeCartaoInputModal.focus(); return; } if (isNaN(diaVencimento) || diaVencimento < 1 || diaVencimento > 31) { alert("Por favor, informe um dia de vencimento válido (1-31)."); diaVencimentoFaturaInputModal.focus(); return; } if (isCartaoEditMode && cartaoEditIdInput.value) { const idCartao = parseInt(cartaoEditIdInput.value); const cartaoIndex = cartoes.findIndex(c => c.id === idCartao); if (cartaoIndex > -1) { cartoes[cartaoIndex].nome = nome; cartoes[cartaoIndex].diaVencimentoFatura = diaVencimento; alert("Cartão atualizado com sucesso!"); salvarDadosNoLocalStorage(); } else { alert("Erro ao atualizar cartão."); } } else { const novoCartao = { id: cartoes.length > 0 ? Math.max(...cartoes.map(c => c.id)) + 1 : 1, nome: nome, diaVencimentoFatura: diaVencimento, vencimentoNoMesSeguinte: false }; cartoes.push(novoCartao); alert("Cartão cadastrado com sucesso!"); salvarDadosNoLocalStorage(); } fecharModalEspecifico(modalCadastrarCartao); if (passo2Container.querySelector('#cartaoDespesa')) { const transacaoOriginal = isEditMode ? transacoes.find(t => t.id === editingTransactionId) : null; const categoriaAtual = document.getElementById('categoriaDespesa')?.value; if (categoriaAtual === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO) { const formCamposAdicionais = passo2Container.querySelector('#formCamposAdicionaisDespesa'); if (formCamposAdicionais) carregarFormularioDespesaCartao(formCamposAdicionais, transacaoOriginal); } } }); }
-    
+            if (btnSalvarCartaoModalBtn) {
+        btnSalvarCartaoModalBtn.addEventListener('click', async () => {
+            if (!currentUser) { alert("Erro: Nenhum usuário logado."); return; }
+
+            const nome = nomeCartaoInputModal.value.trim();
+            const diaVencimento = parseInt(diaVencimentoFaturaInputModal.value);
+
+            if (!nome) { alert("Por favor, informe o nome do cartão."); nomeCartaoInputModal.focus(); return; }
+            if (isNaN(diaVencimento) || diaVencimento < 1 || diaVencimento > 31) { alert("Por favor, informe um dia de vencimento válido (1-31)."); diaVencimentoFaturaInputModal.focus(); return; }
+
+            try {
+                if (isCartaoEditMode && cartaoEditIdInput.value) {
+                    // MODO EDIÇÃO
+                    const cartaoId = cartaoEditIdInput.value;
+                    const cartaoOriginal = cartoes.find(c => c.id === cartaoId);
+                    const dadosCartao = {
+                        nome: nome,
+                        diaVencimentoFatura: diaVencimento,
+                        // Mantém o valor de 'vencimentoNoMesSeguinte' que já existia
+                        vencimentoNoMesSeguinte: cartaoOriginal?.vencimentoNoMesSeguinte || false 
+                    };
+                    const cartaoRef = db.collection('users').doc(currentUser.uid).collection('cartoes').doc(cartaoId);
+                    await cartaoRef.update(dadosCartao);
+                    alert("Cartão atualizado com sucesso!");
+                } else {
+                    // MODO CRIAÇÃO
+                    const dadosCartao = {
+                        nome: nome,
+                        diaVencimentoFatura: diaVencimento,
+                        vencimentoNoMesSeguinte: false
+                    };
+                    await db.collection('users').doc(currentUser.uid).collection('cartoes').add(dadosCartao);
+                    alert("Cartão cadastrado com sucesso!");
+                }
+                
+                fecharModalEspecifico(modalCadastrarCartao);
+                // ESTA LINHA FOI REMOVIDA POIS O OUVINTE JÁ ATUALIZA A TELA
+                // await inicializarErenderizarApp(); 
+
+                if (passo2Container.querySelector('#cartaoDespesa')) {
+                     const transacaoOriginal = isEditMode ? transacoes.find(t => t.id === editingTransactionId) : null;
+                     const categoriaAtual = document.getElementById('categoriaDespesa')?.value;
+                     if (categoriaAtual === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO) {
+                         const formCamposAdicionais = passo2Container.querySelector('#formCamposAdicionaisDespesa');
+                         if (formCamposAdicionais) carregarFormularioDespesaCartao(formCamposAdicionais, transacaoOriginal);
+                     }
+                }
+            } catch (error) {
+                console.error("Erro ao salvar cartão no Firestore:", error);
+                alert("Ocorreu um erro ao salvar o cartão.");
+            }
+        });
+    }
     function renderizarListaCartoesCadastrados() { if (!listaCartoesCadastradosUl) return; listaCartoesCadastradosUl.innerHTML = ''; if (cartoes.length === 0) { listaCartoesCadastradosUl.innerHTML = '<li>Nenhum cartão cadastrado.</li>'; return; } cartoes.forEach(cartao => { const li = document.createElement('li'); li.innerHTML = ` <div class="cartao-info" data-id="${cartao.id}"> <span class="cartao-nome">${cartao.nome}</span> <span class="cartao-vencimento">Venc. dia: ${cartao.diaVencimentoFatura}</span> </div> <div class="transaction-actions"> <button class="btn-add-despesa-cartao" data-id="${cartao.id}" data-nome="${cartao.nome}" title="Adicionar Despesa neste Cartão">➕</button> <button class="btn-edit-cartao" data-id="${cartao.id}" title="Editar Cartão">✎</button> <button class="btn-delete-cartao" data-id="${cartao.id}" title="Excluir Cartão">✖</button> </div>`; listaCartoesCadastradosUl.appendChild(li); }); }
     function preencherModalEdicaoCartao(cartaoId) { const cartao = cartoes.find(c => c.id === cartaoId); if (cartao && modalCadastrarCartao) { if (modalCartaoTitulo) modalCartaoTitulo.textContent = "Editar Cartão"; if (nomeCartaoInputModal) nomeCartaoInputModal.value = cartao.nome; if (diaVencimentoFaturaInputModal) diaVencimentoFaturaInputModal.value = cartao.diaVencimentoFatura; if (btnSalvarCartaoModalBtn) btnSalvarCartaoModalBtn.textContent = "Salvar Alterações"; } }
     
+    // ESTE BLOCO INTEIRO FOI ALTERADO PARA A VERSÃO ESTÁVEL
     if (listaCartoesCadastradosUl) {
         listaCartoesCadastradosUl.addEventListener('click', (event) => {
             const target = event.target;
@@ -1204,7 +1667,7 @@ function renderizarTransacoesDoMes() {
             const infoDiv = target.closest('.cartao-info');
 
             if (infoDiv) {
-                const cartaoId = parseInt(infoDiv.dataset.id);
+                const cartaoId = infoDiv.dataset.id;
                 if (!cartaoId) return;
                 const mesAnoAtual = getMesAnoChave(currentDate);
                 fecharModalEspecifico(modalGerenciarCartoes);
@@ -1212,24 +1675,32 @@ function renderizarTransacoesDoMes() {
                 return;
             }
             if (addButton) {
-                const cartaoId = parseInt(addButton.dataset.id);
+                const cartaoId = addButton.dataset.id;
                 const cartaoNome = addButton.dataset.nome;
                 fecharModalEspecifico(modalGerenciarCartoes);
                 abrirModalDespesaCartaoRapida(cartaoId, cartaoNome);
             } else if (editButton) {
-                const cartaoId = parseInt(editButton.dataset.id);
+                const cartaoId = editButton.dataset.id;
                 fecharModalEspecifico(modalGerenciarCartoes);
                 abrirModalEspecifico(modalCadastrarCartao, cartaoId, 'cartaoCadastroEdicao');
             } else if (deleteButton) {
-                const cartaoId = parseInt(deleteButton.dataset.id);
+                const cartaoId = deleteButton.dataset.id;
                 const cartaoParaExcluir = cartoes.find(c => c.id === cartaoId);
-                if (cartaoParaExcluir && window.confirm(`Tem certeza que deseja excluir o cartão "${cartaoParaExcluir.nome}"? Transações e ajustes associados não serão removidos, mas perderão o vínculo nomeado.`)) {
-                    cartoes = cartoes.filter(c => c.id !== cartaoId);
-                    transacoes.forEach(t => { if (t.cartaoId === cartaoId) { t.cartaoNome = "(Cartão Removido)"; } });
-                    ajustesFatura.forEach(a => { if (a.cartaoId === cartaoId) { a.cartaoNome = "(Cartão Removido)"; } });
-                    renderizarListaCartoesCadastrados();
-                    atualizarTudo();
-                    alert("Cartão excluído.");
+                if (cartaoParaExcluir && window.confirm(`Tem certeza que deseja excluir o cartão "${cartaoParaExcluir.nome}"? Esta ação não pode ser desfeita.`)) {
+                    
+                    (async () => {
+                        try {
+                            if (!currentUser) { alert("Erro: Nenhum usuário logado."); return; }
+                            await db.collection('users').doc(currentUser.uid).collection('cartoes').doc(cartaoId).delete();
+                            
+                            alert("Cartão excluído com sucesso.");
+                            // O ouvinte cuidará de atualizar a tela
+                            renderizarListaCartoesCadastrados();
+                        } catch (error) {
+                            console.error("Erro ao excluir cartão:", error);
+                            alert("Ocorreu um erro ao excluir o cartão.");
+                        }
+                    })();
                 }
             }
         });
@@ -1397,8 +1868,11 @@ function renderizarTransacoesDoMes() {
     }
 
     if(btnSalvarOrcamento) {
-        btnSalvarOrcamento.addEventListener('click', () => {
-            const id = parseInt(orcamentoEditIdInput.value);
+        btnSalvarOrcamento.addEventListener('click', async () => { // TORNADO ASSÍNCRONO
+            if (!currentUser) { alert("Erro: Você precisa estar logado para salvar um orçamento."); return; }
+
+            // CORREÇÃO: ID agora é uma string, não precisa de parseInt
+            const id = orcamentoEditIdInput.value; 
             const nome = nomeOrcamentoInput.value.trim();
             const valor = parseFloat(valorOrcamentoInput.value);
             const dia = parseInt(diaOrcamentoInput.value);
@@ -1407,36 +1881,67 @@ function renderizarTransacoesDoMes() {
             if (isNaN(valor) || valor <= 0) { alert("O valor do orçamento deve ser um número positivo."); valorOrcamentoInput.focus(); return; }
             if (isNaN(dia) || dia < 1 || dia > 31) { alert("O dia deve ser entre 1 e 31."); diaOrcamentoInput.focus(); return; }
 
-            if (id) { // Editando
-                const orcamentoIndex = orcamentos.findIndex(o => o.id === id);
-                if (orcamentoIndex > -1) {
-                    orcamentos[orcamentoIndex] = { ...orcamentos[orcamentoIndex], nome, valor, dia };
+            try {
+                if (id) { // Editando: O ID existe, então atualizamos o documento existente
+                    const orcamentoRef = db.collection('users').doc(currentUser.uid).collection('orcamentos').doc(id);
+                    await orcamentoRef.update({
+                        nome: nome,
+                        valor: valor,
+                        dia: dia
+                    });
+                    alert("Orçamento atualizado com sucesso!");
+                } else { // Criando: O ID está vazio, então criamos um novo documento
+                    const orcamentosCollectionRef = db.collection('users').doc(currentUser.uid).collection('orcamentos');
+                    await orcamentosCollectionRef.add({
+                        nome: nome,
+                        valor: valor,
+                        dia: dia
+                    });
+                    alert("Orçamento cadastrado com sucesso!");
                 }
-            } else { // Criando
-                const novoOrcamento = { id: Date.now(), nome, valor, dia };
-                orcamentos.push(novoOrcamento);
+
+                fecharModalEspecifico(modalOrcamentos);
+                // ESTA LINHA FOI REMOVIDA POIS O OUVINTE JÁ ATUALIZA A TELA
+                // await inicializarErenderizarApp(); 
+
+            } catch (error) {
+                console.error("Erro ao salvar orçamento no Firestore:", error);
+                alert("Ocorreu um erro ao salvar o orçamento. Tente novamente.");
             }
-            
-            atualizarTudo();
-            fecharModalEspecifico(modalOrcamentos);
         });
     }
 
     if(listaOrcamentosUl) {
-        listaOrcamentosUl.addEventListener('click', (e) => {
+        listaOrcamentosUl.addEventListener('click', async (e) => { // TORNADO ASSÍNCRONO
             const editButton = e.target.closest('.btn-edit-orcamento');
             const deleteButton = e.target.closest('.btn-delete-orcamento');
 
             if (editButton) {
-                const orcamentoId = parseInt(editButton.dataset.id);
+                const orcamentoId = editButton.dataset.id;
                 preencherModalEdicaoOrcamento(orcamentoId);
             } else if (deleteButton) {
-                const orcamentoId = parseInt(deleteButton.dataset.id);
+                const orcamentoId = deleteButton.dataset.id;
                 const orcamento = orcamentos.find(o => o.id === orcamentoId);
                 if (orcamento && window.confirm(`Tem certeza que deseja excluir o orçamento "${orcamento.nome}"?`)) {
-                    orcamentos = orcamentos.filter(o => o.id !== orcamentoId);
-                    atualizarTudo();
-                    renderizarListaOrcamentos();
+                    
+                    if (!currentUser) { alert("Erro: Você precisa estar logado para excluir."); return; }
+
+                    try {
+                        // EXCLUI O DOCUMENTO DIRETAMENTE NO FIRESTORE
+                        const orcamentoRef = db.collection('users').doc(currentUser.uid).collection('orcamentos').doc(orcamentoId);
+                        await orcamentoRef.delete();
+                        
+                        alert("Orçamento excluído com sucesso.");
+                        
+                        // RECARREGA OS DADOS DA NUVEM PARA ATUALIZAR O APP
+                        // await inicializarErenderizarApp(); // REMOVIDO
+                        // ATUALIZA A LISTA DENTRO DO MODAL ABERTO
+                        renderizarListaOrcamentos(); 
+
+                    } catch (error) {
+                        console.error("Erro ao excluir orçamento no Firestore:", error);
+                        alert("Ocorreu um erro ao tentar excluir o orçamento.");
+                    }
                 }
             }
         });
@@ -1524,8 +2029,74 @@ function renderizarTransacoesDoMes() {
              bodyEl.classList.remove('sidebar-visible');
         }
     });
+        async function atualizarStatusPago(transacaoId, novoStatus) {
+        if (!currentUser) return;
+        try {
+            const docRef = db.collection('users').doc(currentUser.uid).collection('transacoes').doc(transacaoId);
+            await docRef.update({ paga: novoStatus });
+            console.log(`Status da transação ${transacaoId} atualizado para ${novoStatus}.`);
+            
+            // O ouvinte cuidará de redesenhar, mas podemos atualizar o resumo financeiro localmente para uma resposta mais rápida
+            const transacaoLocal = transacoes.find(t => t.id === transacaoId);
+            if(transacaoLocal) transacaoLocal.paga = novoStatus;
+            atualizarResumoFinanceiro();
 
-    // --- Inicialização ---
-    verificarEGerarTransacoesFuturas();
-    updateMonthDisplay();
+        } catch (error) {
+            console.error("Erro ao atualizar status de pagamento:", error);
+        }
+    }
+
+    async function atualizarStatusPagoFatura(cartaoId, mesAno, novoStatus) {
+        if (!currentUser) return;
+        try {
+            const q = db.collection('users').doc(currentUser.uid).collection('transacoes')
+                .where('cartaoId', '==', cartaoId)
+                .where('mesAnoReferencia', '==', mesAno);
+
+            const querySnapshot = await q.get();
+            const batch = db.batch();
+            querySnapshot.docs.forEach(doc => {
+                batch.update(doc.ref, { paga: novoStatus });
+            });
+            await batch.commit();
+            console.log(`Status de ${querySnapshot.size} transações da fatura atualizado para ${novoStatus}.`);
+
+            // O ouvinte cuidará de redesenhar, mas podemos atualizar o resumo financeiro localmente para uma resposta mais rápida
+            transacoes.forEach(t => {
+                if(t.cartaoId === cartaoId && t.mesAnoReferencia === mesAno) {
+                    t.paga = novoStatus;
+                }
+            });
+            atualizarResumoFinanceiro();
+
+        } catch (error) {
+            console.error("Erro ao atualizar status de pagamento da fatura:", error);
+        }
+    }
+
+    async function handleFecharAbrirOrcamento(button) {
+        if (!currentUser) { alert("Erro: Você precisa estar logado."); return; }
+        
+        const orcamentoId = button.dataset.orcamentoId;
+        const mesAno = button.dataset.mesAno;
+        const deveFechar = button.classList.contains('btn-fechar-orcamento');
+
+        const orcamentosFechadosRef = db.collection('users').doc(currentUser.uid).collection('orcamentosFechados');
+        
+        try {
+            if (deveFechar) {
+                const docId = `${orcamentoId}_${mesAno}`;
+                await orcamentosFechadosRef.doc(docId).set({ orcamentoId: orcamentoId, mesAno: mesAno });
+                console.log(`Orçamento ${orcamentoId} fechado para ${mesAno}`);
+            } else {
+                const docId = `${orcamentoId}_${mesAno}`;
+                await orcamentosFechadosRef.doc(docId).delete();
+                console.log(`Orçamento ${orcamentoId} reaberto para ${mesAno}`);
+            }
+            // O ouvinte cuidará de atualizar a tela
+        } catch (error) {
+            console.error("Erro ao alterar o estado do orçamento:", error);
+            alert("Ocorreu um erro ao tentar salvar a alteração.");
+        }
+    }
 });

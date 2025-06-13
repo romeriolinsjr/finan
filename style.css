@@ -816,3 +816,46 @@ body {
         display: block;
     }
 }
+
+/* ========================================= */
+/*      ESTILOS PARA AUTENTICAÇÃO            */
+/* ========================================= */
+
+#modalAuth .modal-content {
+    max-width: 400px;
+    animation: none; /* Remove a animação de slide para o modal inicial */
+}
+
+#modalAuth[data-is-user-logged-in="true"] .modal-content {
+    border-top: 5px solid #27ae60; /* Verde para indicar sucesso */
+}
+
+#modalAuth[data-is-user-logged-in="true"] #modalAuthTitulo {
+    color: #27ae60;
+}
+
+#modalAuth .btn-link {
+    background: none;
+    border: none;
+    padding: 5px;
+    color: #3498db;
+    cursor: pointer;
+    font-size: 0.9em;
+    text-decoration: underline;
+}
+
+#modalAuth .btn-link:hover {
+    color: #2980b9;
+}
+
+/* Estilo específico para o botão de Logout quando ele está no menu lateral */
+.sidebar #btnLogout {
+    background-color: #7f8c8d;
+    color: white;
+    margin-top: 20px;
+    border-top: 1px solid #4a6278;
+    padding-top: 15px;
+}
+.sidebar #btnLogout:hover {
+    background-color: #c0392b;
+}
