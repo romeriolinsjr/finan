@@ -1009,7 +1009,17 @@ if (btnSalvarTransacao) {
     // --- Navegação e Ações na Lista ---
     if (prevMonthBtn) { prevMonthBtn.addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() - 1); updateMonthDisplay(); }); }
     if (nextMonthBtn) { nextMonthBtn.addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() + 1); updateMonthDisplay(); }); }
-    if (btnAddDespesaFromFatura) { btnAddDespesaFromFatura.addEventListener('click', () => { const cartaoId = parseInt(btnAddDespesaFromFatura.dataset.cartaoId); const cartaoNome = btnAddDespesaFromFatura.dataset.cartaoNome; if (cartaoId && cartaoNome) { fecharModalEspecifico(modalDetalhesFaturaCartao); abrirModalDespesaCartaoRapida(cartaoId, cartaoNome); } }); }
+    if (btnAddDespesaFromFatura) {
+        btnAddDespesaFromFatura.addEventListener('click', () => {
+            // CORREÇÃO: Removido o parseInt. O ID do cartão é uma string.
+            const cartaoId = btnAddDespesaFromFatura.dataset.cartaoId;
+            const cartaoNome = btnAddDespesaFromFatura.dataset.cartaoNome;
+            if (cartaoId && cartaoNome) {
+                fecharModalEspecifico(modalDetalhesFaturaCartao);
+                abrirModalDespesaCartaoRapida(cartaoId, cartaoNome);
+            }
+        });
+    }
         if (btnAjustesFatura) {
         btnAjustesFatura.addEventListener('click', () => {
             // CORREÇÃO: Removido o parseInt. O ID do cartão é uma string.
@@ -1306,9 +1316,42 @@ if (btnSalvarTransacao) {
             ...ajustesDaFatura.map(a => ({ ...a, renderType: 'ajuste' }))
         ];
         
-        // Ordenação e renderização (sem alterações aqui)
-        itensParaRenderizar.sort((a, b) => { if (a.renderType === 'ajuste' && b.renderType === 'compra') return 1; if (a.renderType === 'compra' && b.renderType === 'ajuste') return -1; if (a.renderType === 'ajuste' && b.renderType === 'ajuste') return 0; const prioridade = { [CONSTS.FREQUENCIA.RECORRENTE]: 1, [CONSTS.FREQUENCIA.PARCELADA]: 2, [CONSTS.FREQUENCIA.UNICA]: 3 }; const prioridadeA = prioridade[a.frequencia] || 4; const prioridadeB = prioridade[b.frequencia] || 4; if (prioridadeA !== prioridadeB) { return prioridadeA - prioridadeB; } if (a.frequencia === CONSTS.FREQUENCIA.PARCELADA && b.frequencia === CONSTS.FREQUENCIA.PARCELADA) { const restantesA = (a.totalParcelas || 0) - (a.parcelaAtual || 0); const restantesB = (b.totalParcelas || 0) - (b.parcelaAtual || 0); if (restantesA !== restantesB) { return restantesA - restantesB; } } return a.nome.localeCompare(b.nome); });
-        
+                // Ordenação e renderização com novos critérios
+        itensParaRenderizar.sort((a, b) => {
+            // 1. Coloca os ajustes sempre no final
+            if (a.renderType === 'ajuste' && b.renderType === 'compra') return 1;
+            if (a.renderType === 'compra' && b.renderType === 'ajuste') return -1;
+            if (a.renderType === 'ajuste' && b.renderType === 'ajuste') return 0;
+
+            // 2. Ordena as compras por prioridade de frequência
+            const prioridade = { [CONSTS.FREQUENCIA.RECORRENTE]: 1, [CONSTS.FREQUENCIA.PARCELADA]: 2, [CONSTS.FREQUENCIA.UNICA]: 3 };
+            const prioridadeA = prioridade[a.frequencia] || 4;
+            const prioridadeB = prioridade[b.frequencia] || 4;
+            if (prioridadeA !== prioridadeB) {
+                return prioridadeA - prioridadeB;
+            }
+
+            // 3. Critérios de desempate para cada frequência
+            const valorA = a.valor || 0;
+            const valorB = b.valor || 0;
+
+            if (a.frequencia === CONSTS.FREQUENCIA.PARCELADA) {
+                // Para parceladas, ordena por parcelas restantes (as que terminam antes, primeiro)
+                const restantesA = (a.totalParcelas || 0) - (a.parcelaAtual || 0);
+                const restantesB = (b.totalParcelas || 0) - (b.parcelaAtual || 0);
+                if (restantesA !== restantesB) {
+                    return restantesA - restantesB;
+                }
+            } else {
+                // Para recorrentes e únicas, ordena por valor (maior primeiro)
+                if (valorA !== valorB) {
+                    return valorB - valorA;
+                }
+            }
+            
+            // 4. Critério final de desempate: nome, em ordem alfabética
+            return a.nome.localeCompare(b.nome);
+        });        
         listaComprasFaturaCartaoUl.innerHTML = '';
         if (itensParaRenderizar.length === 0) {
             listaComprasFaturaCartaoUl.innerHTML = '<li>Nenhuma compra ou ajuste nesta fatura.</li>';
@@ -1536,15 +1579,27 @@ function renderizarTransacoesDoMes() {
         itensParaRenderizar.push({ id: `orcamento-${orcamento.id}`, orcamentoId: orcamento.id, tipoDisplay: CONSTS.TIPO_RENDERIZACAO.ORCAMENTO, nome: orcamento.nome, valor: valorRestante, valorTotalOrcamento: orcamento.valor, dataOrdenacao: dataOrcamento });
     });
     
-    // Passo 5: Ordenar a lista final
+        // Passo 5: Ordenar a lista final
     const tipoPrioridade = { [CONSTS.TIPO_RENDERIZACAO.RECEITA]: 1, [CONSTS.TIPO_RENDERIZACAO.ORCAMENTO]: 2, [CONSTS.TIPO_RENDERIZACAO.DESPESA]: 3, [CONSTS.TIPO_RENDERIZACAO.FATURA]: 3 };
     itensParaRenderizar.sort((a, b) => {
-        const prioridadeA = tipoPrioridade[a.tipoDisplay]; const prioridadeB = tipoPrioridade[b.tipoDisplay];
+        // 1. Critério primário: Prioridade do tipo de item
+        const prioridadeA = tipoPrioridade[a.tipoDisplay]; 
+        const prioridadeB = tipoPrioridade[b.tipoDisplay];
         if (prioridadeA !== prioridadeB) { return prioridadeA - prioridadeB; }
-        if (a.tipoDisplay === CONSTS.TIPO_RENDERIZACAO.ORCAMENTO) { return b.valorTotalOrcamento - a.valorTotalOrcamento; }
+
+        // 2. Critério secundário: Data (do mais antigo para o mais novo)
         const dateA = a.dataOrdenacao instanceof Date ? a.dataOrdenacao : new Date(0);
         const dateB = b.dataOrdenacao instanceof Date ? b.dataOrdenacao : new Date(0);
-        return dateA - dateB;
+        const dateComparison = dateA - dateB;
+        if (dateComparison !== 0) {
+            return dateComparison;
+        }
+
+        // 3. Critério de desempate (datas iguais): Valor (do maior para o menor)
+        // Usamos 'valorTotalOrcamento' para orçamentos e 'valor' para os demais.
+        const valorA = a.valorTotalOrcamento || a.valor || 0;
+        const valorB = b.valorTotalOrcamento || b.valor || 0;
+        return valorB - valorA;
     });
 
         // Passo 6: Sempre atualizar o resumo financeiro, independentemente de haver itens.
