@@ -595,32 +595,35 @@ function carregarFormularioDespesaOrdinaria(container, transacao = null) {
     const template = document.getElementById('template-form-despesa-ordinaria');
     const clone = template.content.cloneNode(true);
 
-    // Preenche os valores
-    clone.querySelector('#valorDespesaOrd').value = (transacao && typeof transacao.valor !== 'undefined') ? transacao.valor : '';
     const dataVencimentoInput = clone.querySelector('#dataVencimentoDespesaOrd');
     dataVencimentoInput.value = (transacao && transacao.dataVencimento) ? transacao.dataVencimento : hoje;
 
+    // Elementos do formulário
     const frequenciaSelect = clone.querySelector('#frequenciaDespesaOrd');
+    const valorUnicaRecorrenteInput = clone.querySelector('#valorDespesaOrdUnicaRecorrente');
+    const valorParceladaInput = clone.querySelector('#valorDespesaOrdParcelada');
+    const valorContainerOrdUnicaRecorrente = clone.querySelector('#valorContainerOrdUnicaRecorrente');
     const camposParceladaDiv = clone.querySelector('#camposParceladaOrd');
     const tipoCadastroParcelaSelect = clone.querySelector('#tipoCadastroParcelaOrd');
     const qtdParcelasInput = clone.querySelector('#qtdParcelasOrd');
     const parcelaAtualInput = clone.querySelector('#parcelaAtualOrd');
 
+    // Preenche os valores se estiver em modo de edição
     if (transacao) {
         if (transacao.frequencia) frequenciaSelect.value = transacao.frequencia;
         if (transacao.frequencia === CONSTS.FREQUENCIA.PARCELADA) {
+            valorParceladaInput.value = transacao.valor || '';
             if (transacao.tipoCadastroParcela) tipoCadastroParcelaSelect.value = transacao.tipoCadastroParcela;
             if (transacao.totalParcelas) qtdParcelasInput.value = transacao.totalParcelas;
             if (transacao.parcelaAtual) parcelaAtualInput.value = transacao.parcelaAtual;
+        } else {
+            valorUnicaRecorrenteInput.value = transacao.valor || '';
         }
     }
 
-        // CORREÇÃO: Desabilita a alteração de frequência em QUALQUER modo de edição.
     if (isEditMode) {
         frequenciaSelect.disabled = true;
-        frequenciaSelect.insertAdjacentHTML('afterend', '<small class="form-note">A frequência não pode ser alterada em uma transação existente.</small>');
-        
-        // Mantém a lógica para desabilitar os campos de parcelamento se for o caso
+        frequenciaSelect.insertAdjacentHTML('afterend', '<small class="form-note">A frequência não pode ser alterada.</small>');
         if (transacao?.frequencia === CONSTS.FREQUENCIA.PARCELADA) {
             tipoCadastroParcelaSelect.disabled = true;
             qtdParcelasInput.disabled = true;
@@ -630,11 +633,18 @@ function carregarFormularioDespesaOrdinaria(container, transacao = null) {
     }
 
     function toggleParceladaFieldsOrd() {
-        const parcelada = frequenciaSelect.value === CONSTS.FREQUENCIA.PARCELADA;
-        camposParceladaDiv.style.display = parcelada ? 'block' : 'none';
-        qtdParcelasInput.required = parcelada && !frequenciaSelect.disabled;
-        parcelaAtualInput.required = parcelada && !frequenciaSelect.disabled;
-        if (!parcelada && (!isEditMode || (isEditMode && transacao?.frequencia !== CONSTS.FREQUENCIA.PARCELADA))) {
+        const isParcelada = frequenciaSelect.value === CONSTS.FREQUENCIA.PARCELADA;
+        camposParceladaDiv.style.display = isParcelada ? 'block' : 'none';
+        valorContainerOrdUnicaRecorrente.style.display = isParcelada ? 'none' : 'block';
+
+        // Atualiza os campos obrigatórios
+        valorParceladaInput.required = isParcelada && !frequenciaSelect.disabled;
+        valorUnicaRecorrenteInput.required = !isParcelada && !frequenciaSelect.disabled;
+        
+        if (isParcelada) {
+            qtdParcelasInput.required = !frequenciaSelect.disabled;
+            parcelaAtualInput.required = !frequenciaSelect.disabled;
+        } else if (!isEditMode) {
             parcelaAtualInput.value = '1';
             qtdParcelasInput.value = '';
         }
@@ -760,13 +770,16 @@ function obterDadosDoFormulario() {
         dados.categoria = passo2Container.querySelector('#categoriaDespesa').value;
 
         if (dados.categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA) {
-            dados.valor = parseFloat(passo2Container.querySelector('#valorDespesaOrd').value) || 0;
             dados.dataVencimento = passo2Container.querySelector('#dataVencimentoDespesaOrd').value;
             dados.frequencia = passo2Container.querySelector('#frequenciaDespesaOrd').value;
+            
             if (dados.frequencia === CONSTS.FREQUENCIA.PARCELADA) {
+                dados.valor = parseFloat(passo2Container.querySelector('#valorDespesaOrdParcelada').value) || 0;
                 dados.tipoCadastroParcela = passo2Container.querySelector('#tipoCadastroParcelaOrd').value;
                 dados.totalParcelas = parseInt(passo2Container.querySelector('#qtdParcelasOrd').value);
                 dados.parcelaAtual = parseInt(passo2Container.querySelector('#parcelaAtualOrd').value) || 1;
+            } else {
+                dados.valor = parseFloat(passo2Container.querySelector('#valorDespesaOrdUnicaRecorrente').value) || 0;
             }
         } else if (dados.categoria === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO) {
             dados.frequencia = passo2Container.querySelector('#frequenciaDespesaCartao').value;
@@ -1521,6 +1534,25 @@ function renderizarTransacoesDoMes() {
     if (!listaTransacoesUl) return;
     listaTransacoesUl.innerHTML = '';
     const mesAnoAtual = getMesAnoChave(currentDate);
+
+    // NOVO: Encontra o mês/ano da primeira transação já registrada
+    let primeiroMesAnoComDados = null;
+    if (transacoes.length > 0) {
+        primeiroMesAnoComDados = transacoes.reduce((min, t) => t.mesAnoReferencia < min ? t.mesAnoReferencia : min, transacoes[0].mesAnoReferencia);
+    }
+    
+    // NOVO: Se o mês atual for anterior ao primeiro mês com dados, exibe "Sem dados" e para.
+    if (primeiroMesAnoComDados && mesAnoAtual < primeiroMesAnoComDados) {
+        atualizarResumoFinanceiro(); // Limpa o resumo financeiro
+        const liEmpty = document.createElement('li');
+        liEmpty.textContent = "Sem dados para este período.";
+        liEmpty.style.textAlign = 'center';
+        liEmpty.style.padding = '20px';
+        liEmpty.style.color = '#777';
+        listaTransacoesUl.appendChild(liEmpty);
+        return;
+    }
+
     const transacoesDoMesVisivel = transacoes.filter(t => t.mesAnoReferencia === mesAnoAtual);
     let itensParaRenderizar = [];
 
@@ -1536,8 +1568,6 @@ function renderizarTransacoesDoMes() {
     const despesasCartaoDoMes = transacoesDoMesVisivel.filter(t => t.tipo === CONSTS.TIPO_TRANSACAO.DESPESA && t.categoria === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO);
     const faturasAgrupadas = {};
     despesasCartaoDoMes.forEach(dc => {
-        // --- CORREÇÃO APLICADA AQUI ---
-        // Removemos a verificação '|| dc.orcamentoId' para incluir todas as despesas do cartão na fatura.
         if (!dc.cartaoId) return; 
         
         if (!faturasAgrupadas[dc.cartaoId]) { 
@@ -1554,10 +1584,8 @@ function renderizarTransacoesDoMes() {
         const totalAjustes = calcularTotalAjustes(fatura.cartaoId, mesAnoAtual);
         const valorFinalFatura = fatura.totalValor - totalAjustes;
         
-        // A propriedade 'id' do item renderizado agora é o próprio ID do cartão,
-        // garantindo que ele seja pego corretamente pelo `handleTransactionListClick`.
         itensParaRenderizar.push({ 
-            id: fatura.cartaoId, // CORREÇÃO APLICADA AQUI
+            id: fatura.cartaoId,
             tipoDisplay: CONSTS.TIPO_RENDERIZACAO.FATURA, 
             cartaoId: fatura.cartaoId, 
             nome: `Fatura ${fatura.cartaoNome}`, 
@@ -1579,15 +1607,13 @@ function renderizarTransacoesDoMes() {
         itensParaRenderizar.push({ id: `orcamento-${orcamento.id}`, orcamentoId: orcamento.id, tipoDisplay: CONSTS.TIPO_RENDERIZACAO.ORCAMENTO, nome: orcamento.nome, valor: valorRestante, valorTotalOrcamento: orcamento.valor, dataOrdenacao: dataOrcamento });
     });
     
-        // Passo 5: Ordenar a lista final
+    // Passo 5: Ordenar a lista final
     const tipoPrioridade = { [CONSTS.TIPO_RENDERIZACAO.RECEITA]: 1, [CONSTS.TIPO_RENDERIZACAO.ORCAMENTO]: 2, [CONSTS.TIPO_RENDERIZACAO.DESPESA]: 3, [CONSTS.TIPO_RENDERIZACAO.FATURA]: 3 };
     itensParaRenderizar.sort((a, b) => {
-        // 1. Critério primário: Prioridade do tipo de item
         const prioridadeA = tipoPrioridade[a.tipoDisplay]; 
         const prioridadeB = tipoPrioridade[b.tipoDisplay];
         if (prioridadeA !== prioridadeB) { return prioridadeA - prioridadeB; }
 
-        // 2. Critério secundário: Data (do mais antigo para o mais novo)
         const dateA = a.dataOrdenacao instanceof Date ? a.dataOrdenacao : new Date(0);
         const dateB = b.dataOrdenacao instanceof Date ? b.dataOrdenacao : new Date(0);
         const dateComparison = dateA - dateB;
@@ -1595,14 +1621,11 @@ function renderizarTransacoesDoMes() {
             return dateComparison;
         }
 
-        // 3. Critério de desempate (datas iguais): Valor (do maior para o menor)
-        // Usamos 'valorTotalOrcamento' para orçamentos e 'valor' para os demais.
         const valorA = a.valorTotalOrcamento || a.valor || 0;
         const valorB = b.valorTotalOrcamento || b.valor || 0;
         return valorB - valorA;
     });
 
-        // Passo 6: Sempre atualizar o resumo financeiro, independentemente de haver itens.
     atualizarResumoFinanceiro();
 
     if (itensParaRenderizar.length === 0) { 
@@ -1663,8 +1686,15 @@ function renderizarTransacoesDoMes() {
 }
     // --- Lógica de Cartões, Ajustes e Gestão de Dados ---
     if (btnGerenciarCartoes) { btnGerenciarCartoes.addEventListener('click', () => { abrirModalEspecifico(modalGerenciarCartoes, null, 'gerenciarCartoes'); }); }
-    if (btnAbrirModalCadastroCartao) { btnAbrirModalCadastroCartao.addEventListener('click', () => { fecharModalEspecifico(modalGerenciarCartoes); abrirModalEspecifico(modalCadastrarCartao, null, 'cartaoCadastroEdicao'); }); }
-            if (btnSalvarCartaoModalBtn) {
+        if (btnAbrirModalCadastroCartao) {
+        btnAbrirModalCadastroCartao.addEventListener('click', () => {
+            fecharModalEspecifico(modalGerenciarCartoes);
+            // "Avisa" ao modal de cadastro que ele deve voltar para o de gerenciamento
+            modalCadastrarCartao.dataset.returnTo = 'modalGerenciarCartoes';
+            abrirModalEspecifico(modalCadastrarCartao, null, 'cartaoCadastroEdicao');
+        });
+    }
+                        if (btnSalvarCartaoModalBtn) {
         btnSalvarCartaoModalBtn.addEventListener('click', async () => {
             if (!currentUser) { alert("Erro: Nenhum usuário logado."); return; }
 
@@ -1676,20 +1706,17 @@ function renderizarTransacoesDoMes() {
 
             try {
                 if (isCartaoEditMode && cartaoEditIdInput.value) {
-                    // MODO EDIÇÃO
                     const cartaoId = cartaoEditIdInput.value;
                     const cartaoOriginal = cartoes.find(c => c.id === cartaoId);
                     const dadosCartao = {
                         nome: nome,
                         diaVencimentoFatura: diaVencimento,
-                        // Mantém o valor de 'vencimentoNoMesSeguinte' que já existia
                         vencimentoNoMesSeguinte: cartaoOriginal?.vencimentoNoMesSeguinte || false 
                     };
                     const cartaoRef = db.collection('users').doc(currentUser.uid).collection('cartoes').doc(cartaoId);
                     await cartaoRef.update(dadosCartao);
                     alert("Cartão atualizado com sucesso!");
                 } else {
-                    // MODO CRIAÇÃO
                     const dadosCartao = {
                         nome: nome,
                         diaVencimentoFatura: diaVencimento,
@@ -1699,11 +1726,16 @@ function renderizarTransacoesDoMes() {
                     alert("Cartão cadastrado com sucesso!");
                 }
                 
+                // NOVA LÓGICA DE RETORNO
+                const returnToModalId = modalCadastrarCartao.dataset.returnTo;
                 fecharModalEspecifico(modalCadastrarCartao);
-                // ESTA LINHA FOI REMOVIDA POIS O OUVINTE JÁ ATUALIZA A TELA
-                // await inicializarErenderizarApp(); 
-
-                if (passo2Container.querySelector('#cartaoDespesa')) {
+                
+                if (returnToModalId === 'modalGerenciarCartoes') {
+                    abrirModalEspecifico(modalGerenciarCartoes, null, 'gerenciarCartoes');
+                    // Limpa o dataset para não afetar outras aberturas
+                    delete modalCadastrarCartao.dataset.returnTo;
+                } else if (passo2Container.querySelector('#cartaoDespesa')) {
+                     // Lógica para atualizar o select de cartões na tela de nova transação
                      const transacaoOriginal = isEditMode ? transacoes.find(t => t.id === editingTransactionId) : null;
                      const categoriaAtual = document.getElementById('categoriaDespesa')?.value;
                      if (categoriaAtual === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO) {

@@ -341,20 +341,30 @@
             <option value="parcelada">Parcelada</option>
         </select>
     </div>
-    <div>
-        <label for="valorDespesaOrd">Valor (R$):</label>
-        <input type="number" id="valorDespesaOrd" step="0.01" placeholder="0,00" required>
+    
+    <!-- NOVO: Container para valor de despesa única/recorrente -->
+    <div id="valorContainerOrdUnicaRecorrente">
+        <label for="valorDespesaOrdUnicaRecorrente">Valor (R$):</label>
+        <input type="number" id="valorDespesaOrdUnicaRecorrente" step="0.01" placeholder="0,00">
     </div>
+
     <div>
         <label for="dataVencimentoDespesaOrd">Data de vencimento:</label>
         <input type="date" id="dataVencimentoDespesaOrd" required>
     </div>
+
+    <!-- Container de parcelamento agora inclui o campo de valor -->
     <div id="camposParceladaOrd" style="display:none;">
         <label for="tipoCadastroParcelaOrd">Cadastrar por:</label>
         <select id="tipoCadastroParcelaOrd">
             <option value="valor_total">Valor total da compra</option>
             <option value="valor_parcela">Valor da parcela</option>
         </select>
+        <!-- NOVO: Campo de valor movido para dentro do parcelamento -->
+        <div>
+            <label for="valorDespesaOrdParcelada">Valor (R$):</label>
+            <input type="number" id="valorDespesaOrdParcelada" step="0.01" placeholder="0,00">
+        </div>
         <label for="qtdParcelasOrd">Quantidade de parcelas:</label>
         <input type="number" id="qtdParcelasOrd" min="1">
         <div id="campoParcelaAtualOrd">
