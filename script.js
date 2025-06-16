@@ -83,13 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnAjustesFatura = document.getElementById('btnAjustesFatura');
     const btnFaturaAnterior = document.getElementById('btnFaturaAnterior');
     const btnFaturaProxima = document.getElementById('btnFaturaProxima');
-    const btnMenuGestaoDados = document.getElementById('btnGestaoDados');
-    const modalGestaoDados = document.getElementById('modalGestaoDados');
-    const btnExportarDados = document.getElementById('btnExportarDados');
-    const inputArquivoImportacao = document.getElementById('arquivoImportacao');
-    const nomeArquivoImportarDisplay = document.getElementById('nomeArquivoImportar');
-    const quickAddFeedback = document.getElementById('quickAddFeedback');
-    
+    const quickAddFeedback = document.getElementById('quickAddFeedback');   
     const modalOrcamentos = document.getElementById('modalOrcamentos');
     const modalOrcamentoTitulo = document.getElementById('modalOrcamentoTitulo');
     const orcamentoEditIdInput = document.getElementById('orcamentoEditId');
@@ -481,11 +475,8 @@ function atualizarResumoFinanceiro() {
             }
         } else if (tipoModal === 'gerenciarCartoes') {
             renderizarListaCartoesCadastrados();
-        } else if (tipoModal === 'orcamentos') {
+                } else if (tipoModal === 'orcamentos') {
             renderizarListaOrcamentos();
-        } else if (tipoModal === 'gestaoDados') {
-            if (nomeArquivoImportarDisplay) nomeArquivoImportarDisplay.textContent = "";
-            if (inputArquivoImportacao) inputArquivoImportacao.value = null;
         }
         modalElement.style.display = 'flex';
     }
@@ -520,9 +511,6 @@ function atualizarResumoFinanceiro() {
             orcamentoEditIdInput.value = '';
             modalOrcamentoTitulo.textContent = "Gerenciar Orçamentos";
             btnSalvarOrcamento.textContent = "Salvar";
-        } else if (modalElement.id === 'modalGestaoDados') {
-            if (nomeArquivoImportarDisplay) nomeArquivoImportarDisplay.textContent = "";
-            if (inputArquivoImportacao) inputArquivoImportacao.value = null;
         }
     }
     document.querySelectorAll('.close-button, .close-button-footer').forEach(button => { button.addEventListener('click', () => { const modalId = button.dataset.modalId; const modalParaFechar = modalId ? document.getElementById(modalId) : button.closest('.modal'); if (modalParaFechar) fecharModalEspecifico(modalParaFechar); }); });
@@ -1949,9 +1937,6 @@ function renderizarTransacoesDoMes() {
             }
         });
     }
-    if (btnMenuGestaoDados) { btnMenuGestaoDados.addEventListener('click', () => { abrirModalEspecifico(modalGestaoDados, null, 'gestaoDados'); }); }
-    if (btnExportarDados) { btnExportarDados.addEventListener('click', () => { const dadosParaExportar = { transacoes: transacoes, cartoes: cartoes, ajustesFatura: ajustesFatura, orcamentos: orcamentos, orcamentosFechados: orcamentosFechados }; try { const dadosJson = JSON.stringify(dadosParaExportar, null, 2); const blob = new Blob([dadosJson], { type: 'application/json' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.style.display = 'none'; a.href = url; const timestamp = new Date().toISOString().replace(/[:.]/g, '-').replace('T', '_').substring(0, 19); a.download = `meu_controle_financeiro_backup_${timestamp}.json`; document.body.appendChild(a); a.click(); window.URL.revokeObjectURL(url); document.body.removeChild(a); alert("Dados exportados com sucesso! Verifique seus downloads."); } catch (error) { console.error("Erro ao exportar dados:", error); alert("Ocorreu um erro ao tentar exportar os dados."); } fecharModalEspecifico(modalGestaoDados); }); }
-    if (inputArquivoImportacao) { inputArquivoImportacao.addEventListener('change', (event) => { const file = event.target.files[0]; if (!file) { if (nomeArquivoImportarDisplay) nomeArquivoImportarDisplay.textContent = ""; return; } if (nomeArquivoImportarDisplay) nomeArquivoImportarDisplay.textContent = `Arquivo: ${file.name}`; const reader = new FileReader(); reader.onload = (e) => { try { const dadosImportados = JSON.parse(e.target.result); if (dadosImportados && Array.isArray(dadosImportados.transacoes) && Array.isArray(dadosImportados.cartoes)) { if (window.confirm("Tem certeza que deseja importar estes dados? Todos os dados atuais serão substituídos.")) { transacoes = dadosImportados.transacoes; cartoes = dadosImportados.cartoes; ajustesFatura = dadosImportados.ajustesFatura || []; orcamentos = dadosImportados.orcamentos || []; orcamentosFechados = dadosImportados.orcamentosFechados || []; salvarDadosNoLocalStorage(); currentDate = new Date(); updateMonthDisplay(); alert("Dados importados com sucesso!"); fecharModalEspecifico(modalGestaoDados); } else { if (nomeArquivoImportarDisplay) nomeArquivoImportarDisplay.textContent = ""; inputArquivoImportacao.value = null; } } else { alert("Erro: O arquivo de backup parece ser inválido ou está em um formato incorreto."); if (nomeArquivoImportarDisplay) nomeArquivoImportarDisplay.textContent = ""; } } catch (error) { console.error("Erro ao importar e processar o arquivo JSON:", error); alert("Ocorreu um erro ao ler o arquivo. Verifique se ele é um arquivo JSON válido."); if (nomeArquivoImportarDisplay) nomeArquivoImportarDisplay.textContent = ""; } finally { inputArquivoImportacao.value = null; } }; reader.onerror = () => { alert("Não foi possível ler o arquivo selecionado."); if (nomeArquivoImportarDisplay) nomeArquivoImportarDisplay.textContent = ""; inputArquivoImportacao.value = null; }; reader.readAsText(file); }); }
     
         // --- Lógica de Orçamentos ---
     if(btnMenuOrcamentos) {

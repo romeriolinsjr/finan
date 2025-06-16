@@ -25,7 +25,6 @@
             <button id="btnNovaTransacao">Nova transação</button>
             <button id="btnGerenciarCartoes">Cartões de crédito</button>
             <button id="btnMenuOrcamentos">Orçamentos</button>
-            <button id="btnGestaoDados">Gestão de dados</button>
 
             <section class="financial-summary">
                 <h2>Resumo Financeiro</h2>
@@ -259,33 +258,6 @@
             <div class="modal-footer">
                 <button id="btnAbrirModalCadastroCartao" class="btn-primary">Cadastrar Novo Cartão</button>
                 <button class="btn-secondary close-button-footer" data-modal-id="modalGerenciarCartoes">Fechar</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal para Gestão de Dados -->
-    <div id="modalGestaoDados" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Gestão de Dados</h2>
-                <span class="close-button" data-modal-id="modalGestaoDados">×</span>
-            </div>
-            <div class="modal-body">
-                <p>Faça backup dos seus dados ou restaure um backup anterior.</p>
-                <div class="gestao-dados-acoes">
-                    <button id="btnExportarDados" class="btn-primary">Exportar Dados</button>
-                    <hr>
-                    <label for="arquivoImportacao" class="btn-primary btn-import-label">Importar Dados</label>
-                    <input type="file" id="arquivoImportacao" accept=".json" style="display: none;">
-                    <p id="nomeArquivoImportar" style="margin-top: 5px; font-style: italic;"></p>
-                </div>
-                 <p class="form-note" style="margin-top: 15px;">
-                    <strong>Atenção:</strong> A importação de dados substituirá todos os dados atuais no aplicativo. 
-                    Certifique-se de que o arquivo selecionado é um backup válido deste aplicativo.
-                </p>
-            </div>
-            <div class="modal-footer">
-                <button class="btn-secondary close-button-footer" data-modal-id="modalGestaoDados">Fechar</button>
             </div>
         </div>
     </div>
