@@ -10,6 +10,11 @@ body {
     font-size: 14px; 
 }
 
+/* NOVO: Trava a rolagem da página quando um modal está aberto */
+body.modal-aberto {
+    overflow: hidden;
+}
+
 .app-container {
     display: flex;
     width: 100%;

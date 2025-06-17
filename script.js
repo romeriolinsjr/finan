@@ -458,17 +458,21 @@ function atualizarResumoFinanceiro() {
             renderizarListaCartoesCadastrados();
         } else if (tipoModal === 'orcamentos') {
             renderizarListaOrcamentos();
-               } else if (tipoModal === 'relatorios') {
+                 } else if (tipoModal === 'relatorios') {
             // Sincroniza a data do relatório com a data principal ao abrir
             reportDate = new Date(currentDate);
             popularModalRelatorio(reportDate);
         }
         modalElement.style.display = 'flex';
+        // Adiciona a classe ao body para travar a rolagem da página principal
+        bodyEl.classList.add('modal-aberto');
     }
     
-    function fecharModalEspecifico(modalElement) {
+        function fecharModalEspecifico(modalElement) {
         if (!modalElement) return;
         modalElement.style.display = 'none';
+        // Remove a classe do body para restaurar a rolagem da página principal
+        bodyEl.classList.remove('modal-aberto');
         if (modalElement.id === 'modalNovaTransacao') {
             isQuickAddMode = false;
             isEditMode = false;
