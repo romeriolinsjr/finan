@@ -2231,7 +2231,7 @@ function renderizarTransacoesDoMes() {
         }
     }
 
-        function popularModalRelatorio(date) {
+            function popularModalRelatorio(date) {
         if (!relatorioTitulo || !relatorioCorpo) return;
 
         const mesAno = getMesAnoChave(date);
@@ -2239,47 +2239,48 @@ function renderizarTransacoesDoMes() {
         const ano = date.getFullYear();
         relatorioTitulo.textContent = `Relatório de ${nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1)}/${ano}`;
 
-        relatorioCorpo.innerHTML = '';
+        relatorioCorpo.innerHTML = `
+            <!-- As seções do relatório serão geradas aqui -->
+            <div id="relatorio-secao-resumo"></div>
+            <div id="relatorio-secao-analise-despesas"></div>
+            <div id="relatorio-secao-analise-orcamentos"></div>
+            <!-- Container para os gráficos -->
+            <section class="relatorio-secao relatorio-graficos">
+                <div class="grafico-container">
+                    <h3>Distribuição de Gastos</h3>
+                    <canvas id="graficoPizzaOrcamentos"></canvas>
+                </div>
+                <div class="grafico-container">
+                    <h3>Receitas vs. Despesas</h3>
+                    <canvas id="graficoBarrasResumo"></canvas>
+                </div>
+            </section>
+        `;
 
         const transacoesDoMes = transacoes.filter(t => t.mesAnoReferencia === mesAno);
+        const despesasDoMes = transacoesDoMes.filter(t => t.tipo === CONSTS.TIPO_TRANSACAO.DESPESA);
 
         // --- 1. CÁLCULO E RENDERIZAÇÃO DO RESUMO GERAL ---
-        let totalReceitas = 0;
+        let totalReceitas = transacoesDoMes.filter(t => t.tipo === CONSTS.TIPO_TRANSACAO.RECEITA).reduce((total, t) => total + t.valor, 0);
         let totalDespesas = 0;
-
-        totalReceitas = transacoesDoMes.filter(t => t.tipo === CONSTS.TIPO_TRANSACAO.RECEITA).reduce((total, t) => total + t.valor, 0);
-        
-        const despesasNaoOrcadas = transacoesDoMes.filter(t => t.tipo === CONSTS.TIPO_TRANSACAO.DESPESA && !t.orcamentoId);
+        const despesasNaoOrcadas = despesasDoMes.filter(d => !d.orcamentoId);
         totalDespesas += despesasNaoOrcadas.reduce((total, t) => total + t.valor, 0);
-
         orcamentos.forEach(orcamento => {
-            const gastosNesteOrcamento = transacoesDoMes.filter(t => t.orcamentoId === orcamento.id).reduce((total, t) => total + t.valor, 0);
+            const gastosNesteOrcamento = despesasDoMes.filter(t => t.orcamentoId === orcamento.id).reduce((total, t) => total + t.valor, 0);
             if (isOrcamentoFechado(orcamento.id, mesAno)) {
                 totalDespesas += gastosNesteOrcamento;
             } else {
                 totalDespesas += Math.max(orcamento.valor, gastosNesteOrcamento);
             }
         });
-
         const totalAjustesDoMes = ajustesFatura.filter(a => a.mesAnoReferencia === mesAno).reduce((total, a) => total + a.valor, 0);
         totalDespesas -= totalAjustesDoMes;
-
         const saldoFinal = totalReceitas - totalDespesas;
         
-        const resumoHTML = `
-            <section class="relatorio-secao">
-                <h3>Resumo Geral</h3>
-                <div class="relatorio-grid">
-                    <div class="relatorio-item"><span>Receitas Totais</span><strong class="valor-receita">${formatCurrency(totalReceitas)}</strong></div>
-                    <div class="relatorio-item"><span>Despesas Totais</span><strong class="valor-despesa">${formatCurrency(totalDespesas)}</strong></div>
-                    <div class="relatorio-item"><span>Saldo Final</span><strong style="color: ${saldoFinal >= 0 ? '#27ae60' : '#e74c3c'};">${formatCurrency(saldoFinal)}</strong></div>
-                </div>
-            </section>
-        `;
-        relatorioCorpo.innerHTML += resumoHTML;
+        const resumoHTML = `<section class="relatorio-secao"><h3>Resumo Geral</h3><div class="relatorio-grid"><div class="relatorio-item"><span>Receitas Totais</span><strong class="valor-receita">${formatCurrency(totalReceitas)}</strong></div><div class="relatorio-item"><span>Despesas Totais</span><strong class="valor-despesa">${formatCurrency(totalDespesas)}</strong></div><div class="relatorio-item"><span>Saldo Final</span><strong style="color: ${saldoFinal >= 0 ? '#27ae60' : '#e74c3c'};">${formatCurrency(saldoFinal)}</strong></div></div></section>`;
+        document.getElementById('relatorio-secao-resumo').innerHTML = resumoHTML;
 
         // --- 2. CÁLCULO E RENDERIZAÇÃO DA ANÁLISE DE DESPESAS ---
-        const despesasDoMes = transacoesDoMes.filter(t => t.tipo === CONSTS.TIPO_TRANSACAO.DESPESA);
         const calcularSubtotais = (categoria) => {
             const despesasFiltradas = despesasDoMes.filter(d => d.categoria === categoria);
             return {
@@ -2290,75 +2291,60 @@ function renderizarTransacoesDoMes() {
         };
         const subtotaisOrd = calcularSubtotais('ordinaria');
         const subtotaisCartao = calcularSubtotais('cartao_credito');
-        const analiseDespesasHTML = `
-            <section class="relatorio-secao">
-                <h3>Análise de Despesas</h3>
-                <div class="relatorio-grid-analise">
-                    <div class="relatorio-sub-secao">
-                        <h4>Gastos Ordinários</h4>
-                        <div class="relatorio-item-analise"><span>Únicas</span> <strong>${formatCurrency(subtotaisOrd.unica)}</strong></div>
-                        <div class="relatorio-item-analise"><span>Recorrentes</span> <strong>${formatCurrency(subtotaisOrd.recorrente)}</strong></div>
-                        <div class="relatorio-item-analise"><span>Parceladas</span> <strong>${formatCurrency(subtotaisOrd.parcelada)}</strong></div>
-                    </div>
-                    <div class="relatorio-sub-secao">
-                        <h4>Gastos com Cartão de Crédito</h4>
-                        <div class="relatorio-item-analise"><span>Únicas</span> <strong>${formatCurrency(subtotaisCartao.unica)}</strong></div>
-                        <div class="relatorio-item-analise"><span>Recorrentes</span> <strong>${formatCurrency(subtotaisCartao.recorrente)}</strong></div>
-                        <div class="relatorio-item-analise"><span>Parceladas</span> <strong>${formatCurrency(subtotaisCartao.parcelada)}</strong></div>
-                    </div>
-                </div>
-            </section>
-        `;
-        relatorioCorpo.innerHTML += analiseDespesasHTML;
-
+        const analiseDespesasHTML = `<section class="relatorio-secao"><h3>Análise de Despesas</h3><div class="relatorio-grid-analise"><div class="relatorio-sub-secao"><h4>Gastos Ordinários</h4><div class="relatorio-item-analise"><span>Únicas</span> <strong>${formatCurrency(subtotaisOrd.unica)}</strong></div><div class="relatorio-item-analise"><span>Recorrentes</span> <strong>${formatCurrency(subtotaisOrd.recorrente)}</strong></div><div class="relatorio-item-analise"><span>Parceladas</span> <strong>${formatCurrency(subtotaisOrd.parcelada)}</strong></div></div><div class="relatorio-sub-secao"><h4>Gastos com Cartão de Crédito</h4><div class="relatorio-item-analise"><span>Únicas</span> <strong>${formatCurrency(subtotaisCartao.unica)}</strong></div><div class="relatorio-item-analise"><span>Recorrentes</span> <strong>${formatCurrency(subtotaisCartao.recorrente)}</strong></div><div class="relatorio-item-analise"><span>Parceladas</span> <strong>${formatCurrency(subtotaisCartao.parcelada)}</strong></div></div></div></section>`;
+        document.getElementById('relatorio-secao-analise-despesas').innerHTML = analiseDespesasHTML;
+        
         // --- 3. CÁLCULO E RENDERIZAÇÃO DA ANÁLISE DE ORÇAMENTOS ---
         let totalPrevistoOrcamentos = 0;
         let totalGastoOrcamentos = 0;
         let orcamentosHTML = '';
+        let dadosGraficoPizza = [];
 
         orcamentos.forEach(orc => {
-            const gastoNoOrcamento = transacoesDoMes
-                .filter(t => t.orcamentoId === orc.id)
-                .reduce((sum, t) => sum + t.valor, 0);
-            
+            const gastoNoOrcamento = despesasDoMes.filter(t => t.orcamentoId === orc.id).reduce((sum, t) => sum + t.valor, 0);
             const saldoOrcamento = orc.valor - gastoNoOrcamento;
             totalPrevistoOrcamentos += orc.valor;
             totalGastoOrcamentos += gastoNoOrcamento;
-
-            orcamentosHTML += `
-                <div class="relatorio-orcamento-item">
-                    <span>${orc.nome}</span>
-                    <div class="orcamento-valores">
-                        <small>Previsto: ${formatCurrency(orc.valor)}</small>
-                        <small>Gasto: ${formatCurrency(gastoNoOrcamento)}</small>
-                        <strong style="color: ${saldoOrcamento >= 0 ? '#27ae60' : '#e74c3c'};">
-                            Saldo: ${formatCurrency(saldoOrcamento)}
-                        </strong>
-                    </div>
-                </div>
-            `;
+            if (gastoNoOrcamento > 0) { dadosGraficoPizza.push({ label: orc.nome, valor: gastoNoOrcamento }); }
+            orcamentosHTML += `<div class="relatorio-orcamento-item"><span>${orc.nome}</span><div class="orcamento-valores"><small>Previsto: ${formatCurrency(orc.valor)}</small><small>Gasto: ${formatCurrency(gastoNoOrcamento)}</small><strong style="color: ${saldoOrcamento >= 0 ? '#27ae60' : '#e74c3c'};">Saldo: ${formatCurrency(saldoOrcamento)}</strong></div></div>`;
         });
+        const gastoNaoOrcado = despesasNaoOrcadas.reduce((sum, t) => sum + t.valor, 0);
+        if (gastoNaoOrcado > 0) { dadosGraficoPizza.push({ label: 'Outros', valor: gastoNaoOrcado }); }
 
-        const analiseOrcamentosHTML = `
-            <section class="relatorio-secao">
-                <h3>Análise de Orçamentos</h3>
-                <div class="relatorio-orcamento-lista">
-                    ${orcamentosHTML}
-                </div>
-                <div class="relatorio-orcamento-total">
-                    <span>TOTAIS</span>
-                    <div class="orcamento-valores">
-                        <small>Previsto: ${formatCurrency(totalPrevistoOrcamentos)}</small>
-                        <small>Gasto: ${formatCurrency(totalGastoOrcamentos)}</small>
-                        <strong style="color: ${(totalPrevistoOrcamentos - totalGastoOrcamentos) >= 0 ? '#27ae60' : '#e74c3c'};">
-                            Saldo: ${formatCurrency(totalPrevistoOrcamentos - totalGastoOrcamentos)}
-                        </strong>
-                    </div>
-                </div>
-            </section>
-        `;
-        relatorioCorpo.innerHTML += analiseOrcamentosHTML;
+        const analiseOrcamentosHTML = `<section class="relatorio-secao"><h3>Análise de Orçamentos</h3><div class="relatorio-orcamento-lista">${orcamentosHTML}</div><div class="relatorio-orcamento-total"><span>TOTAIS</span><div class="orcamento-valores"><small>Previsto: ${formatCurrency(totalPrevistoOrcamentos)}</small><small>Gasto: ${formatCurrency(totalGastoOrcamentos)}</small><strong style="color: ${(totalPrevistoOrcamentos - totalGastoOrcamentos) >= 0 ? '#27ae60' : '#e74c3c'};">Saldo: ${formatCurrency(totalPrevistoOrcamentos - totalGastoOrcamentos)}</strong></div></div></section>`;
+        document.getElementById('relatorio-secao-analise-orcamentos').innerHTML = analiseOrcamentosHTML;
 
-        // TODO: Implementar a próxima seção (Gráficos).
+        // --- 4. RENDERIZAÇÃO DOS GRÁFICOS ---
+        if(window.graficoPizza) window.graficoPizza.destroy();
+        if(window.graficoBarras) window.graficoBarras.destroy();
+
+        if (dadosGraficoPizza.length > 0) {
+            const ctxPizza = document.getElementById('graficoPizzaOrcamentos').getContext('2d');
+            window.graficoPizza = new Chart(ctxPizza, {
+                type: 'pie',
+                data: {
+                    labels: dadosGraficoPizza.map(d => d.label),
+                    datasets: [{
+                        label: 'Distribuição de Gastos',
+                        data: dadosGraficoPizza.map(d => d.valor),
+                        backgroundColor: ['#3498db', '#e74c3c', '#f1c40f', '#2ecc71', '#9b59b6', '#34495e', '#1abc9c', '#e67e22'],
+                        borderWidth: 1
+                    }]
+                }
+            });
+        }
+
+        const ctxBarras = document.getElementById('graficoBarrasResumo').getContext('2d');
+        window.graficoBarras = new Chart(ctxBarras, {
+            type: 'bar',
+            data: {
+                labels: ['Finanças do Mês'],
+                datasets: [
+                    { label: 'Receitas', data: [totalReceitas], backgroundColor: '#2ecc71' },
+                    { label: 'Despesas', data: [totalDespesas], backgroundColor: '#e74c3c' }
+                ]
+            },
+            options: { scales: { y: { beginAtZero: true } } }
+        });
     }
 });

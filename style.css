@@ -762,7 +762,7 @@ body {
     font-weight: 500;
 }
 
-/* NOVOS ESTILOS PARA ANÁLISE DE ORÇAMENTOS */
+/* ESTILOS PARA ANÁLISE DE ORÇAMENTOS */
 .relatorio-orcamento-lista {
     display: flex;
     flex-direction: column;
@@ -804,6 +804,18 @@ body {
     border-top: 2px solid #3498db;
     background-color: transparent;
     font-weight: bold;
+}
+
+/* NOVOS ESTILOS PARA GRÁFICOS */
+.relatorio-graficos {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    align-items: center;
+}
+
+.grafico-container {
+    width: 100%;
 }
     margin-bottom: 25px;
     padding-bottom: 20px;

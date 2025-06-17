@@ -272,9 +272,19 @@
                 </div>
                 <span class="close-button" data-modal-id="modalRelatorios">×</span>
             </div>
-            <div id="relatorioCorpo" class="modal-body">
-                <!-- O conteúdo do relatório será gerado pelo JavaScript -->
-                <p>Carregando dados do relatório...</p>
+                        <div id="relatorioCorpo" class="modal-body">
+                <!-- As seções do relatório serão geradas aqui -->
+                <!-- NOVO: Container para os gráficos -->
+                <section class="relatorio-secao relatorio-graficos">
+                    <div class="grafico-container">
+                        <h3>Distribuição de Gastos</h3>
+                        <canvas id="graficoPizzaOrcamentos"></canvas>
+                    </div>
+                    <div class="grafico-container">
+                        <h3>Receitas vs. Despesas</h3>
+                        <canvas id="graficoBarrasResumo"></canvas>
+                    </div>
+                </section>
             </div>
             <div class="modal-footer">
                 <button class="btn-secondary close-button-footer" data-modal-id="modalRelatorios">Fechar</button>
@@ -423,11 +433,13 @@
     </div>
 </template>
 
-    <!-- SDKs (Software Development Kits) do Firebase -->
-    <!-- Estes scripts permitem que nosso aplicativo se conecte aos serviços do Firebase -->
+        <!-- SDKs (Software Development Kits) do Firebase -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+    <!-- NOVO: Biblioteca de Gráficos (Chart.js) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <script src="script.js"></script>
 </body>
