@@ -120,8 +120,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const relatorioCorpo = document.getElementById('relatorioCorpo');
     const btnRelatorioAnterior = document.getElementById('btnRelatorioAnterior');
     const btnRelatorioProximo = document.getElementById('btnRelatorioProximo');
-    // --- Estado da Aplicação ---
+        // --- Estado da Aplicação ---
     let currentDate = new Date();
+    let reportDate = new Date(); // NOVO: Para controlar o mês do relatório
     let transacoes = inicializarTransacoes();
     let cartoes = inicializarCartoes();
     let ajustesFatura = inicializarAjustes();
@@ -457,9 +458,10 @@ function atualizarResumoFinanceiro() {
             renderizarListaCartoesCadastrados();
         } else if (tipoModal === 'orcamentos') {
             renderizarListaOrcamentos();
-        } else if (tipoModal === 'relatorios') {
-            // Ao abrir, popula o relatório com o mês atualmente selecionado
-            popularModalRelatorio(currentDate);
+               } else if (tipoModal === 'relatorios') {
+            // Sincroniza a data do relatório com a data principal ao abrir
+            reportDate = new Date(currentDate);
+            popularModalRelatorio(reportDate);
         }
         modalElement.style.display = 'flex';
     }
@@ -1197,7 +1199,6 @@ if (btnSalvarTransacao) {
             }
         }
     }
-
     if (listaTransacoesUl) { listaTransacoesUl.addEventListener('click', (event) => handleTransactionListClick(event, listaTransacoesUl, false)); }
     if (listaComprasFaturaCartaoUl) { listaComprasFaturaCartaoUl.addEventListener('click', (event) => handleTransactionListClick(event, listaComprasFaturaCartaoUl, true)); }
     function abrirModalConfirmarAcaoSerie(transacaoId, acao) { if (!modalConfirmarAcaoSerie) return; const transacao = transacoes.find(t => t.id === transacaoId); if (!transacao) return; modalConfirmarAcaoSerie.dataset.transacaoId = transacaoId; modalConfirmarAcaoSerie.dataset.serieId = transacao.serieId; modalConfirmarAcaoSerie.dataset.acao = acao; if (acao === CONSTS.ACAO_SERIE.EXCLUIR) { modalConfirmarAcaoSerieTitulo.textContent = "Excluir Transação em Série"; modalConfirmarAcaoSerieTexto.textContent = `Deseja excluir apenas a transação "${transacao.nome}" deste mês, ou todas as transações desta série?`; } else if (acao === CONSTS.ACAO_SERIE.EDITAR) { modalConfirmarAcaoSerieTitulo.textContent = "Editar Transação em Série"; modalConfirmarAcaoSerieTexto.textContent = `Deseja editar apenas esta transação, ou aplicar as alterações a todas as transações desta série?`; } modalConfirmarAcaoSerie.style.display = 'flex'; }
@@ -1932,6 +1933,19 @@ function renderizarTransacoesDoMes() {
             abrirModalEspecifico(modalRelatorios, null, 'relatorios');
         });
     }
+        if (btnRelatorioAnterior) {
+        btnRelatorioAnterior.addEventListener('click', () => {
+            reportDate.setMonth(reportDate.getMonth() - 1);
+            popularModalRelatorio(reportDate);
+        });
+    }
+
+    if (btnRelatorioProximo) {
+        btnRelatorioProximo.addEventListener('click', () => {
+            reportDate.setMonth(reportDate.getMonth() + 1);
+            popularModalRelatorio(reportDate);
+        });
+    }
     function renderizarListaOrcamentos() {
         if (!listaOrcamentosUl) return;
         listaOrcamentosUl.innerHTML = '';
@@ -2231,7 +2245,7 @@ function renderizarTransacoesDoMes() {
         }
     }
 
-            function popularModalRelatorio(date) {
+    function popularModalRelatorio(date) {
         if (!relatorioTitulo || !relatorioCorpo) return;
 
         const mesAno = getMesAnoChave(date);
@@ -2239,12 +2253,31 @@ function renderizarTransacoesDoMes() {
         const ano = date.getFullYear();
         relatorioTitulo.textContent = `Relatório de ${nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1)}/${ano}`;
 
+        const limitDate = new Date();
+        limitDate.setMonth(limitDate.getMonth() + 6);
+        btnRelatorioProximo.disabled = getMesAnoChave(date) >= getMesAnoChave(limitDate);
+
+        // Encontra o mês/ano da primeira transação já registrada
+        let primeiroMesAnoComDados = null;
+        if (transacoes.length > 0) {
+            primeiroMesAnoComDados = transacoes.reduce((min, t) => t.mesAnoReferencia < min ? t.mesAnoReferencia : min, transacoes[0].mesAnoReferencia);
+        }
+    
+        // Se o mês atual for anterior ao primeiro mês com dados, exibe "Sem dados" e para.
+        if (primeiroMesAnoComDados && mesAno < primeiroMesAnoComDados) {
+            relatorioCorpo.innerHTML = '<p style="text-align: center; padding: 20px; color: #777;">Sem dados para este período.</p>';
+            // Zera o resumo financeiro do modal se não houver dados
+            if (document.getElementById('relatorio-secao-resumo')) document.getElementById('relatorio-secao-resumo').innerHTML = '';
+            if (document.getElementById('relatorio-secao-analise-despesas')) document.getElementById('relatorio-secao-analise-despesas').innerHTML = '';
+            if (document.getElementById('relatorio-secao-analise-orcamentos')) document.getElementById('relatorio-secao-analise-orcamentos').innerHTML = '';
+            return;
+        }
+
+        // Prepara o esqueleto do HTML do relatório
         relatorioCorpo.innerHTML = `
-            <!-- As seções do relatório serão geradas aqui -->
             <div id="relatorio-secao-resumo"></div>
             <div id="relatorio-secao-analise-despesas"></div>
             <div id="relatorio-secao-analise-orcamentos"></div>
-            <!-- Container para os gráficos -->
             <section class="relatorio-secao relatorio-graficos">
                 <div class="grafico-container">
                     <h3>Distribuição de Gastos</h3>
