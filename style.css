@@ -351,7 +351,34 @@ body {
 }
 
 .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6); justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; }
-.modal-content { background-color: #fefefe; margin: auto; padding: 25px 30px; border: 1px solid #b0bec5; width: 90%; max-width: 550px; border-radius: 10px; box-shadow: 0 8px 25px rgba(0,0,0,0.15); animation: slideDown 0.3s ease-out; }
+.modal-content {
+    background-color: #fefefe;
+    margin: auto;
+    border: 1px solid #b0bec5;
+    width: 90%;
+    max-width: 550px;
+    border-radius: 10px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    animation: slideDown 0.3s ease-out;
+    display: flex; /* NOVO: Habilita flexbox */
+    flex-direction: column; /* NOVO: Organiza em coluna (header, body, footer) */
+    max-height: 90vh; /* NOVO: Limita a altura do modal a 90% da tela */
+}
+
+/* Aplica o padding diretamente nos filhos para melhor controle */
+.modal-header, .modal-body, .modal-footer {
+    padding: 20px 30px;
+}
+.modal-header { padding-top: 25px; padding-bottom: 15px; }
+.modal-footer { padding-top: 20px; padding-bottom: 25px; }
+
+.modal-body {
+    overflow-y: auto; /* A MÁGICA: Apenas o corpo do modal rola */
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+/* Estilo para modais maiores, como o de relatórios */
 .modal-content.modal-large {
     max-width: 800px;
 }
@@ -794,7 +821,6 @@ body {
     background-color: #4a6278;
 }
 
-
 @media (max-width: 768px) {
     body {
         font-size: 15px;
@@ -802,6 +828,10 @@ body {
         box-sizing: border-box;
     }
 
+    /* NOVO: Ajusta o grid da análise de despesas para uma única coluna */
+    .relatorio-grid-analise {
+        grid-template-columns: 1fr;
+    }
     #btnToggleSidebar {
         display: block; 
     }
