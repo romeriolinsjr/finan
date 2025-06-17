@@ -105,12 +105,10 @@ body {
     background-color: #2980b9;
 }
 
-/* [NOVO] Estilo para botão de navegação desabilitado */
 .month-navigation button:disabled {
     background-color: #a9cce3;
     cursor: not-allowed;
 }
-
 
 #currentMonthDisplay {
     font-size: 1.25em; 
@@ -197,7 +195,6 @@ body {
     border-color: #c0c9d3;
 }
 
-
 .transaction-details { 
     flex-grow: 1;
     display: flex;
@@ -230,7 +227,6 @@ body {
 .transaction-actions .btn-edit:hover { color: #3498db; }
 .transaction-actions .btn-fechar-orcamento:hover { color: #f39c12; }
 .transaction-actions .btn-abrir-orcamento:hover { color: #27ae60; }
-
 
 .transaction-item.receita { border-left: 5px solid #27ae60; }
 
@@ -265,7 +261,6 @@ body {
 .transaction-item.orcamento.fechado { background-color: #f8f9fa; opacity: 0.75; }
 .transaction-item.orcamento.fechado .transaction-name-category .transaction-name,
 .transaction-item.orcamento.fechado .transaction-value-date .transaction-value { color: #555e68; }
-
 
 .transaction-item.despesa .transaction-main-info,
 .transaction-item.orcamento .transaction-main-info {
@@ -322,7 +317,6 @@ body {
     font-weight: bold;
 }
 
-
 .fatura-date-container {
     display: flex;
     align-items: center;
@@ -345,7 +339,6 @@ body {
     color: #f39c12;
 }
 
-
 .transaction-item.despesa.paga { background-color: #f8f9fa; opacity: 0.75; }
 .transaction-item.despesa.paga .transaction-name-category .transaction-name,
 .transaction-item.despesa.paga .transaction-value-date .transaction-value { color: #555e68; }
@@ -359,9 +352,8 @@ body {
 
 .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6); justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; }
 .modal-content { background-color: #fefefe; margin: auto; padding: 25px 30px; border: 1px solid #b0bec5; width: 90%; max-width: 550px; border-radius: 10px; box-shadow: 0 8px 25px rgba(0,0,0,0.15); animation: slideDown 0.3s ease-out; }
-/* NOVO: Estilo para modais maiores, como o de relatórios */
 .modal-content.modal-large {
-    max-width: 800px; /* Aumenta a largura máxima */
+    max-width: 800px;
 }
 @keyframes slideDown { from { transform: translateY(-30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 .modal-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 15px; border-bottom: 1px solid #e0e0e0; margin-bottom: 20px; }
@@ -382,21 +374,17 @@ body {
     align-items: center;
     gap: 10px;
     flex-grow: 1;
-    justify-content: space-between; /* NOVO: Garante espaçamento entre os itens */
+    justify-content: space-between;
 }
-
-/* NOVO: Agrupa os botões da direita para melhor controle */
 .modal-header-actions {
     display: flex;
     align-items: center;
     gap: 10px;
 }
-
 #faturaCartaoNomeTitulo {
-    flex-grow: 1; /* Permite que o título ocupe o espaço restante */
-    text-align: center; /* Centraliza o texto do título */
+    flex-grow: 1;
+    text-align: center;
 }
-
 #btnAddDespesaFromFatura, #btnAjustesFatura {
     background: none;
     border: none;
@@ -405,9 +393,8 @@ body {
     padding: 0 5px;
     line-height: 1;
     transition: color 0.2s ease, transform 0.1s ease;
-    flex-shrink: 0; /* NOVO: Impede que os botões sejam "espremidos" */
+    flex-shrink: 0;
 }
-
 #btnFaturaAnterior, #btnFaturaProxima {
     background-color: #3498db;
     color: white;
@@ -422,7 +409,6 @@ body {
 #btnFaturaAnterior:hover, #btnFaturaProxima:hover {
     background-color: #2980b9;
 }
-
 #btnAddDespesaFromFatura { color: #3498db; }
 #btnAddDespesaFromFatura:hover { color: #27ae60; transform: scale(1.1); }
 #btnAjustesFatura { color: #95a5a6; }
@@ -512,48 +498,12 @@ body {
     margin-left: 15px;
 }
 
-.gestao-dados-acoes {
-    display: flex;
-    flex-direction: column;
-    gap: 15px; 
-    align-items: stretch;
-}
-
-.gestao-dados-acoes hr {
-    width: 100%;
-    border: none;
-    border-top: 1px solid #eee;
-    margin: 5px 0;
-}
-
-.gestao-dados-acoes > #btnExportarDados,
-.gestao-dados-acoes > .btn-import-label {
-    display: block;
-    padding: 12px 20px;
-    font-size: 1em;
-    font-weight: 500;
-    text-align: center;
-    border-radius: 5px;
-    border: none;
-    cursor: pointer;
-    width: 100%;
-    box-sizing: border-box;
-    background-color: #3498db;
-    color: white;
-    transition: background-color 0.2s ease;
-}
-
-.gestao-dados-acoes > #btnExportarDados:hover,
-.gestao-dados-acoes > .btn-import-label:hover {
-    background-color: #2980b9;
-}
-
 .modal-body-buttons { display: flex; justify-content: center; gap: 15px; margin-top: 25px; }
 .modal-body-buttons button { padding: 12px 28px; font-size: 1.05em; flex-grow: 1; }
 
 .ajuste-form {
     display: flex;
-    flex-wrap: wrap; /* NOVO: Permite que os itens quebrem para a linha de baixo */
+    flex-wrap: wrap;
     gap: 10px;
     align-items: center;
     margin-bottom: 15px;
@@ -561,7 +511,7 @@ body {
 .ajuste-form input[type="text"] {
     flex-grow: 1;
     margin-bottom: 0;
-    min-width: 150px; /* NOVO: Garante uma largura mínima antes de quebrar a linha */
+    min-width: 150px;
 }
 .ajuste-form input[type="number"] {
     width: 150px;
@@ -572,15 +522,13 @@ body {
     white-space: nowrap;
 }
 
-/* NOVO: Regra específica para telas pequenas (mobile) */
 @media (max-width: 500px) {
     .ajuste-form {
-        flex-direction: column; /* Coloca os itens em coluna */
-        align-items: stretch;   /* Faz com que todos ocupem a largura total */
+        flex-direction: column;
+        align-items: stretch;
     }
-
     .ajuste-form input[type="number"] {
-        width: 100%; /* Ocupa a largura toda, igual aos outros */
+        width: 100%;
     }
 }
 #modalAjustesFatura hr, #modalOrcamentos hr, #modalDetalhesOrcamento hr {
@@ -646,42 +594,38 @@ body {
 .orcamento-summary-details p span {
     font-weight: bold;
 }
-/* Estilo para o novo botão de ver detalhes da fatura */
-.transaction-actions .btn-view-fatura {
-    color: #3498db; /* Cor azul para destacar a ação principal */
-    font-size: 1.2em; /* Um pouco maior para ser fácil de clicar */
-}
 
+.transaction-actions .btn-view-fatura {
+    color: #3498db;
+    font-size: 1.2em;
+}
 .transaction-actions .btn-view-fatura:hover {
     color: #2980b9;
     transform: scale(1.1);
 }
 
-/* Remove o cursor de ponteiro da linha da fatura, já que ela não é mais clicável */
 .transaction-item.fatura-cartao .transaction-details {
     cursor: default;
 }
-
 .transaction-item.fatura-cartao .transaction-details:hover {
-    background-color: transparent; /* Remove o efeito de hover da linha */
+    background-color: transparent;
 }
-/* [NOVO] Estilo para a área clicável ampliada (que agora é um <label>) */
+
 .transaction-main-info {
     cursor: pointer;
-    display: flex; /* Garante que o label se comporte como um div flexível */
+    display: flex;
     align-items: center;
-    flex-grow: 1; /* Faz ocupar o espaço disponível */
+    flex-grow: 1;
 }
 
-/* Remove a necessidade de clicar no nome da despesa, pois a área inteira já é clicável */
 .transaction-name-category .transaction-name {
     cursor: default; 
 }
 
-/* Remove o clique da linha da fatura, pois a ação agora é no ícone de olho */
 .transaction-item.fatura-cartao .transaction-details:hover {
     background-color: transparent;
 }
+
 /* ========================================= */
 /*         ESTILOS PARA OS RELATÓRIOS        */
 /* ========================================= */
@@ -806,7 +750,7 @@ body {
     font-weight: bold;
 }
 
-/* NOVOS ESTILOS PARA GRÁFICOS */
+/* ESTILOS PARA GRÁFICOS */
 .relatorio-graficos {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -817,48 +761,7 @@ body {
 .grafico-container {
     width: 100%;
 }
-    margin-bottom: 25px;
-    padding-bottom: 20px;
-    border-bottom: 1px solid #e0e0e0;
-}
-.relatorio-secao:last-child {
-    border-bottom: none;
-    margin-bottom: 0;
-}
-.relatorio-secao h3 {
-    margin-top: 0;
-    margin-bottom: 15px;
-    color: #2c3e50;
-}
 
-.relatorio-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 15px;
-}
-
-.relatorio-item {
-    background-color: #f8f9fa;
-    padding: 15px;
-    border-radius: 8px;
-    border-left: 5px solid #bdc3c7;
-    display: flex;
-    flex-direction: column;
-}
-
-.relatorio-item span {
-    font-size: 0.9em;
-    color: #555;
-    margin-bottom: 5px;
-}
-
-.relatorio-item strong {
-    font-size: 1.3em;
-    font-weight: 600;
-}
-.relatorio-item .valor-receita { color: #27ae60; }
-.relatorio-item .valor-despesa { color: #e74c3c; }
-/* Esconde o botão hambúrguer em telas grandes por padrão, usando uma lógica "mobile-first" invertida */
 @media (min-width: 769px) {
     #btnToggleSidebar {
         display: none;
@@ -870,9 +773,8 @@ body {
 /*          ESTILOS PARA MOBILE              */
 /* ========================================= */
 
-/* Botão Hambúrguer - Agora definido fora da media query para ter prioridade */
 #btnToggleSidebar {
-    display: none; /* Começa escondido por padrão */
+    display: none;
     position: fixed;
     top: 10px;
     left: 15px;
@@ -895,51 +797,49 @@ body {
 
 @media (max-width: 768px) {
     body {
-        font-size: 15px; /* Aumenta um pouco a fonte base para legibilidade */
-        padding-top: 60px; /* Cria um espaço fixo no topo da página inteira */
-        box-sizing: border-box; /* Garante que o padding não aumente o tamanho total */
+        font-size: 15px;
+        padding-top: 60px;
+        box-sizing: border-box;
     }
 
-    /* Mostra o botão em telas pequenas */
     #btnToggleSidebar {
         display: block; 
     }
 
     .app-container {
-        flex-direction: column; /* Transforma o layout em coluna */
+        flex-direction: column;
         height: auto;
         min-height: 100vh;
     }
 
     .sidebar {
-        width: 100%; /* Ocupa a largura toda */
+        width: 100%;
         height: auto;
-        position: fixed; /* Fica fixo na tela */
+        position: fixed;
         top: 0;
-        left: -100%; /* Começa escondido à esquerda */
-        z-index: 2000; /* Fica acima de todo o conteúdo */
+        left: -100%;
+        z-index: 2000;
         transition: left 0.3s ease-in-out;
         box-sizing: border-box;
-        height: 100vh; /* Ocupa a altura toda da tela */
+        height: 100vh;
         overflow-y: auto;
         box-shadow: 5px 0px 15px rgba(0,0,0,0.2);
     }
     
     .sidebar-visible .sidebar {
-        left: 0; /* Mostra a sidebar */
+        left: 0;
     }
 
     .main-content {
         width: 100%;
-        padding: 15px; /* Reduz o padding para ganhar espaço */
+        padding: 15px;
         box-sizing: border-box;
     }
 
     .main-header {
-        flex-wrap: wrap; /* Permite que os itens quebrem linha */
+        flex-wrap: wrap;
         justify-content: center;
         gap: 15px;
-        /* A linha de padding-top foi removida daqui */
     }
 
     .main-header h1 {
@@ -949,11 +849,11 @@ body {
     }
 
     .month-navigation {
-        width: 100%; /* Ocupa a largura toda */
+        width: 100%;
     }
 
     .transaction-item {
-        flex-direction: column; /* Coloca os itens em coluna */
+        flex-direction: column;
         align-items: flex-start;
         gap: 10px;
         padding: 12px;
@@ -965,26 +865,25 @@ body {
 
     .transaction-actions {
         width: 100%;
-        justify-content: flex-end; /* Alinha os botões à direita */
+        justify-content: flex-end;
         padding-top: 8px;
         border-top: 1px solid #f0f0f0;
     }
     
     .transaction-main-info {
-        flex-grow: 1; /* Garante que ocupe todo o espaço */
+        flex-grow: 1;
     }
 
     .transaction-value-date {
-        align-items: flex-end; /* Mantém o alinhamento de valor e data */
+        align-items: flex-end;
         text-align: right;
     }
     
     .transaction-item.receita .transaction-details {
-        flex-direction: row; /* Mantém receita na mesma linha */
+        flex-direction: row;
         align-items: center;
     }
 
-    /* Modal */
     .modal-content {
         width: 95%;
         padding: 20px 15px;
@@ -992,7 +891,7 @@ body {
     
     .modal-footer {
         display: flex;
-        flex-direction: column-reverse; /* Botão primário fica em cima */
+        flex-direction: column-reverse;
         gap: 10px;
     }
     
@@ -1017,7 +916,7 @@ body {
         width: 100%;
         height: 100%;
         background-color: rgba(0,0,0,0.5);
-        z-index: 1999; /* Fica abaixo da sidebar, mas acima do conteúdo */
+        z-index: 1999;
     }
 
     .sidebar-visible .modal-overlay {
@@ -1031,11 +930,11 @@ body {
 
 #modalAuth .modal-content {
     max-width: 400px;
-    animation: none; /* Remove a animação de slide para o modal inicial */
+    animation: none;
 }
 
 #modalAuth[data-is-user-logged-in="true"] .modal-content {
-    border-top: 5px solid #27ae60; /* Verde para indicar sucesso */
+    border-top: 5px solid #27ae60;
 }
 
 #modalAuth[data-is-user-logged-in="true"] #modalAuthTitulo {
@@ -1056,7 +955,6 @@ body {
     color: #2980b9;
 }
 
-/* Estilo específico para o botão de Logout quando ele está no menu lateral */
 .sidebar #btnLogout {
     background-color: #7f8c8d;
     color: white;
