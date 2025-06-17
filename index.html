@@ -24,6 +24,7 @@
             <button id="btnNovaTransacao">Nova transação</button>
             <button id="btnGerenciarCartoes">Cartões de crédito</button>
             <button id="btnMenuOrcamentos">Orçamentos</button>
+            <button id="btnRelatorios">Relatórios</button> <!-- NOVO -->
 
             <section class="financial-summary">
                 <h2>Resumo Financeiro</h2>
@@ -260,7 +261,26 @@
             </div>
         </div>
     </div>
-
+        <!-- NOVO: Modal para Relatórios -->
+    <div id="modalRelatorios" class="modal">
+        <div class="modal-content modal-large"> <!-- Usaremos uma classe para um modal maior -->
+            <div class="modal-header">
+                <div class="modal-title-container">
+                    <button id="btnRelatorioAnterior" title="Mês Anterior"><</button>
+                    <h2 id="relatorioTitulo">Relatório do Mês</h2>
+                    <button id="btnRelatorioProximo" title="Próximo Mês">></button>
+                </div>
+                <span class="close-button" data-modal-id="modalRelatorios">×</span>
+            </div>
+            <div id="relatorioCorpo" class="modal-body">
+                <!-- O conteúdo do relatório será gerado pelo JavaScript -->
+                <p>Carregando dados do relatório...</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary close-button-footer" data-modal-id="modalRelatorios">Fechar</button>
+            </div>
+        </div>
+    </div>
     <!-- Modal para Confirmar Ação em Série -->
     <div id="modalConfirmarAcaoSerie" class="modal">
         <div class="modal-content">

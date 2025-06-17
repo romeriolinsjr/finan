@@ -112,7 +112,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalConfirmarAcaoSerieTexto = document.getElementById('modalConfirmarAcaoSerieTexto');
     const btnAcaoSerieApenasEsta = document.getElementById('btnAcaoSerieApenasEsta');
     const btnAcaoSerieToda = document.getElementById('btnAcaoSerieToda');
-
+    
+    // --- Elementos do DOM - Relatórios ---
+    const btnRelatorios = document.getElementById('btnRelatorios');
+    const modalRelatorios = document.getElementById('modalRelatorios');
+    const relatorioTitulo = document.getElementById('relatorioTitulo');
+    const relatorioCorpo = document.getElementById('relatorioCorpo');
+    const btnRelatorioAnterior = document.getElementById('btnRelatorioAnterior');
+    const btnRelatorioProximo = document.getElementById('btnRelatorioProximo');
     // --- Estado da Aplicação ---
     let currentDate = new Date();
     let transacoes = inicializarTransacoes();
@@ -428,7 +435,7 @@ function atualizarResumoFinanceiro() {
 
     // --- Lógica de Modais ---
     function resetModalCartao() { if (!nomeCartaoInputModal || !diaVencimentoFaturaInputModal || !cartaoEditIdInput || !modalCartaoTitulo || !btnSalvarCartaoModalBtn) return; if (!isCartaoEditMode) { nomeCartaoInputModal.value = ''; diaVencimentoFaturaInputModal.value = ''; cartaoEditIdInput.value = ''; modalCartaoTitulo.textContent = "Cadastrar Novo Cartão"; btnSalvarCartaoModalBtn.textContent = "Salvar Cartão"; } }
-    function abrirModalEspecifico(modalElement, idParaEditar = null, tipoModal = 'transacao') {
+        function abrirModalEspecifico(modalElement, idParaEditar = null, tipoModal = 'transacao') {
         if (!modalElement) return;
         if (tipoModal === 'transacao') {
             isEditMode = !!idParaEditar;
@@ -448,8 +455,11 @@ function atualizarResumoFinanceiro() {
             }
         } else if (tipoModal === 'gerenciarCartoes') {
             renderizarListaCartoesCadastrados();
-                } else if (tipoModal === 'orcamentos') {
+        } else if (tipoModal === 'orcamentos') {
             renderizarListaOrcamentos();
+        } else if (tipoModal === 'relatorios') {
+            // Ao abrir, popula o relatório com o mês atualmente selecionado
+            popularModalRelatorio(currentDate);
         }
         modalElement.style.display = 'flex';
     }
@@ -1917,7 +1927,11 @@ function renderizarTransacoesDoMes() {
             abrirModalEspecifico(modalOrcamentos, null, 'orcamentos');
         });
     }
-
+    if(btnRelatorios) {
+        btnRelatorios.addEventListener('click', () => {
+            abrirModalEspecifico(modalRelatorios, null, 'relatorios');
+        });
+    }
     function renderizarListaOrcamentos() {
         if (!listaOrcamentosUl) return;
         listaOrcamentosUl.innerHTML = '';
@@ -2191,7 +2205,7 @@ function renderizarTransacoesDoMes() {
         }
     }
 
-    async function handleFecharAbrirOrcamento(button) {
+        async function handleFecharAbrirOrcamento(button) {
         if (!currentUser) { alert("Erro: Você precisa estar logado."); return; }
         
         const orcamentoId = button.dataset.orcamentoId;
@@ -2215,5 +2229,136 @@ function renderizarTransacoesDoMes() {
             console.error("Erro ao alterar o estado do orçamento:", error);
             alert("Ocorreu um erro ao tentar salvar a alteração.");
         }
+    }
+
+        function popularModalRelatorio(date) {
+        if (!relatorioTitulo || !relatorioCorpo) return;
+
+        const mesAno = getMesAnoChave(date);
+        const nomeMes = date.toLocaleString('pt-BR', { month: 'long' });
+        const ano = date.getFullYear();
+        relatorioTitulo.textContent = `Relatório de ${nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1)}/${ano}`;
+
+        relatorioCorpo.innerHTML = '';
+
+        const transacoesDoMes = transacoes.filter(t => t.mesAnoReferencia === mesAno);
+
+        // --- 1. CÁLCULO E RENDERIZAÇÃO DO RESUMO GERAL ---
+        let totalReceitas = 0;
+        let totalDespesas = 0;
+
+        totalReceitas = transacoesDoMes.filter(t => t.tipo === CONSTS.TIPO_TRANSACAO.RECEITA).reduce((total, t) => total + t.valor, 0);
+        
+        const despesasNaoOrcadas = transacoesDoMes.filter(t => t.tipo === CONSTS.TIPO_TRANSACAO.DESPESA && !t.orcamentoId);
+        totalDespesas += despesasNaoOrcadas.reduce((total, t) => total + t.valor, 0);
+
+        orcamentos.forEach(orcamento => {
+            const gastosNesteOrcamento = transacoesDoMes.filter(t => t.orcamentoId === orcamento.id).reduce((total, t) => total + t.valor, 0);
+            if (isOrcamentoFechado(orcamento.id, mesAno)) {
+                totalDespesas += gastosNesteOrcamento;
+            } else {
+                totalDespesas += Math.max(orcamento.valor, gastosNesteOrcamento);
+            }
+        });
+
+        const totalAjustesDoMes = ajustesFatura.filter(a => a.mesAnoReferencia === mesAno).reduce((total, a) => total + a.valor, 0);
+        totalDespesas -= totalAjustesDoMes;
+
+        const saldoFinal = totalReceitas - totalDespesas;
+        
+        const resumoHTML = `
+            <section class="relatorio-secao">
+                <h3>Resumo Geral</h3>
+                <div class="relatorio-grid">
+                    <div class="relatorio-item"><span>Receitas Totais</span><strong class="valor-receita">${formatCurrency(totalReceitas)}</strong></div>
+                    <div class="relatorio-item"><span>Despesas Totais</span><strong class="valor-despesa">${formatCurrency(totalDespesas)}</strong></div>
+                    <div class="relatorio-item"><span>Saldo Final</span><strong style="color: ${saldoFinal >= 0 ? '#27ae60' : '#e74c3c'};">${formatCurrency(saldoFinal)}</strong></div>
+                </div>
+            </section>
+        `;
+        relatorioCorpo.innerHTML += resumoHTML;
+
+        // --- 2. CÁLCULO E RENDERIZAÇÃO DA ANÁLISE DE DESPESAS ---
+        const despesasDoMes = transacoesDoMes.filter(t => t.tipo === CONSTS.TIPO_TRANSACAO.DESPESA);
+        const calcularSubtotais = (categoria) => {
+            const despesasFiltradas = despesasDoMes.filter(d => d.categoria === categoria);
+            return {
+                unica: despesasFiltradas.filter(d => d.frequencia === 'unica').reduce((sum, d) => sum + d.valor, 0),
+                recorrente: despesasFiltradas.filter(d => d.frequencia === 'recorrente').reduce((sum, d) => sum + d.valor, 0),
+                parcelada: despesasFiltradas.filter(d => d.frequencia === 'parcelada').reduce((sum, d) => sum + d.valor, 0)
+            };
+        };
+        const subtotaisOrd = calcularSubtotais('ordinaria');
+        const subtotaisCartao = calcularSubtotais('cartao_credito');
+        const analiseDespesasHTML = `
+            <section class="relatorio-secao">
+                <h3>Análise de Despesas</h3>
+                <div class="relatorio-grid-analise">
+                    <div class="relatorio-sub-secao">
+                        <h4>Gastos Ordinários</h4>
+                        <div class="relatorio-item-analise"><span>Únicas</span> <strong>${formatCurrency(subtotaisOrd.unica)}</strong></div>
+                        <div class="relatorio-item-analise"><span>Recorrentes</span> <strong>${formatCurrency(subtotaisOrd.recorrente)}</strong></div>
+                        <div class="relatorio-item-analise"><span>Parceladas</span> <strong>${formatCurrency(subtotaisOrd.parcelada)}</strong></div>
+                    </div>
+                    <div class="relatorio-sub-secao">
+                        <h4>Gastos com Cartão de Crédito</h4>
+                        <div class="relatorio-item-analise"><span>Únicas</span> <strong>${formatCurrency(subtotaisCartao.unica)}</strong></div>
+                        <div class="relatorio-item-analise"><span>Recorrentes</span> <strong>${formatCurrency(subtotaisCartao.recorrente)}</strong></div>
+                        <div class="relatorio-item-analise"><span>Parceladas</span> <strong>${formatCurrency(subtotaisCartao.parcelada)}</strong></div>
+                    </div>
+                </div>
+            </section>
+        `;
+        relatorioCorpo.innerHTML += analiseDespesasHTML;
+
+        // --- 3. CÁLCULO E RENDERIZAÇÃO DA ANÁLISE DE ORÇAMENTOS ---
+        let totalPrevistoOrcamentos = 0;
+        let totalGastoOrcamentos = 0;
+        let orcamentosHTML = '';
+
+        orcamentos.forEach(orc => {
+            const gastoNoOrcamento = transacoesDoMes
+                .filter(t => t.orcamentoId === orc.id)
+                .reduce((sum, t) => sum + t.valor, 0);
+            
+            const saldoOrcamento = orc.valor - gastoNoOrcamento;
+            totalPrevistoOrcamentos += orc.valor;
+            totalGastoOrcamentos += gastoNoOrcamento;
+
+            orcamentosHTML += `
+                <div class="relatorio-orcamento-item">
+                    <span>${orc.nome}</span>
+                    <div class="orcamento-valores">
+                        <small>Previsto: ${formatCurrency(orc.valor)}</small>
+                        <small>Gasto: ${formatCurrency(gastoNoOrcamento)}</small>
+                        <strong style="color: ${saldoOrcamento >= 0 ? '#27ae60' : '#e74c3c'};">
+                            Saldo: ${formatCurrency(saldoOrcamento)}
+                        </strong>
+                    </div>
+                </div>
+            `;
+        });
+
+        const analiseOrcamentosHTML = `
+            <section class="relatorio-secao">
+                <h3>Análise de Orçamentos</h3>
+                <div class="relatorio-orcamento-lista">
+                    ${orcamentosHTML}
+                </div>
+                <div class="relatorio-orcamento-total">
+                    <span>TOTAIS</span>
+                    <div class="orcamento-valores">
+                        <small>Previsto: ${formatCurrency(totalPrevistoOrcamentos)}</small>
+                        <small>Gasto: ${formatCurrency(totalGastoOrcamentos)}</small>
+                        <strong style="color: ${(totalPrevistoOrcamentos - totalGastoOrcamentos) >= 0 ? '#27ae60' : '#e74c3c'};">
+                            Saldo: ${formatCurrency(totalPrevistoOrcamentos - totalGastoOrcamentos)}
+                        </strong>
+                    </div>
+                </div>
+            </section>
+        `;
+        relatorioCorpo.innerHTML += analiseOrcamentosHTML;
+
+        // TODO: Implementar a próxima seção (Gráficos).
     }
 });
