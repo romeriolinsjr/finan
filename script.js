@@ -41,7 +41,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
         // --- Elementos do DOM ---
-    const appLoader = document.getElementById('appLoader'); // NOVO
     const btnToggleSidebar = document.getElementById('btnToggleSidebar');
     const modalOverlay = document.getElementById('modalOverlay');
     const bodyEl = document.body;
@@ -289,40 +288,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-        // Função para configurar os "ouvintes" em tempo real do Firestore
+            // Função para configurar os "ouvintes" em tempo real do Firestore
     function carregarDadosDoFirestore() {
-        if (!currentUser) {
-            // Se não houver usuário, esconde o loader para mostrar a tela de login
-            if (appLoader) appLoader.classList.add('hidden');
-            return;
-        }
+        if (!currentUser) return;
 
         console.log("Configurando ouvintes em tempo real para o usuário:", currentUser.uid);
         const userCollections = db.collection('users').doc(currentUser.uid);
-        
-        // NOVO: Flag para controlar a primeira carga de dados
-        let initialDataLoaded = false;
-        const totalListeners = 5; // O número total de coleções que estamos ouvindo
-        let loadedCount = 0;
-
-        const handleInitialLoad = () => {
-            loadedCount++;
-            // Apenas executa na primeira vez que TODOS os listeners carregarem
-            if (!initialDataLoaded && loadedCount >= totalListeners) {
-                initialDataLoaded = true;
-                console.log("Todos os dados iniciais carregados. Escondendo o loader.");
-                if (appLoader) {
-                    appLoader.classList.add('hidden');
-                }
-            }
-        };
 
         // --- Ouvinte para Transações ---
         userCollections.collection('transacoes').onSnapshot(snapshot => {
             transacoes = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
             console.log("Dados de 'transacoes' atualizados em tempo real.");
             updateMonthDisplay();
-            handleInitialLoad(); // Chama o handler
         }, error => console.error("Erro no ouvinte de transações:", error));
 
         // --- Ouvinte para Cartões ---
@@ -330,7 +307,6 @@ document.addEventListener('DOMContentLoaded', () => {
             cartoes = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
             console.log("Dados de 'cartoes' atualizados em tempo real.");
             updateMonthDisplay();
-            handleInitialLoad(); // Chama o handler
         }, error => console.error("Erro no ouvinte de cartões:", error));
 
         // --- Ouvinte para Orçamentos ---
@@ -338,7 +314,6 @@ document.addEventListener('DOMContentLoaded', () => {
             orcamentos = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
             console.log("Dados de 'orcamentos' atualizados em tempo real.");
             updateMonthDisplay();
-            handleInitialLoad(); // Chama o handler
         }, error => console.error("Erro no ouvinte de orçamentos:", error));
 
         // --- Ouvinte para Orçamentos Fechados ---
@@ -346,7 +321,6 @@ document.addEventListener('DOMContentLoaded', () => {
             orcamentosFechados = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
             console.log("Dados de 'orcamentosFechados' atualizados em tempo real.");
             updateMonthDisplay();
-            handleInitialLoad(); // Chama o handler
         }, error => console.error("Erro no ouvinte de orçamentosFechados:", error));
 
         // --- Ouvinte para Ajustes de Fatura ---
@@ -354,7 +328,6 @@ document.addEventListener('DOMContentLoaded', () => {
             ajustesFatura = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
             console.log("Dados de 'ajustesFatura' atualizados em tempo real.");
             updateMonthDisplay();
-            handleInitialLoad(); // Chama o handler
         }, error => console.error("Erro no ouvinte de ajustesFatura:", error));
     }
 
