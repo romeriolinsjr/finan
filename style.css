@@ -828,6 +828,18 @@ body.modal-aberto {
     .relatorio-grid-analise {
         grid-template-columns: 1fr;
     }
+
+    /* NOVO: Ajusta o layout da análise de orçamentos para mobile */
+    .relatorio-orcamento-item {
+        flex-direction: column; /* Coloca o nome acima dos valores */
+        align-items: flex-start; /* Alinha o conteúdo à esquerda */
+        gap: 8px; /* Adiciona um espaço entre o nome e os valores */
+    }
+
+    .relatorio-orcamento-item .orcamento-valores {
+        width: 100%; /* Faz o bloco de valores ocupar toda a largura */
+    }
+
     #btnToggleSidebar {
         display: block; 
     }
