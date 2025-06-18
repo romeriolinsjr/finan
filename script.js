@@ -2481,17 +2481,25 @@ function renderizarTransacoesDoMes() {
             });
         }
 
-        const ctxBarras = document.getElementById('graficoBarrasResumo').getContext('2d');
-        window.graficoBarras = new Chart(ctxBarras, {
-            type: 'bar',
-            data: {
-                labels: ['Finanças do Mês'],
-                datasets: [
-                    { label: 'Receitas', data: [totalReceitas], backgroundColor: '#2ecc71' },
-                    { label: 'Despesas', data: [totalDespesas], backgroundColor: '#e74c3c' }
-                ]
+            const ctxBarras = document.getElementById('graficoBarrasResumo').getContext('2d');
+    window.graficoBarras = new Chart(ctxBarras, {
+        type: 'bar',
+        data: {
+            labels: ['Finanças do Mês'],
+            datasets: [
+                { label: 'Receitas', data: [totalReceitas], backgroundColor: '#2ecc71' },
+                { label: 'Despesas', data: [totalDespesas], backgroundColor: '#e74c3c' }
+            ]
+        },
+        options: { 
+            scales: { 
+                y: { 
+                    beginAtZero: true 
+                } 
             },
-            options: { scales: { y: { beginAtZero: true } } }
-        });
-    }
+            // NOVO: Ajusta a largura das barras para evitar que fiquem muito largas
+            barPercentage: 0.4 // As barras usarão 40% do espaço disponível
+        }
+    });
+}
 });
