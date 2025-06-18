@@ -1862,7 +1862,33 @@ function renderizarTransacoesDoMes() {
             }
         });
     }
-    function renderizarListaCartoesCadastrados() { if (!listaCartoesCadastradosUl) return; listaCartoesCadastradosUl.innerHTML = ''; if (cartoes.length === 0) { listaCartoesCadastradosUl.innerHTML = '<li>Nenhum cartão cadastrado.</li>'; return; } cartoes.forEach(cartao => { const li = document.createElement('li'); li.innerHTML = ` <div class="cartao-info" data-id="${cartao.id}"> <span class="cartao-nome">${cartao.nome}</span> <span class="cartao-vencimento">Venc. dia: ${cartao.diaVencimentoFatura}</span> </div> <div class="transaction-actions"> <button class="btn-add-despesa-cartao" data-id="${cartao.id}" data-nome="${cartao.nome}" title="Adicionar Despesa neste Cartão">➕</button> <button class="btn-edit-cartao" data-id="${cartao.id}" title="Editar Cartão">✎</button> <button class="btn-delete-cartao" data-id="${cartao.id}" title="Excluir Cartão">✖</button> </div>`; listaCartoesCadastradosUl.appendChild(li); }); }
+    function renderizarListaCartoesCadastrados() {
+    if (!listaCartoesCadastradosUl) return;
+    listaCartoesCadastradosUl.innerHTML = '';
+    if (cartoes.length === 0) {
+        listaCartoesCadastradosUl.innerHTML = '<li>Nenhum cartão cadastrado.</li>';
+        return;
+    }
+    
+    // NOVO: Cria uma cópia ordenada dos cartões pelo dia do vencimento
+    const cartoesOrdenados = [...cartoes].sort((a, b) => a.diaVencimentoFatura - b.diaVencimentoFatura);
+
+    // Usa a lista ordenada para renderizar
+    cartoesOrdenados.forEach(cartao => {
+        const li = document.createElement('li');
+        li.innerHTML = `
+            <div class="cartao-info" data-id="${cartao.id}">
+                <span class="cartao-nome">${cartao.nome}</span>
+                <span class="cartao-vencimento">Venc. dia: ${cartao.diaVencimentoFatura}</span>
+            </div>
+            <div class="transaction-actions">
+                <button class="btn-add-despesa-cartao" data-id="${cartao.id}" data-nome="${cartao.nome}" title="Adicionar Despesa neste Cartão">➕</button>
+                <button class="btn-edit-cartao" data-id="${cartao.id}" title="Editar Cartão">✎</button>
+                <button class="btn-delete-cartao" data-id="${cartao.id}" title="Excluir Cartão">✖</button>
+            </div>`;
+        listaCartoesCadastradosUl.appendChild(li);
+    });
+}
     function preencherModalEdicaoCartao(cartaoId) { const cartao = cartoes.find(c => c.id === cartaoId); if (cartao && modalCadastrarCartao) { if (modalCartaoTitulo) modalCartaoTitulo.textContent = "Editar Cartão"; if (nomeCartaoInputModal) nomeCartaoInputModal.value = cartao.nome; if (diaVencimentoFaturaInputModal) diaVencimentoFaturaInputModal.value = cartao.diaVencimentoFatura; if (btnSalvarCartaoModalBtn) btnSalvarCartaoModalBtn.textContent = "Salvar Alterações"; } }
     
     // ESTE BLOCO INTEIRO FOI ALTERADO PARA A VERSÃO ESTÁVEL
@@ -2061,26 +2087,31 @@ function renderizarTransacoesDoMes() {
         });
     }
     function renderizarListaOrcamentos() {
-        if (!listaOrcamentosUl) return;
-        listaOrcamentosUl.innerHTML = '';
-        if (orcamentos.length === 0) {
-            listaOrcamentosUl.innerHTML = '<li>Nenhum orçamento cadastrado.</li>';
-            return;
-        }
-        orcamentos.forEach(orcamento => {
-            const li = document.createElement('li');
-            li.innerHTML = `
-                <div class="orcamento-info">
-                    <span class="orcamento-nome">${orcamento.nome}</span>
-                    <span class="orcamento-detalhes">${formatCurrency(orcamento.valor)} - Dia ${orcamento.dia}</span>
-                </div>
-                <div class="transaction-actions">
-                    <button class="btn-edit-orcamento" data-id="${orcamento.id}" title="Editar Orçamento">✎</button>
-                    <button class="btn-delete-orcamento" data-id="${orcamento.id}" title="Excluir Orçamento">✖</button>
-                </div>`;
-            listaOrcamentosUl.appendChild(li);
-        });
+    if (!listaOrcamentosUl) return;
+    listaOrcamentosUl.innerHTML = '';
+    if (orcamentos.length === 0) {
+        listaOrcamentosUl.innerHTML = '<li>Nenhum orçamento cadastrado.</li>';
+        return;
     }
+
+    // NOVO: Cria uma cópia ordenada dos orçamentos por valor (maior primeiro)
+    const orcamentosOrdenados = [...orcamentos].sort((a, b) => b.valor - a.valor);
+
+    // Usa a lista ordenada para renderizar
+    orcamentosOrdenados.forEach(orcamento => {
+        const li = document.createElement('li');
+        li.innerHTML = `
+            <div class="orcamento-info">
+                <span class="orcamento-nome">${orcamento.nome}</span>
+                <span class="orcamento-detalhes">${formatCurrency(orcamento.valor)} - Dia ${orcamento.dia}</span>
+            </div>
+            <div class="transaction-actions">
+                <button class="btn-edit-orcamento" data-id="${orcamento.id}" title="Editar Orçamento">✎</button>
+                <button class="btn-delete-orcamento" data-id="${orcamento.id}" title="Excluir Orçamento">✖</button>
+            </div>`;
+        listaOrcamentosUl.appendChild(li);
+    });
+}
 
     function abrirModalDetalhesOrcamento(orcamentoId, mesAno) {
         const orcamento = orcamentos.find(o => o.id === orcamentoId);
@@ -2465,21 +2496,25 @@ function renderizarTransacoesDoMes() {
         if(window.graficoPizza) window.graficoPizza.destroy();
         if(window.graficoBarras) window.graficoBarras.destroy();
 
-        if (dadosGraficoPizza.length > 0) {
-            const ctxPizza = document.getElementById('graficoPizzaOrcamentos').getContext('2d');
-            window.graficoPizza = new Chart(ctxPizza, {
-                type: 'pie',
-                data: {
-                    labels: dadosGraficoPizza.map(d => d.label),
-                    datasets: [{
-                        label: 'Distribuição de Gastos',
-                        data: dadosGraficoPizza.map(d => d.valor),
-                        backgroundColor: ['#3498db', '#e74c3c', '#f1c40f', '#2ecc71', '#9b59b6', '#34495e', '#1abc9c', '#e67e22'],
-                        borderWidth: 1
-                    }]
-                }
-            });
-        }
+                    if (dadosGraficoPizza.length > 0) {
+        const ctxPizza = document.getElementById('graficoPizzaOrcamentos').getContext('2d');
+        window.graficoPizza = new Chart(ctxPizza, {
+            type: 'pie',
+            data: {
+                labels: dadosGraficoPizza.map(d => d.label),
+                datasets: [{
+                    label: 'Distribuição de Gastos',
+                    data: dadosGraficoPizza.map(d => d.valor),
+                    backgroundColor: ['#3498db', '#e74c3c', '#f1c40f', '#2ecc71', '#9b59b6', '#34495e', '#1abc9c', '#e67e22'],
+                    borderWidth: 1
+                }]
+            },
+            // NOVO: Desativa o redimensionamento automático e força o uso do tamanho do canvas
+            options: {
+                responsive: false
+            }
+        });
+    }
 
             const ctxBarras = document.getElementById('graficoBarrasResumo').getContext('2d');
     window.graficoBarras = new Chart(ctxBarras, {
