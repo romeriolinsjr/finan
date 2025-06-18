@@ -1000,3 +1000,46 @@ body.modal-aberto {
 .sidebar #btnLogout:hover {
     background-color: #c0392b;
 }
+/* ========================================= */
+/*      ESTILOS PARA O SPINNER DE CARREGAMENTO     */
+/* ========================================= */
+
+#loading-spinner-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #f4f7f6; /* Mesma cor do fundo do body para uma transição suave */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 99999; /* Garante que fique acima de todo o conteúdo */
+    opacity: 1;
+    transition: opacity 0.5s ease-out, visibility 0.5s ease-out;
+    visibility: visible;
+}
+
+#loading-spinner-overlay.hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none; /* Impede cliques na tela de carregamento quando ela estiver invisível */
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid #bdc3c7; /* Cor cinza claro para a borda */
+    border-top-color: #3498db; /* Cor azul primária para a parte que gira */
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}

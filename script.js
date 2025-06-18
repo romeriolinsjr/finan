@@ -40,7 +40,8 @@ document.addEventListener('DOMContentLoaded', () => {
         RECORRENCIA_MESES: 24,
     };
 
-        // --- Elementos do DOM ---
+    // --- Elementos do DOM ---
+    const loadingSpinnerOverlay = document.getElementById('loading-spinner-overlay'); // NOVO
     const btnToggleSidebar = document.getElementById('btnToggleSidebar');
     const modalOverlay = document.getElementById('modalOverlay');
     const bodyEl = document.body;
@@ -200,28 +201,31 @@ auth.onAuthStateChanged(user => {
             }
             btnLogout.style.display = 'block';
             
+            hideSpinner(); // ESCONDE O SPINNER PARA MOSTRAR O APP
             inicializarErenderizarApp();
 
-        } else if (!isDuringRegistration) { // CORREÇÃO: SÓ MOSTRA SE NÃO ESTIVER NO MEIO DE UM CADASTRO
+        } else if (!isDuringRegistration) { 
             // 2. O USUÁRIO TENTOU LOGAR, MAS NÃO VERIFICOU O E-MAIL
             console.log("Usuário logado, mas e-mail não verificado:", user.email);
             currentUser = user; 
 
             appContainer.style.display = 'none';
             showVerificationScreen(user);
+            hideSpinner(); // ESCONDE O SPINNER PARA MOSTRAR A TELA DE VERIFICAÇÃO
         }
-        // Se isDuringRegistration for true, não faz nada e espera o fluxo de cadastro terminar.
 
     } else {
         // 3. NINGUÉM ESTÁ LOGADO
         console.log("Nenhum usuário logado.");
         currentUser = null;
-        isRegisterMode = false; // CORREÇÃO DO BUG DO LOGOUT
+        isRegisterMode = false;
 
         appContainer.style.display = 'none';
         resetAuthModalUI(); 
         btnLogout.style.display = 'none';
         
+        hideSpinner(); // ESCONDE O SPINNER PARA MOSTRAR A TELA DE LOGIN
+
         transacoes = [];
         cartoes = [];
         orcamentos = [];
@@ -466,6 +470,13 @@ function resetAuthModalUI() {
     function parseDateString(dateString) { if (!dateString) return null; const parts = dateString.split('-'); if (parts.length === 2) return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, 1); else if (parts.length === 3) return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2])); return null; }
     function calcularTotalAjustes(cartaoId, mesAno) { return ajustesFatura.filter(a => a.cartaoId === cartaoId && a.mesAnoReferencia === mesAno).reduce((total, a) => total + a.valor, 0); }
     function isOrcamentoFechado(orcamentoId, mesAno) { return orcamentosFechados.some(o => o.orcamentoId === orcamentoId && o.mesAno === mesAno); }
+    
+    // NOVO: Função para esconder o spinner de carregamento
+    function hideSpinner() {
+        if (loadingSpinnerOverlay) {
+        loadingSpinnerOverlay.classList.add('hidden');
+        }
+    }
 
     // --- Funções Principais de UI ---
     function updateMonthDisplay() {
