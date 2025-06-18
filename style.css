@@ -1044,3 +1044,7 @@ body.modal-aberto {
         transform: rotate(360deg);
     }
 }
+/* NOVO: Impede a rolagem elástica horizontal especificamente no corpo do modal de relatórios */
+#relatorioCorpo {
+    overflow-x: hidden;
+}
