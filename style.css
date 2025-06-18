@@ -1044,7 +1044,25 @@ body.modal-aberto {
         transform: rotate(360deg);
     }
 }
+/* Solução definitiva para posicionar o gráfico de pizza de tamanho fixo */
+.grafico-pizza-container {
+    justify-self: center; /* Centra o container na sua coluna do grid */
+}
 /* NOVO: Impede a rolagem elástica horizontal especificamente no corpo do modal de relatórios */
 #relatorioCorpo {
     overflow-x: hidden;
+}
+/* Solução definitiva para forçar o tamanho do gráfico de pizza */
+.grafico-pizza-container {
+    width: 250px !important;
+    height: 250px !important;
+    margin: auto !important;
+}
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
 }

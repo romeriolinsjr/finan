@@ -2489,14 +2489,14 @@ function renderizarTransacoesDoMes() {
         const gastoNaoOrcado = despesasNaoOrcadas.reduce((sum, t) => sum + t.valor, 0);
         if (gastoNaoOrcado > 0) { dadosGraficoPizza.push({ label: 'Outros', valor: gastoNaoOrcado }); }
 
-        const analiseOrcamentosHTML = `<section class="relatorio-secao"><h3>Análise de Orçamentos</h3><div class="relatorio-orcamento-lista">${orcamentosHTML}</div><div class="relatorio-orcamento-total"><span>TOTAIS</span><div class="orcamento-valores"><small>Previsto: ${formatCurrency(totalPrevistoOrcamentos)}</small><small>Gasto: ${formatCurrency(totalGastoOrcamentos)}</small><strong style="color: ${(totalPrevistoOrcamentos - totalGastoOrcamentos) >= 0 ? '#27ae60' : '#e74c3c'};">Saldo: ${formatCurrency(totalPrevistoOrcamentos - totalGastoOrcamentos)}</strong></div></div></section>`;
-        document.getElementById('relatorio-secao-analise-orcamentos').innerHTML = analiseOrcamentosHTML;
+            const analiseOrcamentosHTML = `<section class="relatorio-secao"><h3>Análise de Orçamentos</h3><div class="relatorio-orcamento-lista">${orcamentosHTML}</div><div class="relatorio-orcamento-total"><span>TOTAIS</span><div class="orcamento-valores"><small>Previsto: ${formatCurrency(totalPrevistoOrcamentos)}</small><small>Gasto: ${formatCurrency(totalGastoOrcamentos)}</small><strong style="color: ${(totalPrevistoOrcamentos - totalGastoOrcamentos) >= 0 ? '#27ae60' : '#e74c3c'};">Saldo: ${formatCurrency(totalPrevistoOrcamentos - totalGastoOrcamentos)}</strong></div></div></section>`;
+    document.getElementById('relatorio-secao-analise-orcamentos').innerHTML = analiseOrcamentosHTML;
 
-        // --- 4. RENDERIZAÇÃO DOS GRÁFICOS ---
+    // --- 4. RENDERIZAÇÃO DOS GRÁFICOS ---
         if(window.graficoPizza) window.graficoPizza.destroy();
-        if(window.graficoBarras) window.graficoBarras.destroy();
+    if(window.graficoBarras) window.graficoBarras.destroy();
 
-                    if (dadosGraficoPizza.length > 0) {
+    if (dadosGraficoPizza.length > 0) {
         const ctxPizza = document.getElementById('graficoPizzaOrcamentos').getContext('2d');
         window.graficoPizza = new Chart(ctxPizza, {
             type: 'pie',
@@ -2509,14 +2509,14 @@ function renderizarTransacoesDoMes() {
                     borderWidth: 1
                 }]
             },
-            // NOVO: Desativa o redimensionamento automático e força o uso do tamanho do canvas
+            // SOLUÇÃO: Desativa o redimensionamento e elimina o conflito de performance
             options: {
                 responsive: false
             }
         });
     }
 
-            const ctxBarras = document.getElementById('graficoBarrasResumo').getContext('2d');
+    const ctxBarras = document.getElementById('graficoBarrasResumo').getContext('2d');
     window.graficoBarras = new Chart(ctxBarras, {
         type: 'bar',
         data: {
