@@ -120,10 +120,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const relatorioCorpo = document.getElementById('relatorioCorpo');
     const btnRelatorioAnterior = document.getElementById('btnRelatorioAnterior');
     const btnRelatorioProximo = document.getElementById('btnRelatorioProximo');
-        // --- Estado da Aplicação ---
-    let currentDate = new Date();
-    let reportDate = new Date(); // NOVO: Para controlar o mês do relatório
-    let transacoes = inicializarTransacoes();
+    // --- Estado da Aplicação ---
+let currentDate = new Date();
+let reportDate = new Date(); // Para controlar o mês do relatório
+let userAguardandoVerificacao = null; // Guarda o usuário que acabou de se cadastrar
+let isDuringRegistration = false; // NOVO: Impede a tela errada de piscar durante o cadastro
+let transacoes = inicializarTransacoes();
     let cartoes = inicializarCartoes();
     let ajustesFatura = inicializarAjustes();
     let orcamentos = inicializarOrcamentos();
@@ -156,121 +158,180 @@ document.addEventListener('DOMContentLoaded', () => {
     // Variável para guardar informações do usuário quando ele estiver logado
     let currentUser = null; 
 
-        // --- Elementos do DOM - Autenticação ---
-    const modalAuth = document.getElementById('modalAuth');
-    const modalAuthTitulo = document.getElementById('modalAuthTitulo');
-    const authFeedback = document.getElementById('authFeedback');
-    const emailInput = document.getElementById('emailInput');
-    const passwordInput = document.getElementById('passwordInput');
-    const btnAuthAction = document.getElementById('btnAuthAction');
-    const btnToggleAuthMode = document.getElementById('btnToggleAuthMode');
-    const btnLogout = document.getElementById('btnLogout');
+    // --- Elementos do DOM - Autenticação ---
+const modalAuth = document.getElementById('modalAuth');
+const modalAuthTitulo = document.getElementById('modalAuthTitulo');
+const authFeedback = document.getElementById('authFeedback');
+const emailInput = document.getElementById('emailInput');
+const passwordInput = document.getElementById('passwordInput');
+const btnAuthAction = document.getElementById('btnAuthAction');
+const btnToggleAuthMode = document.getElementById('btnToggleAuthMode');
+const btnLogout = document.getElementById('btnLogout');
+const btnResendVerification = document.getElementById('btnResendVerification');
+// NOVOS ELEMENTOS PARA O MODAL DE VERIFICAÇÃO
+const modalVerificacaoEmail = document.getElementById('modalVerificacaoEmail');
+const btnIrParaLogin = document.getElementById('btnIrParaLogin');
+const btnReenviarVerificacaoModal = document.getElementById('btnReenviarVerificacaoModal');
 
     // --- Estado da Autenticação ---
     let isRegisterMode = false;
 
     // --- Lógica de Autenticação (O "Porteiro" do App) ---
 
-        // Esta função é o coração da autenticação. O Firebase a chama automaticamente.
-    auth.onAuthStateChanged(user => {
-        const appContainer = document.querySelector('.app-container');
+// Esta função é o coração da autenticação. O Firebase a chama automaticamente.
+auth.onAuthStateChanged(user => {
+    const appContainer = document.querySelector('.app-container');
 
-        if (user) {
-            // 1. O USUÁRIO ESTÁ LOGADO
-            console.log("Usuário logado:", user.email, "ID:", user.uid);
+    if (user) {
+        // O USUÁRIO EXISTE. AGORA, VERIFICAMOS SE O E-MAIL FOI CONFIRMADO.
+        
+        if (user.emailVerified) {
+            // 1. O USUÁRIO ESTÁ LOGADO E VERIFICADO
+            console.log("Usuário verificado e logado:", user.email, "ID:", user.uid);
             currentUser = user; 
+            isRegisterMode = false;
 
-            // Esconde a tela de login e mostra o app principal
             modalAuth.style.display = 'none';
             appContainer.style.display = 'flex';
 
-            // Adiciona o botão de Sair no menu lateral, se já não estiver lá
             const sidebar = document.querySelector('.sidebar');
             if (sidebar && !sidebar.contains(btnLogout)) {
                 sidebar.appendChild(btnLogout);
             }
-            btnLogout.style.display = 'block'; // Garante que o botão esteja visível
+            btnLogout.style.display = 'block';
             
             inicializarErenderizarApp();
 
-        } else {
-            // 2. O USUÁRIO NÃO ESTÁ LOGADO
-            console.log("Nenhum usuário logado.");
-            currentUser = null;
+        } else if (!isDuringRegistration) { // CORREÇÃO: SÓ MOSTRA SE NÃO ESTIVER NO MEIO DE UM CADASTRO
+            // 2. O USUÁRIO TENTOU LOGAR, MAS NÃO VERIFICOU O E-MAIL
+            console.log("Usuário logado, mas e-mail não verificado:", user.email);
+            currentUser = user; 
 
-            // Mostra a tela de login e esconde o app principal
-            modalAuth.style.display = 'flex';
             appContainer.style.display = 'none';
-            
-            // Esconde o botão de logout
-            btnLogout.style.display = 'none';
-            
-            // Limpa os dados da tela
-            transacoes = [];
-            cartoes = [];
-            orcamentos = [];
-            ajustesFatura = [];
-            orcamentosFechados = [];
-            atualizarTudo(); // Limpa a UI
+            showVerificationScreen(user);
         }
-    });
+        // Se isDuringRegistration for true, não faz nada e espera o fluxo de cadastro terminar.
 
-    // Função para lidar com o clique no botão "Entrar" / "Cadastrar"
-    btnAuthAction.addEventListener('click', () => {
-        const email = emailInput.value;
-        const password = passwordInput.value;
+    } else {
+        // 3. NINGUÉM ESTÁ LOGADO
+        console.log("Nenhum usuário logado.");
+        currentUser = null;
+        isRegisterMode = false; // CORREÇÃO DO BUG DO LOGOUT
 
-        if (!email || !password) {
-            mostrarFeedbackAuth("Por favor, preencha o e-mail e a senha.", true);
-            return;
-        }
-
-        if (isRegisterMode) {
-            // Modo Cadastro
-            auth.createUserWithEmailAndPassword(email, password)
-                .then(userCredential => {
-                    console.log("Usuário cadastrado com sucesso!", userCredential.user);
-                    // O onAuthStateChanged será acionado automaticamente, tratando o resto.
-                })
-                .catch(error => {
-                    console.error("Erro ao cadastrar:", error.message);
-                    mostrarFeedbackAuth(traduzirErroAuth(error.code), true);
-                });
-        } else {
-            // Modo Login
-            auth.signInWithEmailAndPassword(email, password)
-                .then(userCredential => {
-                    console.log("Usuário logado com sucesso!", userCredential.user);
-                    // O onAuthStateChanged será acionado automaticamente, tratando o resto.
-                })
-                .catch(error => {
-                    console.error("Erro ao logar:", error.message);
-                    mostrarFeedbackAuth(traduzirErroAuth(error.code), true);
-                });
-        }
-    });
-
-    // Função para alternar entre as telas de Login e Cadastro
-    btnToggleAuthMode.addEventListener('click', () => {
-        isRegisterMode = !isRegisterMode; // Inverte o modo
+        appContainer.style.display = 'none';
+        resetAuthModalUI(); 
+        btnLogout.style.display = 'none';
         
-        modalAuthTitulo.textContent = isRegisterMode ? "Cadastre-se" : "Login";
-        btnAuthAction.textContent = isRegisterMode ? "Criar Conta" : "Entrar";
-        btnToggleAuthMode.textContent = isRegisterMode ? "Já tem uma conta? Faça login" : "Não tem uma conta? Cadastre-se";
-        authFeedback.style.display = 'none'; // Esconde mensagens de erro antigas
-    });
+        transacoes = [];
+        cartoes = [];
+        orcamentos = [];
+        ajustesFatura = [];
+        orcamentosFechados = [];
+        atualizarTudo();
+    }
+});
 
-    // Função para fazer logout
-    btnLogout.addEventListener('click', () => {
-        if (confirm("Tem certeza que deseja sair?")) {
-            auth.signOut().then(() => {
-                console.log("Logout realizado com sucesso.");
-                // O onAuthStateChanged será acionado automaticamente, tratando o resto.
-            }).catch(error => {
-                console.error("Erro ao fazer logout:", error);
+// Função para lidar com o clique no botão "Entrar" / "Cadastrar"
+btnAuthAction.addEventListener('click', () => {
+    const email = emailInput.value;
+    const password = passwordInput.value;
+
+    if (!email || !password) {
+        mostrarFeedbackAuth("Por favor, preencha o e-mail e a senha.", true);
+        return;
+    }
+
+    if (isRegisterMode) {
+        // MODO CADASTRO
+        isDuringRegistration = true; // SINALIZADOR ATIVADO
+        auth.createUserWithEmailAndPassword(email, password)
+            .then(userCredential => {
+                const user = userCredential.user;
+                console.log("Usuário cadastrado, enviando e-mail de verificação para:", user.email);
+                
+                userAguardandoVerificacao = user;
+                
+                return user.sendEmailVerification().then(() => {
+                    return auth.signOut();
+                });
+            })
+            .then(() => {
+                fecharModalEspecifico(modalAuth); 
+                abrirModalEspecifico(modalVerificacaoEmail);
+                isDuringRegistration = false; // SINALIZADOR DESATIVADO
+            })
+            .catch(error => {
+                console.error("Erro ao cadastrar:", error.message);
+                mostrarFeedbackAuth(traduzirErroAuth(error.code), true);
+                isDuringRegistration = false; // SINALIZADOR DESATIVADO EM CASO DE ERRO
             });
-        }
-    });
+    } else {
+        // MODO LOGIN 
+        auth.signInWithEmailAndPassword(email, password)
+            .then(userCredential => {
+                console.log("Tentativa de login bem-sucedida para:", userCredential.user.email);
+            })
+            .catch(error => {
+                console.error("Erro ao logar:", error.message);
+                mostrarFeedbackAuth(traduzirErroAuth(error.code), true);
+            });
+    }
+});
+
+// Função para alternar entre as telas de Login e Cadastro
+btnToggleAuthMode.addEventListener('click', () => {
+    isRegisterMode = !isRegisterMode;
+    resetAuthModalUI(); 
+    btnToggleAuthMode.textContent = isRegisterMode ? "Já tem uma conta? Faça login" : "Não tem uma conta? Cadastre-se";
+});
+
+// Função para fazer logout
+btnLogout.addEventListener('click', () => {
+    if (confirm("Tem certeza que deseja sair?")) {
+        auth.signOut().then(() => {
+            console.log("Logout realizado com sucesso.");
+        }).catch(error => {
+            console.error("Erro ao fazer logout:", error);
+        });
+    }
+});
+
+// Listener para o botão de reenviar verificação (da tela de "verifique seu e-mail")
+btnResendVerification.addEventListener('click', () => {
+    if (currentUser) {
+        currentUser.sendEmailVerification()
+            .then(() => {
+                mostrarFeedbackAuth("Um novo link de verificação foi enviado para o seu e-mail.", false);
+            })
+            .catch(error => {
+                console.error("Erro ao reenviar e-mail de verificação:", error);
+                mostrarFeedbackAuth("Ocorreu um erro ao reenviar o e-mail. Tente novamente mais tarde.", true);
+            });
+    }
+});
+
+// AÇÕES PARA OS BOTÕES DO MODAL DE VERIFICAÇÃO PÓS-CADASTRO - CORRIGIDAS
+btnIrParaLogin.addEventListener('click', () => {
+    fecharModalEspecifico(modalVerificacaoEmail);
+    auth.signOut(); 
+    isRegisterMode = false;
+    resetAuthModalUI();
+});
+
+btnReenviarVerificacaoModal.addEventListener('click', () => {
+    if (userAguardandoVerificacao) {
+        userAguardandoVerificacao.sendEmailVerification()
+            .then(() => {
+                alert("Um novo e-mail de verificação foi enviado!");
+            })
+            .catch(error => {
+                console.error("Erro ao reenviar e-mail:", error);
+                alert("Ocorreu um erro ao reenviar o e-mail. Tente novamente.");
+            });
+    } else {
+        alert("Não foi possível identificar o usuário. Por favor, tente fazer o login e reenviar pela tela de verificação.");
+    }
+});
 
     // Funções auxiliares para feedback e tradução de erros
     function mostrarFeedbackAuth(mensagem, isError = false) {
@@ -280,21 +341,59 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function traduzirErroAuth(errorCode) {
-        switch (errorCode) {
-            case 'auth/invalid-email':
-                return 'O formato do e-mail é inválido.';
-            case 'auth/user-not-found':
-                return 'Nenhum usuário encontrado com este e-mail.';
-            case 'auth/wrong-password':
-                return 'Senha incorreta. Tente novamente.';
-            case 'auth/email-already-in-use':
-                return 'Este e-mail já está cadastrado.';
-            case 'auth/weak-password':
-                return 'A senha precisa ter no mínimo 6 caracteres.';
-            default:
-                return 'Ocorreu um erro. Tente novamente.';
-        }
+    switch (errorCode) {
+        case 'auth/invalid-email':
+            return 'O formato do e-mail é inválido.';
+        case 'auth/user-not-found':
+            return 'E-mail não cadastrado.'; // MENSAGEM MAIS CLARA
+        case 'auth/wrong-password':
+            return 'Senha inválida. Tente novamente.'; // MENSAGEM MAIS CLARA
+        case 'auth/email-already-in-use':
+            return 'Este e-mail já está cadastrado.';
+        case 'auth/weak-password':
+            return 'A senha precisa ter no mínimo 6 caracteres.';
+        default:
+            // MENSAGEM PADRÃO MAIS ESPECÍFICA
+            return 'Ocorreu um erro de autenticação. Tente novamente.';
     }
+}
+
+// NOVO: Funções para controlar a UI do modal de autenticação
+function showVerificationScreen(user) {
+    if (!user) return;
+    
+    modalAuth.style.display = 'flex';
+    modalAuthTitulo.textContent = 'Verifique seu E-mail';
+    
+    // Esconde campos e botões de login/cadastro
+    emailInput.parentElement.style.display = 'none';
+    passwordInput.parentElement.style.display = 'none';
+    btnAuthAction.style.display = 'none';
+    btnToggleAuthMode.style.display = 'none';
+    
+    // Mostra mensagem e botões de verificação/logout
+    mostrarFeedbackAuth(`Olá, ${user.email}! Um link de confirmação foi enviado para seu e-mail. Por favor, verifique sua caixa de entrada (e spam) para continuar.`, false);
+    btnResendVerification.style.display = 'block';
+    btnLogout.style.display = 'block';
+}
+
+function resetAuthModalUI() {
+    modalAuth.style.display = 'flex';
+    
+    // Define o título e o texto do botão de ação com base no modo
+    modalAuthTitulo.textContent = isRegisterMode ? "Cadastre-se" : "Login";
+    btnAuthAction.textContent = isRegisterMode ? "Cadastrar" : "Entrar"; // CORREÇÃO APLICADA AQUI
+
+    // Mostra campos e botões de login/cadastro
+    emailInput.parentElement.style.display = 'block';
+    passwordInput.parentElement.style.display = 'block';
+    btnAuthAction.style.display = 'block';
+    btnToggleAuthMode.style.display = 'block';
+
+    // Esconde os de verificação
+    btnResendVerification.style.display = 'none';
+    authFeedback.style.display = 'none';
+}
 
             // Função para configurar os "ouvintes" em tempo real do Firestore
     function carregarDadosDoFirestore() {
