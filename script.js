@@ -174,8 +174,12 @@ const modalVerificacaoEmail = document.getElementById('modalVerificacaoEmail');
 const btnIrParaLogin = document.getElementById('btnIrParaLogin');
 const btnReenviarVerificacaoModal = document.getElementById('btnReenviarVerificacaoModal');
 
-    // --- Estado da Autenticação ---
-    let isRegisterMode = false;
+// NOVOS ELEMENTOS DO RODAPÉ DA BARRA LATERAL
+const sidebarFooter = document.querySelector('.sidebar-footer');
+const lastUpdatedDisplay = document.getElementById('lastUpdatedDisplay');
+
+// --- Estado da Autenticação ---
+let isRegisterMode = false;
 
     // --- Lógica de Autenticação (O "Porteiro" do App) ---
 
@@ -195,11 +199,8 @@ auth.onAuthStateChanged(user => {
             modalAuth.style.display = 'none';
             appContainer.style.display = 'flex';
 
-            const sidebar = document.querySelector('.sidebar');
-            if (sidebar && !sidebar.contains(btnLogout)) {
-                sidebar.appendChild(btnLogout);
-            }
-            btnLogout.style.display = 'block';
+            sidebarFooter.style.display = 'block'; // Mostra o rodapé da barra lateral
+            updateLastUpdatedTimestamp(); // Atualiza a data/hora
             
             hideSpinner(); // ESCONDE O SPINNER PARA MOSTRAR O APP
             inicializarErenderizarApp();
@@ -211,6 +212,7 @@ auth.onAuthStateChanged(user => {
 
             appContainer.style.display = 'none';
             showVerificationScreen(user);
+            sidebarFooter.style.display = 'block'; // Mostra o rodapé mesmo na tela de verificação
             hideSpinner(); // ESCONDE O SPINNER PARA MOSTRAR A TELA DE VERIFICAÇÃO
         }
 
@@ -222,7 +224,7 @@ auth.onAuthStateChanged(user => {
 
         appContainer.style.display = 'none';
         resetAuthModalUI(); 
-        btnLogout.style.display = 'none';
+        sidebarFooter.style.display = 'none'; // Esconde o rodapé quando deslogado
         
         hideSpinner(); // ESCONDE O SPINNER PARA MOSTRAR A TELA DE LOGIN
 
@@ -397,6 +399,14 @@ function resetAuthModalUI() {
     // Esconde os de verificação
     btnResendVerification.style.display = 'none';
     authFeedback.style.display = 'none';
+}
+
+function updateLastUpdatedTimestamp() {
+    if (!lastUpdatedDisplay) return;
+    const now = new Date();
+    const formattedDate = now.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const formattedTime = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    lastUpdatedDisplay.textContent = `Atualizado em ${formattedDate}, às ${formattedTime.replace(':', 'h')}.`;
 }
 
             // Função para configurar os "ouvintes" em tempo real do Firestore
@@ -1393,7 +1403,6 @@ if (btnSalvarTransacao) {
         }
     }
     function atualizarTudo() { renderizarTransacoesDoMes(); salvarDadosNoLocalStorage(); }
-    
     // --- Fatura do Cartão, Renderização e Gestão de Dados ---
     function abrirModalDetalhesFatura(cartaoId, mesAnoFatura) {
         currentFaturaDate = parseDateString(mesAnoFatura);

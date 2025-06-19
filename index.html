@@ -13,6 +13,11 @@
     <link rel="icon" type="image/png" sizes="32x32" href="favicon.png">
     <link rel="apple-touch-icon" href="favicon.png"> <!-- Para iOS -->
 
+<!-- NOVO: Importa a fonte Poppins do Google Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600&display=swap" rel="stylesheet">
+
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -30,26 +35,35 @@
             <button id="btnMenuOrcamentos">Orçamentos</button>
             <button id="btnRelatorios">Relatórios</button> <!-- NOVO -->
 
-            <section class="financial-summary">
-                <h2>Resumo Financeiro</h2>
-                 <div class="summary-item">
-                    <span>Receitas do mês:</span>
-                    <span id="totalReceitas">R$ 0,00</span>
-                </div>
-                <div class="summary-item">
-                    <span>Despesas do mês:</span>
-                    <span id="totalDespesas">R$ 0,00</span>
-                </div>
-                <div class="summary-item saldo">
-                    <span>Saldo do mês:</span>
-                    <span id="saldoMes">R$ 0,00</span>
-                </div>
-            </section>
-        </aside>
+                    <section class="financial-summary">
+            <h2>Resumo Financeiro</h2>
+             <div class="summary-item">
+                <span>Receitas do mês:</span>
+                <span id="totalReceitas">R$ 0,00</span>
+            </div>
+            <div class="summary-item">
+                <span>Despesas do mês:</span>
+                <span id="totalDespesas">R$ 0,00</span>
+            </div>
+                        <div class="summary-item saldo">
+                <span>Saldo do mês:</span>
+                <span id="saldoMes">R$ 0,00</span>
+            </div>
+        </section>
+
+        <!-- INSERIDO NO LOCAL CORRETO -->
+        <div class="sidebar-footer">
+            <button id="btnLogout">Sair</button>
+            <p id="lastUpdatedDisplay"></p>
+        </div>
+    </aside>
 
         <main class="main-content">
             <header class="main-header">
+            <div class="header-title-container">
+                <img src="favicon.png" alt="Logo Finan" class="header-logo">
                 <h1>Finan</h1>
+            </div>
                 <div class="month-navigation">
                     <button id="prevMonthBtn" title="Mês anterior"><</button>
                     <span id="currentMonthDisplay">Carregando...</span>
@@ -115,12 +129,10 @@
                     <input type="password" id="passwordInput" placeholder="Pelo menos 6 caracteres" required>
                 </div>
             </div>
-                        <div class="modal-footer" style="flex-direction: column; gap: 10px;">
+                            <div class="modal-footer" style="flex-direction: column; gap: 10px;">
                 <button id="btnAuthAction" class="btn-primary" style="width: 100%; margin: 0;">Entrar</button>
                 <button id="btnToggleAuthMode" class="btn-link" style="background: none; border: none; color: #3498db; cursor: pointer;">Não tem uma conta? Cadastre-se</button>
-                <!-- NOVO: Botão para reenviar a verificação -->
                 <button id="btnResendVerification" class="btn-secondary" style="display: none; width: 100%; margin: 0;">Reenviar E-mail</button>
-                <button id="btnLogout" class="btn-secondary" style="display: none; width: 100%; margin: 0;">Sair (Logout)</button>
             </div>
         </div>
     </div>
