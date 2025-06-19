@@ -1074,38 +1074,12 @@ body.modal-aberto {
         transform: rotate(360deg);
     }
 }
-/* NOVO: Estilos para o rodapé da barra lateral */
-.sidebar-footer {
-    margin-top: auto; /* Empurra o rodapé para o fundo da barra */
-    padding-top: 20px;
-    border-top: 1px solid #34495e;
-    display: none; /* Começa escondido */
-}
-
-.sidebar-footer #btnLogout {
-    width: 100%;
-    background-color: #7f8c8d;
-    color: white;
-    text-align: center;
-    margin-bottom: 10px;
-}
-
-.sidebar-footer #btnLogout:hover {
-    background-color: #c0392b;
-}
-
-#lastUpdatedDisplay {
-    font-size: 12px;
-    color: #bdc3c7;
-    text-align: center;
-    margin: 0;
-}
 /* ESTILOS PARA O RODAPÉ DA BARRA LATERAL */
 .sidebar-footer {
     margin-top: auto; /* Empurra o rodapé para o fundo da barra */
     padding-top: 15px;
     border-top: 1px solid #34495e;
-    display: none; /* Começa escondido por padrão */
+    display: none; /* Começa escondido por padrão e é exibido via JS */
 }
 
 .sidebar-footer #btnLogout {

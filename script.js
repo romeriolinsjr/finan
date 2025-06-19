@@ -184,7 +184,7 @@ let isRegisterMode = false;
     // --- Lógica de Autenticação (O "Porteiro" do App) ---
 
 // Esta função é o coração da autenticação. O Firebase a chama automaticamente.
-auth.onAuthStateChanged(user => {
+auth.onAuthStateChanged(async (user) => { // TORNADO ASYNC
     const appContainer = document.querySelector('.app-container');
 
     if (user) {
@@ -200,7 +200,21 @@ auth.onAuthStateChanged(user => {
             appContainer.style.display = 'flex';
 
             sidebarFooter.style.display = 'block'; // Mostra o rodapé da barra lateral
-            updateLastUpdatedTimestamp(); // Atualiza a data/hora
+            
+            // NOVO: Busca o documento do usuário para ler a data da última modificação
+            try {
+                const userDocRef = db.collection('users').doc(currentUser.uid);
+                const userDoc = await userDocRef.get();
+                if (userDoc.exists) {
+                    const lastModifiedTimestamp = userDoc.data().lastModified;
+                    exibirDataUltimaAtualizacao(lastModifiedTimestamp); // Usa a nova função para exibir a data
+                } else {
+                    exibirDataUltimaAtualizacao(null); // Caso o documento não exista ainda
+                }
+            } catch (error) {
+                console.error("Erro ao buscar dados do usuário:", error);
+                exibirDataUltimaAtualizacao(null);
+            }
             
             hideSpinner(); // ESCONDE O SPINNER PARA MOSTRAR O APP
             inicializarErenderizarApp();
@@ -401,12 +415,46 @@ function resetAuthModalUI() {
     authFeedback.style.display = 'none';
 }
 
-function updateLastUpdatedTimestamp() {
+// --- NOVAS FUNÇÕES PARA CONTROLE DE "ÚLTIMA ATUALIZAÇÃO" ---
+
+/**
+ * Registra a data e hora atuais no documento do usuário no Firestore.
+ * Deve ser chamada APÓS qualquer operação de escrita (criar, editar, excluir) bem-sucedida.
+ */
+async function registrarUltimaAlteracao() {
+    if (!currentUser) return; // Segurança: não faz nada se não houver usuário
+
+    try {
+        const userDocRef = db.collection('users').doc(currentUser.uid);
+        // Usa o timestamp do servidor para garantir a precisão, independente do relógio do cliente.
+        // { merge: true } garante que não vamos apagar outros campos do documento do usuário.
+        await userDocRef.set({
+            lastModified: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+
+        console.log("Timestamp de última alteração registrado no Firestore.");
+
+    } catch (error) {
+        console.error("Erro ao registrar timestamp de última alteração:", error);
+    }
+}
+
+/**
+ * Exibe a data da última atualização na barra lateral.
+ * @param {firebase.firestore.Timestamp} timestamp - O objeto de timestamp vindo do Firestore.
+ */
+function exibirDataUltimaAtualizacao(timestamp) {
     if (!lastUpdatedDisplay) return;
-    const now = new Date();
-    const formattedDate = now.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-    const formattedTime = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-    lastUpdatedDisplay.textContent = `Atualizado em ${formattedDate}, às ${formattedTime.replace(':', 'h')}.`;
+
+    if (timestamp && typeof timestamp.toDate === 'function') {
+        const data = timestamp.toDate(); // Converte o timestamp do Firestore para um objeto Date do JS
+        const dataFormatada = data.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        const horaFormatada = data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        lastUpdatedDisplay.textContent = `Atualizado em ${dataFormatada}, às ${horaFormatada.replace(':', 'h')}.`;
+    } else {
+        // Mensagem padrão se o usuário nunca fez uma alteração
+        lastUpdatedDisplay.textContent = 'Nenhuma despesa registrada.';
+    }
 }
 
             // Função para configurar os "ouvintes" em tempo real do Firestore
@@ -1132,8 +1180,12 @@ if (btnSalvarTransacao) {
         }
 
         if (sucesso) {
-            // APÓS O SUCESSO, RECARREGA OS DADOS DA NUVEM E ATUALIZA A TELA
-            await inicializarErenderizarApp();
+            // NOVO: Verifica se a operação foi em uma despesa para registrar a alteração
+            if (dadosFormulario.tipo === CONSTS.TIPO_TRANSACAO.DESPESA) {
+                await registrarUltimaAlteracao();
+            }
+
+            // O ouvinte do Firestore já cuidará de recarregar os dados, então não precisamos chamar inicializarErenderizarApp() aqui.
             
             if (isQuickAddMode && !isEditMode) {
                 resetFormParaNovaDespesaCartao();
@@ -1353,6 +1405,8 @@ if (btnSalvarTransacao) {
             if (!serieId) { alert("Erro: ID da série não encontrado."); return; }
 
             if (acao === CONSTS.ACAO_SERIE.EXCLUIR) {
+                const transacaoModelo = transacoes.find(t => t.id === transacaoId);
+                
                 console.log("Excluindo toda a série:", serieId);
                 const querySnapshot = await db.collection('users').doc(currentUser.uid).collection('transacoes').where('serieId', '==', serieId).get();
                 
@@ -1363,8 +1417,14 @@ if (btnSalvarTransacao) {
 
                 try {
                     await batch.commit(); // Executa a exclusão em lote
+                    
+                    // NOVO: Só registra se a série for de despesas
+                    if (transacaoModelo && transacaoModelo.tipo === CONSTS.TIPO_TRANSACAO.DESPESA) {
+                        await registrarUltimaAlteracao();
+                    }
+
                     alert("Toda a série de transações foi excluída.");
-                    await inicializarErenderizarApp(); // Recarrega os dados e atualiza a tela
+                    // O ouvinte do Firestore cuidará de recarregar os dados.
                 } catch (error) {
                     console.error("Erro ao excluir série de transações:", error);
                     alert("Ocorreu um erro ao excluir a série.");
@@ -1383,9 +1443,16 @@ if (btnSalvarTransacao) {
         }
 
         try {
+            const transacao = transacoes.find(t => t.id === transacaoId);
+
             // Deleta o documento específico no Firestore
             await db.collection('users').doc(currentUser.uid).collection('transacoes').doc(transacaoId).delete();
             console.log("Transação única excluída do Firestore:", transacaoId);
+            
+            // NOVO: Só registra se a transação excluída for uma despesa
+            if (transacao && transacao.tipo === CONSTS.TIPO_TRANSACAO.DESPESA) {
+                await registrarUltimaAlteracao();
+            }
 
             // Atualiza a tela após a exclusão
             if (isInModal && modalDetalhesFaturaCartao && modalDetalhesFaturaCartao.style.display === 'flex') {
@@ -2333,6 +2400,7 @@ function renderizarTransacoesDoMes() {
         try {
             const docRef = db.collection('users').doc(currentUser.uid).collection('transacoes').doc(transacaoId);
             await docRef.update({ paga: novoStatus });
+            await registrarUltimaAlteracao(); // NOVO: Registra a alteração
             console.log(`Status da transação ${transacaoId} atualizado para ${novoStatus}.`);
             
             // O ouvinte cuidará de redesenhar, mas podemos atualizar o resumo financeiro localmente para uma resposta mais rápida
@@ -2358,6 +2426,7 @@ function renderizarTransacoesDoMes() {
                 batch.update(doc.ref, { paga: novoStatus });
             });
             await batch.commit();
+            await registrarUltimaAlteracao(); // NOVO: Registra a alteração
             console.log(`Status de ${querySnapshot.size} transações da fatura atualizado para ${novoStatus}.`);
 
             // O ouvinte cuidará de redesenhar, mas podemos atualizar o resumo financeiro localmente para uma resposta mais rápida
