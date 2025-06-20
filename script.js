@@ -152,6 +152,7 @@ let transacoes = inicializarTransacoes();
     let editingSerieId = null;
     let isCartaoEditMode = false;
     let isQuickAddMode = false;
+    let isModoTerceiros = false; // NOVO: Controla se estamos cadastrando uma dívida de terceiro
         // --- Conexão com o Firebase ---
     // ATENÇÃO: Substitua o objeto abaixo pelo SEU objeto de configuração que você copiou do Firebase.
     const firebaseConfig = {
@@ -814,45 +815,156 @@ function atualizarResumoFinanceiro() {
         function fecharModalEspecifico(modalElement) {
         if (!modalElement) return;
         modalElement.style.display = 'none';
+        
         // Remove a classe do body para restaurar a rolagem da página principal
         bodyEl.classList.remove('modal-aberto');
-        if (modalElement.id === 'modalNovaTransacao') {
-            isQuickAddMode = false;
-            isEditMode = false;
-            editingTransactionId = null;
-            editingSerieId = null;
-            if (tipoTransacaoSelect) tipoTransacaoSelect.disabled = false;
-        } else if (modalElement.id === 'modalCadastrarCartao') {
-            isCartaoEditMode = false;
-            if (cartaoEditIdInput) cartaoEditIdInput.value = '';
-        } else if (modalElement.id === 'modalDetalhesFaturaCartao') {
-            if (listaComprasFaturaCartaoUl) listaComprasFaturaCartaoUl.innerHTML = '';
-            currentFaturaDate = null;
-        } else if (modalElement.id === 'modalGerenciarCartoes') {
-            if (listaCartoesCadastradosUl) listaCartoesCadastradosUl.innerHTML = '';
-        } else if (modalElement.id === 'modalDetalhesOrcamento') {
-            if(listaGastosOrcamento) listaGastosOrcamento.innerHTML = '';
-        } else if (modalElement.id === 'modalAjustesFatura') {
-            if(listaAjustesFaturaUl) listaAjustesFaturaUl.innerHTML = '';
-            if(descricaoAjusteInput) descricaoAjusteInput.value = '';
-            if(valorAjusteInput) valorAjusteInput.value = '';
-        } else if (modalElement.id === 'modalOrcamentos') {
-            nomeOrcamentoInput.value = '';
-            valorOrcamentoInput.value = '';
-            diaOrcamentoInput.value = '';
-            orcamentoEditIdInput.value = '';
-            modalOrcamentoTitulo.textContent = "Gerenciar Orçamentos";
-            btnSalvarOrcamento.textContent = "Salvar";
+
+        // LÓGICA DE RESET ESPECÍFICA PARA CADA MODAL
+        switch (modalElement.id) {
+            case 'modalNovaTransacao':
+                // Reseta todos os estados relacionados a este modal
+                isQuickAddMode = false;
+                isModoTerceiros = false;
+                isEditMode = false;
+                editingTransactionId = null;
+                editingSerieId = null;
+                // Restaura o formulário ao seu estado original
+                if (tipoTransacaoSelect) tipoTransacaoSelect.disabled = false;
+                const nomeLabel = nomeTransacaoInput.previousElementSibling;
+                if (nomeLabel) nomeLabel.textContent = 'Nome:';
+                if (nomeTransacaoInput) nomeTransacaoInput.placeholder = 'Ex: Salário, Aluguel';
+                break;
+            
+            case 'modalCadastrarCartao':
+                isCartaoEditMode = false;
+                if (cartaoEditIdInput) cartaoEditIdInput.value = '';
+                break;
+
+            case 'modalDetalhesFaturaCartao':
+                if (listaComprasFaturaCartaoUl) listaComprasFaturaCartaoUl.innerHTML = '';
+                currentFaturaDate = null;
+                break;
+
+            case 'modalGerenciarCartoes':
+                if (listaCartoesCadastradosUl) listaCartoesCadastradosUl.innerHTML = '';
+                break;
+
+            case 'modalDetalhesOrcamento':
+                if(listaGastosOrcamento) listaGastosOrcamento.innerHTML = '';
+                break;
+
+            case 'modalAjustesFatura':
+                if(listaAjustesFaturaUl) listaAjustesFaturaUl.innerHTML = '';
+                if(descricaoAjusteInput) descricaoAjusteInput.value = '';
+                if(valorAjusteInput) valorAjusteInput.value = '';
+                break;
+
+            case 'modalOrcamentos':
+                nomeOrcamentoInput.value = '';
+                valorOrcamentoInput.value = '';
+                diaOrcamentoInput.value = '';
+                orcamentoEditIdInput.value = '';
+                modalOrcamentoTitulo.textContent = "Gerenciar Orçamentos";
+                btnSalvarOrcamento.textContent = "Salvar";
+                break;
         }
     }
     document.querySelectorAll('.close-button, .close-button-footer').forEach(button => { button.addEventListener('click', () => { const modalId = button.dataset.modalId; const modalParaFechar = modalId ? document.getElementById(modalId) : button.closest('.modal'); if (modalParaFechar) fecharModalEspecifico(modalParaFechar); }); });
     window.addEventListener('click', (event) => { if (event.target.classList.contains('modal')) { fecharModalEspecifico(event.target); } });
 
     // --- Fluxo de Nova Transação ---
-    function resetModalNovaTransacao() { if (!tipoTransacaoSelect || !nomeTransacaoInput || !passo2Container || !btnAvancarTransacao || !btnSalvarTransacao || !btnVoltarTransacao || !modalHeaderNovaTransacao) return; tipoTransacaoSelect.value = ""; nomeTransacaoInput.value = ""; tipoTransacaoSelect.parentElement.style.display = 'block'; nomeTransacaoInput.parentElement.style.display = 'block'; tipoTransacaoSelect.disabled = false; passo2Container.innerHTML = ""; passo2Container.style.display = 'none'; btnAvancarTransacao.style.display = 'inline-block'; btnSalvarTransacao.style.display = 'none'; btnVoltarTransacao.style.display = 'none'; if (isEditMode) {} else { modalHeaderNovaTransacao.textContent = 'Nova Transação (Passo 1 de 2)'; } if(quickAddFeedback) quickAddFeedback.style.display = 'none'; currentModalStep = 1; }
+    function resetModalNovaTransacao() {
+        if (!tipoTransacaoSelect || !nomeTransacaoInput || !passo2Container || !btnAvancarTransacao || !btnSalvarTransacao || !btnVoltarTransacao || !modalHeaderNovaTransacao) return;
+        
+        // --- Reset Visual Completo (Passo 1) ---
+        // Garante que os campos do Passo 1 sempre apareçam
+        tipoTransacaoSelect.parentElement.style.display = 'block';
+        nomeTransacaoInput.parentElement.style.display = 'block';
+        
+        // Garante que os botões voltem ao estado inicial
+        btnAvancarTransacao.style.display = 'inline-block';
+        btnSalvarTransacao.style.display = 'none';
+        btnVoltarTransacao.style.display = 'none';
+        
+        // Limpa o container do Passo 2
+        passo2Container.innerHTML = "";
+        passo2Container.style.display = 'none';
+        
+        // Reseta valores e estados
+        tipoTransacaoSelect.value = "";
+        nomeTransacaoInput.value = "";
+        if(quickAddFeedback) quickAddFeedback.style.display = 'none';
+        currentModalStep = 1;
+
+        // --- Adaptação Condicional ---
+        // Pega o label do campo de nome uma única vez
+        const nomeLabel = nomeTransacaoInput.previousElementSibling;
+
+        if (isModoTerceiros) {
+            // Configura para o Modo de Terceiros
+            modalHeaderNovaTransacao.textContent = 'Nova Dívida de Terceiro (Passo 1)';
+            tipoTransacaoSelect.value = 'despesa';
+            tipoTransacaoSelect.disabled = true;
+            nomeTransacaoInput.placeholder = 'Ex: Empréstimo, Compra Celular';
+            if (nomeLabel) nomeLabel.textContent = 'Descrição da Dívida:';
+        } else {
+            // Configura para o Modo Normal
+            modalHeaderNovaTransacao.textContent = 'Nova Transação (Passo 1 de 2)';
+            tipoTransacaoSelect.disabled = false;
+            nomeTransacaoInput.placeholder = 'Ex: Salário, Aluguel';
+            if (nomeLabel) nomeLabel.textContent = 'Nome:';
+        }
+    }
     function preencherModalParaEdicao(id) { if (!tipoTransacaoSelect || !nomeTransacaoInput || !modalHeaderNovaTransacao) return; const transacao = transacoes.find(t => t.id === id); if (!transacao) { console.error("Transação não encontrada para edição:", id); fecharModalEspecifico(modalNovaTransacao); return; } const nomeOriginal = transacao.serieId ? transacao.nome.replace(/\s\(\d+\/\d+\)$/, '').replace(/\s\(Recorrente\)$/, '') : transacao.nome; const nomeCurto = nomeOriginal.substring(0, 25) + (nomeOriginal.length > 25 ? '...' : ''); modalHeaderNovaTransacao.textContent = `Editar Transação: ${nomeCurto} (Passo 1)`; tipoTransacaoSelect.value = transacao.tipo; nomeTransacaoInput.value = nomeOriginal; tipoTransacaoSelect.disabled = true; }
     if (btnAbrirModalNovaTransacao) { btnAbrirModalNovaTransacao.addEventListener('click', () => abrirModalEspecifico(modalNovaTransacao, null, 'transacao')); }
-    if (btnAvancarTransacao) { btnAvancarTransacao.addEventListener('click', () => { if (!tipoTransacaoSelect || !nomeTransacaoInput || !passo2Container || !btnAvancarTransacao || !btnVoltarTransacao || !btnSalvarTransacao || !modalHeaderNovaTransacao) return; const tipo = tipoTransacaoSelect.value; const nome = nomeTransacaoInput.value.trim(); if (!tipo) { alert("Por favor, selecione o tipo de transação."); tipoTransacaoSelect.focus(); return; } if (!nome) { alert("Por favor, informe o nome da transação."); nomeTransacaoInput.focus(); return; } tipoTransacaoSelect.parentElement.style.display = 'none'; nomeTransacaoInput.parentElement.style.display = 'none'; passo2Container.style.display = 'block'; btnAvancarTransacao.style.display = 'none'; btnVoltarTransacao.style.display = 'inline-block'; btnSalvarTransacao.style.display = 'inline-block'; currentModalStep = 2; const transacaoOriginal = isEditMode ? transacoes.find(t => t.id === editingTransactionId) : null; const nomeCurto = nome.substring(0, 25) + (nome.length > 25 ? '...' : ''); if (tipo === CONSTS.TIPO_TRANSACAO.RECEITA) { modalHeaderNovaTransacao.textContent = isEditMode ? `Editar Receita: ${nomeCurto} (Passo 2)` : 'Nova Receita (Passo 2 de 2)'; carregarFormularioReceita(transacaoOriginal); } else if (tipo === CONSTS.TIPO_TRANSACAO.DESPESA) { modalHeaderNovaTransacao.textContent = isEditMode ? `Editar Despesa: ${nomeCurto} (Passo 2)` : 'Nova Despesa (Passo 2 de 2)'; carregarFormularioDespesa(transacaoOriginal); } }); }
+    if (btnAvancarTransacao) {
+        btnAvancarTransacao.addEventListener('click', () => {
+            if (!tipoTransacaoSelect || !nomeTransacaoInput || !passo2Container || !btnAvancarTransacao || !btnVoltarTransacao || !btnSalvarTransacao || !modalHeaderNovaTransacao) return;
+            const tipo = tipoTransacaoSelect.value;
+            const nome = nomeTransacaoInput.value.trim();
+            if (!tipo) { alert("Por favor, selecione o tipo de transação."); tipoTransacaoSelect.focus(); return; }
+            if (!nome) { alert("Por favor, informe o nome ou descrição."); nomeTransacaoInput.focus(); return; }
+
+            // Esconde os campos do Passo 1
+            tipoTransacaoSelect.parentElement.style.display = 'none';
+            nomeTransacaoInput.parentElement.style.display = 'none';
+            
+            // Mostra os controles do Passo 2
+            passo2Container.style.display = 'block';
+            btnAvancarTransacao.style.display = 'none';
+            btnVoltarTransacao.style.display = 'inline-block';
+            btnSalvarTransacao.style.display = 'inline-block';
+            currentModalStep = 2;
+
+            const transacaoOriginal = isEditMode ? transacoes.find(t => t.id === editingTransactionId) : null;
+            const nomeCurto = nome.substring(0, 25) + (nome.length > 25 ? '...' : '');
+
+            // Limpa o container antes de adicionar conteúdo
+            passo2Container.innerHTML = '';
+
+            // Carrega o formulário apropriado
+            if (tipo === CONSTS.TIPO_TRANSACAO.RECEITA) {
+                modalHeaderNovaTransacao.textContent = isEditMode ? `Editar Receita: ${nomeCurto} (Passo 2)` : 'Nova Receita (Passo 2 de 2)';
+                carregarFormularioReceita(transacaoOriginal);
+            } else if (tipo === CONSTS.TIPO_TRANSACAO.DESPESA) {
+                const tituloAcao = isModoTerceiros ? 'Nova Dívida' : (isEditMode ? 'Editar Despesa' : 'Nova Despesa');
+                modalHeaderNovaTransacao.textContent = `${tituloAcao}: ${nomeCurto} (Passo 2)`;
+                carregarFormularioDespesa(transacaoOriginal);
+            }
+
+            // NOVO E CORRIGIDO: Adiciona o campo "Nome da Pessoa" APÓS o formulário ter sido carregado
+            if (isModoTerceiros) {
+                const campoPessoaHTML = `
+                    <div style="order: -1;"> <!-- Usa 'order' para forçar para o topo se o container for flex/grid -->
+                        <label for="nomePessoa">Nome da Pessoa:</label>
+                        <input type="text" id="nomePessoa" placeholder="Ex: João da Silva" required>
+                    </div>
+                `;
+                // Insere o campo no início do container, antes de qualquer outro filho
+                passo2Container.insertAdjacentHTML('afterbegin', campoPessoaHTML);
+            }
+        });
+    }
     if (btnVoltarTransacao) { btnVoltarTransacao.addEventListener('click', () => { if (!passo2Container || !tipoTransacaoSelect || !nomeTransacaoInput || !btnAvancarTransacao || !btnVoltarTransacao || !btnSalvarTransacao || !modalHeaderNovaTransacao) return; passo2Container.innerHTML = ""; passo2Container.style.display = 'none'; tipoTransacaoSelect.parentElement.style.display = 'block'; nomeTransacaoInput.parentElement.style.display = 'block'; btnAvancarTransacao.style.display = 'inline-block'; btnVoltarTransacao.style.display = 'none'; btnSalvarTransacao.style.display = 'none'; if (isEditMode && editingTransactionId) { const transacao = transacoes.find(t => t.id === editingTransactionId); if (transacao) { const nomeOriginal = transacao.serieId ? transacao.nome.replace(/\s\(\d+\/\d+\)$/, '').replace(/\s\(Recorrente\)$/, '') : transacao.nome; tipoTransacaoSelect.value = transacao.tipo; nomeTransacaoInput.value = nomeOriginal; const nomeCurto = nomeOriginal.substring(0, 25) + (nomeOriginal.length > 25 ? '...' : ''); modalHeaderNovaTransacao.textContent = `Editar Transação: ${nomeCurto} (Passo 1)`; } } else { modalHeaderNovaTransacao.textContent = 'Nova Transação (Passo 1 de 2)'; } currentModalStep = 1; }); }
    // BLOCO DE CÓDIGO PARA SUBSTITUIR AS 4 FUNÇÕES DE CARREGAMENTO DE FORMULÁRIO
 
@@ -925,7 +1037,7 @@ function carregarFormularioDespesa(transacao = null) {
         }
     });
 
-    passo2Container.innerHTML = '';
+    // CORREÇÃO: Anexa o conteúdo ao invés de substituir
     passo2Container.appendChild(clone);
 
     if (transacao && transacao.categoria) {
@@ -1178,6 +1290,143 @@ function validarDadosDaTransacao(dados) {
     }
     return true;
 }
+
+// --- NOVAS FUNÇÕES PARA DÍVIDAS DE TERCEIROS ---
+
+function obterDadosFormularioTerceiros() {
+    // Busca o campo de "Nome da Pessoa" que ainda não existe. Vamos criá-lo dinamicamente.
+    const nomePessoaInput = passo2Container.querySelector('#nomePessoa');
+    const nomePessoa = nomePessoaInput ? nomePessoaInput.value.trim() : '';
+    
+    // O campo 'nomeTransacaoInput' agora serve como "Descrição da Dívida"
+    const descricaoDivida = nomeTransacaoInput.value.trim();
+
+    const categoria = passo2Container.querySelector('#categoriaDespesa').value;
+    const frequencia = (categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA)
+        ? passo2Container.querySelector('#frequenciaDespesaOrd').value
+        : passo2Container.querySelector('#frequenciaDespesaCartao').value;
+    
+    let dados = {
+        nomePessoa: nomePessoa,
+        nomeTransacao: descricaoDivida,
+        categoria: categoria,
+        frequencia: frequencia,
+        cartaoId: null,
+        valor: 0,
+        totalParcelas: 1,
+        parcelaAtual: 1,
+        tipoCadastroParcela: null
+    };
+
+    if (frequencia === CONSTS.FREQUENCIA.PARCELADA) {
+        if (categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA) {
+            dados.valor = parseFloat(passo2Container.querySelector('#valorDespesaOrdParcelada').value) || 0;
+            dados.tipoCadastroParcela = passo2Container.querySelector('#tipoCadastroParcelaOrd').value;
+            dados.totalParcelas = parseInt(passo2Container.querySelector('#qtdParcelasOrd').value);
+            dados.parcelaAtual = parseInt(passo2Container.querySelector('#parcelaAtualOrd').value) || 1;
+        } else { // Cartão de Crédito
+            dados.valor = parseFloat(passo2Container.querySelector('#valorDespesaCartaoParcelada').value) || 0;
+            dados.tipoCadastroParcela = passo2Container.querySelector('#tipoCadastroParcelaCartao').value;
+            dados.totalParcelas = parseInt(passo2Container.querySelector('#qtdParcelasCartao').value);
+            dados.parcelaAtual = parseInt(passo2Container.querySelector('#parcelaAtualCartao').value) || 1;
+        }
+    } else { // Única
+        if (categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA) {
+            dados.valor = parseFloat(passo2Container.querySelector('#valorDespesaOrdUnicaRecorrente').value) || 0;
+        } else { // Cartão de Crédito
+            dados.valor = parseFloat(passo2Container.querySelector('#valorDespesaCartaoUnicaRecorrente').value) || 0;
+        }
+    }
+
+    if (categoria === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO) {
+        const cartaoEl = passo2Container.querySelector('#cartaoDespesa');
+        dados.cartaoId = cartaoEl ? cartaoEl.value : null;
+    }
+
+    return dados;
+}
+
+async function adicionarNovaDividaTerceiro(dados) {
+    if (!currentUser) {
+        alert("Erro: Nenhum usuário logado para salvar a dívida.");
+        return false;
+    }
+    if (!dados.nomePessoa) {
+        alert("Por favor, informe o nome da pessoa.");
+        return false;
+    }
+    if (!dados.nomeTransacao) {
+        alert("Por favor, informe a descrição da dívida.");
+        return false;
+    }
+    if (dados.valor <= 0) {
+        alert("O valor da dívida deve ser maior que zero.");
+        return false;
+    }
+
+    let dividasParaAdicionar = [];
+    const mesAnoReferenciaBase = getMesAnoChave(currentDate);
+    const serieId = db.collection('users').doc().id; // Gera um ID único para a série
+
+    const baseObject = {
+        userId: currentUser.uid,
+        nomePessoa: dados.nomePessoa,
+        nomeTransacao: dados.nomeTransacao,
+        categoria: dados.categoria,
+        frequencia: dados.frequencia,
+        cartaoId: dados.cartaoId,
+        reembolsado: false,
+        serieId: dados.frequencia !== 'unica' ? serieId : null,
+    };
+
+    if (dados.frequencia === CONSTS.FREQUENCIA.PARCELADA) {
+        const totalParcelas = dados.totalParcelas;
+        let valorDaParcela = (dados.tipoCadastroParcela === CONSTS.CADASTRO_PARCELA.VALOR_TOTAL)
+            ? parseFloat((dados.valor / totalParcelas).toFixed(2))
+            : dados.valor;
+        let parcelaInicial = dados.parcelaAtual || 1;
+
+        for (let i = 0; i < (totalParcelas - parcelaInicial + 1); i++) {
+            let mesReferenciaParcela = new Date(currentDate);
+            mesReferenciaParcela.setMonth(mesReferenciaParcela.getMonth() + i);
+
+            dividasParaAdicionar.push({
+                ...baseObject,
+                valor: valorDaParcela,
+                parcelaAtual: parcelaInicial + i,
+                totalParcelas: totalParcelas,
+                mesAnoReferencia: getMesAnoChave(mesReferenciaParcela),
+            });
+        }
+    } else { // Dívida Única
+        dividasParaAdicionar.push({
+            ...baseObject,
+            valor: dados.valor,
+            parcelaAtual: 1,
+            totalParcelas: 1,
+            mesAnoReferencia: mesAnoReferenciaBase,
+        });
+    }
+
+    const batch = db.batch();
+    const dividasCollectionRef = db.collection('users').doc(currentUser.uid).collection('dividasTerceiros');
+    
+    dividasParaAdicionar.forEach(divida => {
+        const newDocRef = dividasCollectionRef.doc();
+        batch.set(newDocRef, divida);
+    });
+
+    try {
+        await batch.commit();
+        console.log(`${dividasParaAdicionar.length} dívida(s) de terceiro salvas no Firestore.`);
+        return true;
+    } catch (error) {
+        console.error("Erro ao salvar dívidas de terceiro no Firestore:", error);
+        alert("Ocorreu um erro ao salvar a dívida. Tente novamente.");
+        return false;
+    }
+}
+
 // BLOCO CORRIGIDO PARA SUBSTITUIR A FUNÇÃO 'atualizarTransacaoExistente'
 
 async function atualizarTransacaoExistente(dados) {
@@ -1338,7 +1587,21 @@ async function adicionarNovasTransacoes(dados) {
 
 // --- Listener do Botão Salvar (Refatorado e Assíncrono) ---
 if (btnSalvarTransacao) {
-    btnSalvarTransacao.addEventListener('click', async () => { // Adicionado 'async'
+    btnSalvarTransacao.addEventListener('click', async () => {
+        
+        if (isModoTerceiros) {
+            const dadosDivida = obterDadosFormularioTerceiros();
+            const sucesso = await adicionarNovaDividaTerceiro(dadosDivida);
+            
+            if (sucesso) {
+                alert("Dívida de terceiro cadastrada com sucesso!");
+                fecharModalEspecifico(modalNovaTransacao);
+            }
+            // A validação de erros já é feita dentro da função 'adicionarNovaDividaTerceiro'
+            return;
+        }
+
+        // --- Lógica de Transação Normal (código que já existia) ---
         const dadosFormulario = obterDadosDoFormulario();
         
         if (!validarDadosDaTransacao(dadosFormulario)) {
@@ -1347,20 +1610,15 @@ if (btnSalvarTransacao) {
 
         let sucesso = false;
         if (isEditMode) {
-            // AINDA USA A LÓGICA ANTIGA. VAMOS MUDAR DEPOIS.
             sucesso = await atualizarTransacaoExistente(dadosFormulario); 
         } else {
-            // AGORA SALVA NO FIRESTORE
             sucesso = await adicionarNovasTransacoes(dadosFormulario);
         }
 
         if (sucesso) {
-            // NOVO: Verifica se a operação foi em uma despesa para registrar a alteração
             if (dadosFormulario.tipo === CONSTS.TIPO_TRANSACAO.DESPESA) {
                 await registrarUltimaAlteracao();
             }
-
-            // O ouvinte do Firestore já cuidará de recarregar os dados, então não precisamos chamar inicializarErenderizarApp() aqui.
             
             if (isQuickAddMode && !isEditMode) {
                 resetFormParaNovaDespesaCartao();
@@ -2388,8 +2646,26 @@ function renderizarTransacoesDoMes(filtro = '') {
     }
         if(btnDespesasTerceiros) {
         btnDespesasTerceiros.addEventListener('click', () => {
-            // Apenas abre o modal de menu, a lógica virá depois
             abrirModalEspecifico(modalMenuTerceiros);
+        });
+    }
+
+    // NOVO: Eventos para os botões dentro do menu de terceiros
+    if (btnAbrirCadastroTerceiros) {
+        btnAbrirCadastroTerceiros.addEventListener('click', () => {
+            fecharModalEspecifico(modalMenuTerceiros);
+            isModoTerceiros = true; // ATIVA O MODO DE CADASTRO DE TERCEIROS
+            abrirModalEspecifico(modalNovaTransacao, null, 'transacao');
+        });
+    }
+
+    // --- Lógica de Abertura e Eventos do Modal de Consulta de Terceiros ---
+
+    if (btnAbrirConsultaTerceiros) {
+        btnAbrirConsultaTerceiros.addEventListener('click', () => {
+            fecharModalEspecifico(modalMenuTerceiros);
+            // Apenas abre o modal de consulta vazio por enquanto
+            abrirModalEspecifico(modalConsultarTerceiros); 
         });
     }
         if (btnRelatorioAnterior) {
