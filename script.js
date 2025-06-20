@@ -59,6 +59,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // NOVO: Elementos do modal de detalhes da série
     const modalDetalhesSerie = document.getElementById('modalDetalhesSerie');
     const listaDetalhesSerieUl = document.getElementById('listaDetalhesSerie');
+    // NOVO: Elementos de Despesas de Terceiros
+    const btnDespesasTerceiros = document.getElementById('btnDespesasTerceiros');
+    const modalMenuTerceiros = document.getElementById('modalMenuTerceiros');
+    const modalConsultarTerceiros = document.getElementById('modalConsultarTerceiros');
+    const btnAbrirCadastroTerceiros = document.getElementById('btnAbrirCadastroTerceiros');
+    const btnAbrirConsultaTerceiros = document.getElementById('btnAbrirConsultaTerceiros');
+    const listaDividasTerceirosUl = document.getElementById('listaDividasTerceiros');
     const modalNovaTransacao = document.getElementById('modalNovaTransacao');
     const btnAbrirModalNovaTransacao = document.getElementById('btnNovaTransacao');
     const tipoTransacaoSelect = document.getElementById('tipoTransacao');
@@ -2377,6 +2384,12 @@ function renderizarTransacoesDoMes(filtro = '') {
     if(btnRelatorios) {
         btnRelatorios.addEventListener('click', () => {
             abrirModalEspecifico(modalRelatorios, null, 'relatorios');
+        });
+    }
+        if(btnDespesasTerceiros) {
+        btnDespesasTerceiros.addEventListener('click', () => {
+            // Apenas abre o modal de menu, a lógica virá depois
+            abrirModalEspecifico(modalMenuTerceiros);
         });
     }
         if (btnRelatorioAnterior) {

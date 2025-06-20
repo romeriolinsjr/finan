@@ -34,7 +34,7 @@
             <button id="btnGerenciarCartoes">Cartões de crédito</button>
             <button id="btnMenuOrcamentos">Orçamentos</button>
             <button id="btnRelatorios">Relatórios</button> <!-- NOVO -->
-
+            <button id="btnDespesasTerceiros">Despesas de Terceiros</button> <!-- NOVO -->
                     <section class="financial-summary">
             <h2>Resumo Financeiro</h2>
              <div class="summary-item">
@@ -482,7 +482,45 @@
         <input type="number" id="valorDespesaCartaoUnicaRecorrente" step="0.01" placeholder="0,00">
     </div>
 </template>
+    
+    <!-- NOVOS MODAIS PARA DESPESAS DE TERCEIROS -->
+    <div id="modalMenuTerceiros" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Despesas de Terceiros</h2>
+                <span class="close-button" data-modal-id="modalMenuTerceiros">×</span>
+            </div>
+            <div class="modal-body">
+                <p>O que você gostaria de fazer?</p>
+            </div>
+            <div class="modal-footer">
+                <!-- Botões movidos para o rodapé para o estilo correto -->
+                <button id="btnAbrirCadastroTerceiros" class="btn-secondary">Cadastrar Nova Dívida</button>
+                <button id="btnAbrirConsultaTerceiros" class="btn-primary">Consultar Dívidas</button>
+            </div>
+        </div>
+    </div>
 
+    <div id="modalConsultarTerceiros" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <div class="modal-title-container">
+                    <button id="btnTerceirosAnterior" title="Mês Anterior"><</button>
+                    <h2 id="terceirosTitulo">Dívidas de Terceiros</h2>
+                    <button id="btnTerceirosProximo" title="Próximo Mês">></button>
+                </div>
+                <span class="close-button" data-modal-id="modalConsultarTerceiros">×</span>
+            </div>
+            <div class="modal-body">
+                <ul id="listaDividasTerceiros">
+                    <!-- Lista de dívidas será inserida via JS -->
+                </ul>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary close-button-footer" data-modal-id="modalConsultarTerceiros">Fechar</button>
+            </div>
+        </div>
+    </div>
         <!-- SDKs (Software Development Kits) do Firebase -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
