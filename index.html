@@ -71,8 +71,15 @@
                 </div>
             </header>
 
-            <section class="transactions-list">
+                        <section class="transactions-list">
                 <h2>Transações</h2>
+
+                <!-- NOVO: Container da Barra de Busca com Botão de Limpar -->
+                <div class="search-container">
+                    <input type="search" id="searchInput" placeholder="Buscar em todas as transações...">
+                    <button id="clearSearchBtn" class="clear-search-btn" title="Limpar busca">×</button>
+                </div>
+
                 <ul id="listaTransacoes">
                     <!-- Transações via JS -->
                 </ul>

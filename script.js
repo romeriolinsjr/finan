@@ -52,6 +52,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const totalDespesasDisplay = document.getElementById('totalDespesas');
     const saldoMesDisplay = document.getElementById('saldoMes');
     const listaTransacoesUl = document.getElementById('listaTransacoes');
+    
+    // NOVO: Elementos da busca
+    const searchInput = document.getElementById('searchInput');
+    const clearSearchBtn = document.getElementById('clearSearchBtn');
+
     const modalNovaTransacao = document.getElementById('modalNovaTransacao');
     const btnAbrirModalNovaTransacao = document.getElementById('btnNovaTransacao');
     const tipoTransacaoSelect = document.getElementById('tipoTransacao');
@@ -536,6 +541,98 @@ function exibirDataUltimaAtualizacao(timestamp) {
         }
     }
 
+        // --- NOVAS FUNÇÕES DE BUSCA GLOBAL ---
+
+    function executarBuscaGlobal(termo) {
+        const termoBusca = termo.trim().toLowerCase();
+        
+        // Controla a visibilidade do botão de limpar
+        clearSearchBtn.classList.toggle('visible', termoBusca.length > 0);
+
+        if (termoBusca === '') {
+            // Se a busca está vazia, volta para a visão normal do mês
+            renderizarTransacoesDoMes();
+            return;
+        }
+
+        // Filtra TODAS as transações, não apenas as do mês atual
+        const resultados = transacoes.filter(t => 
+            t.nome.toLowerCase().includes(termoBusca)
+        );
+
+        renderizarResultadosBusca(resultados, termoBusca);
+    }
+
+    function renderizarResultadosBusca(resultados, termoBusca) {
+        listaTransacoesUl.innerHTML = '';
+
+        if (resultados.length === 0) {
+            const liEmpty = document.createElement('li');
+            liEmpty.textContent = `Nenhum resultado encontrado para "${termoBusca}".`;
+            liEmpty.style.textAlign = 'center';
+            liEmpty.style.padding = '20px';
+            liEmpty.style.color = '#777';
+            listaTransacoesUl.appendChild(liEmpty);
+            return;
+        }
+        
+        // Ordena os resultados por data (do mais recente para o mais antigo)
+        resultados.sort((a, b) => {
+            const dataA = parseDateString(a.dataEntrada || a.dataVencimento || a.mesAnoReferencia);
+            const dataB = parseDateString(b.dataEntrada || b.dataVencimento || b.mesAnoReferencia);
+            return dataB - dataA;
+        });
+
+        resultados.forEach(t => {
+            const li = document.createElement('li');
+            li.className = 'search-result-item';
+
+            const valorFormatado = t.tipo === 'receita' 
+                ? `+ ${formatCurrency(t.valor)}` 
+                : `- ${formatCurrency(t.valor)}`;
+            
+            const classeValor = t.tipo; // 'receita' ou 'despesa'
+
+            // Cria o texto de contexto (mês/ano ou fatura)
+            let contexto = '';
+            const [ano, mes] = t.mesAnoReferencia.split('-');
+            const nomeMes = new Date(ano, mes - 1).toLocaleString('pt-BR', { month: 'short' });
+            const contextoData = `${nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1)}/${ano}`;
+
+            if (t.categoria === 'cartao_credito') {
+                const cartao = cartoes.find(c => c.id === t.cartaoId);
+                const nomeCartao = cartao ? cartao.nome : 'Cartão Desconhecido';
+                contexto = `Fatura ${nomeCartao} - ${contextoData}`;
+            } else {
+                contexto = contextoData;
+            }
+
+            li.innerHTML = `
+                <div class="search-result-info">
+                    <span class="result-name">${t.nome}</span>
+                    <span class="result-context">${contexto}</span>
+                </div>
+                <span class="result-value ${classeValor}">${valorFormatado}</span>
+            `;
+            listaTransacoesUl.appendChild(li);
+        });
+    }
+
+    // --- EVENTOS DA BUSCA ---
+    if (searchInput) {
+        searchInput.addEventListener('input', () => {
+            executarBuscaGlobal(searchInput.value);
+        });
+    }
+
+    if (clearSearchBtn) {
+        clearSearchBtn.addEventListener('click', () => {
+            searchInput.value = ''; // Limpa o campo
+            executarBuscaGlobal(''); // Executa a busca com termo vazio para restaurar a tela
+            searchInput.focus(); // Devolve o foco ao campo de busca
+        });
+    }
+    
     // --- Funções Principais de UI ---
     function updateMonthDisplay() {
         if (!currentMonthDisplay) return;
@@ -1195,9 +1292,28 @@ if (btnSalvarTransacao) {
         }
     });
 }
-    // --- Navegação e Ações na Lista ---
-    if (prevMonthBtn) { prevMonthBtn.addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() - 1); updateMonthDisplay(); }); }
-    if (nextMonthBtn) { nextMonthBtn.addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() + 1); updateMonthDisplay(); }); }
+        // --- Navegação e Ações na Lista ---
+    if (prevMonthBtn) {
+        prevMonthBtn.addEventListener('click', () => {
+            if (searchInput.value) {
+                searchInput.value = '';
+                clearSearchBtn.classList.remove('visible');
+            }
+            currentDate.setMonth(currentDate.getMonth() - 1);
+            updateMonthDisplay();
+        });
+    }
+
+    if (nextMonthBtn) {
+        nextMonthBtn.addEventListener('click', () => {
+            if (searchInput.value) {
+                searchInput.value = '';
+                clearSearchBtn.classList.remove('visible');
+            }
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            updateMonthDisplay();
+        });
+    }
     if (btnAddDespesaFromFatura) {
         btnAddDespesaFromFatura.addEventListener('click', () => {
             // CORREÇÃO: Removido o parseInt. O ID do cartão é uma string.
@@ -1719,7 +1835,7 @@ function criarElementoOrcamento(item, actionsDiv) {
 // --- Função Principal de Renderização (Refatorada) ---
 // BLOCO 1 (para renderizarTransacoesDoMes)
 
-function renderizarTransacoesDoMes() {
+function renderizarTransacoesDoMes(filtro = '') {
     if (!listaTransacoesUl) return;
     listaTransacoesUl.innerHTML = '';
     const mesAnoAtual = getMesAnoChave(currentDate);
@@ -1795,6 +1911,14 @@ function renderizarTransacoesDoMes() {
         const valorRestante = orcamento.valor - gastosNoOrcamento;
         itensParaRenderizar.push({ id: `orcamento-${orcamento.id}`, orcamentoId: orcamento.id, tipoDisplay: CONSTS.TIPO_RENDERIZACAO.ORCAMENTO, nome: orcamento.nome, valor: valorRestante, valorTotalOrcamento: orcamento.valor, dataOrdenacao: dataOrcamento });
     });
+
+    // NOVO: Aplica o filtro de busca, se houver
+    if (filtro) {
+        const filtroLowerCase = filtro.toLowerCase();
+        itensParaRenderizar = itensParaRenderizar.filter(item => 
+            item.nome.toLowerCase().includes(filtroLowerCase)
+        );
+    }
     
     // Passo 5: Ordenar a lista final
     const tipoPrioridade = { [CONSTS.TIPO_RENDERIZACAO.RECEITA]: 1, [CONSTS.TIPO_RENDERIZACAO.ORCAMENTO]: 2, [CONSTS.TIPO_RENDERIZACAO.DESPESA]: 3, [CONSTS.TIPO_RENDERIZACAO.FATURA]: 3 };
@@ -1819,7 +1943,8 @@ function renderizarTransacoesDoMes() {
 
     if (itensParaRenderizar.length === 0) { 
         const liEmpty = document.createElement('li'); 
-        liEmpty.textContent = "Nenhuma transação para este mês."; 
+        // Mensagem muda se o usuário estiver buscando algo
+        liEmpty.textContent = filtro ? `Nenhum resultado para "${filtro}".` : "Nenhuma transação para este mês.";
         liEmpty.style.textAlign = 'center'; 
         liEmpty.style.padding = '20px'; 
         liEmpty.style.color = '#777'; 

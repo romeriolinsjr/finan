@@ -805,6 +805,120 @@ body.modal-aberto {
     }
 }
 
+/* ESTILOS PARA A BARRA DE BUSCA */
+.search-container {
+    margin-bottom: 20px;
+}
+
+.search-container input {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 1em;
+    box-sizing: border-box;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.search-container input:focus {
+    border-color: #3498db;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+}
+
+/* ESTILOS PARA A BARRA DE BUSCA E RESULTADOS */
+.search-container {
+    position: relative; /* Necessário para posicionar o botão de limpar */
+    margin-bottom: 20px;
+}
+
+.search-container input {
+    width: 100%;
+    padding: 12px 40px 12px 15px; /* Adiciona espaço à direita para o botão */
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 1em;
+    box-sizing: border-box;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+/* Esconde o "x" padrão do navegador em campos de busca */
+.search-container input::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+    display: none;
+}
+
+.search-container input:focus {
+    border-color: #3498db;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+}
+
+.clear-search-btn {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: #999;
+    cursor: pointer;
+    padding: 0 5px;
+    line-height: 1;
+    display: none; /* Começa escondido */
+}
+
+.clear-search-btn.visible {
+    display: block; /* Classe que o JS usará para mostrar o botão */
+}
+
+.clear-search-btn:hover {
+    color: #333;
+}
+
+/* ESTILOS PARA OS RESULTADOS DA BUSCA */
+.search-result-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    background-color: #fff;
+    border: 1px solid #e9ecef;
+    border-left: 5px solid #3498db; /* Borda azul para indicar que é um resultado de busca */
+    margin-bottom: 8px;
+    border-radius: 5px;
+}
+
+.search-result-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.search-result-info .result-name {
+    font-weight: 500;
+}
+
+.search-result-info .result-context {
+    font-size: 0.85em;
+    color: #7f8c8d;
+    margin-top: 4px;
+}
+
+.search-result-item .result-value {
+    font-weight: 600;
+    font-size: 1.1em;
+    text-align: right; /* Garante alinhamento */
+    min-width: 100px; /* Garante espaço */
+}
+
+.search-result-item .result-value.receita {
+    color: #27ae60;
+}
+
+.search-result-item .result-value.despesa {
+    color: #e74c3c;
+}
 
 /* ========================================= */
 /*          ESTILOS PARA MOBILE              */
