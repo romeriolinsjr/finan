@@ -59,13 +59,20 @@ document.addEventListener('DOMContentLoaded', () => {
     // NOVO: Elementos do modal de detalhes da série
     const modalDetalhesSerie = document.getElementById('modalDetalhesSerie');
     const listaDetalhesSerieUl = document.getElementById('listaDetalhesSerie');
-    // NOVO: Elementos de Despesas de Terceiros
+      // NOVO: Elementos de Despesas de Terceiros
     const btnDespesasTerceiros = document.getElementById('btnDespesasTerceiros');
     const modalMenuTerceiros = document.getElementById('modalMenuTerceiros');
     const modalConsultarTerceiros = document.getElementById('modalConsultarTerceiros');
     const btnAbrirCadastroTerceiros = document.getElementById('btnAbrirCadastroTerceiros');
     const btnAbrirConsultaTerceiros = document.getElementById('btnAbrirConsultaTerceiros');
-    const listaDividasTerceirosUl = document.getElementById('listaDividasTerceiros');
+    const listaDividasTerceirosUl = document.getElementById('listaDividasTerceirosUl');
+    const btnTerceirosAnterior = document.getElementById('btnTerceirosAnterior');
+    const btnTerceirosProximo = document.getElementById('btnTerceirosProximo');
+    
+    // Elementos do Modal de Cadastro de Pessoa
+    const modalCadastrarPessoa = document.getElementById('modalCadastrarPessoa');
+    const nomePessoaInputModal = document.getElementById('nomePessoaInputModal');
+    const btnSalvarPessoaModal = document.getElementById('btnSalvarPessoaModal');
     const modalNovaTransacao = document.getElementById('modalNovaTransacao');
     const btnAbrirModalNovaTransacao = document.getElementById('btnNovaTransacao');
     const tipoTransacaoSelect = document.getElementById('tipoTransacao');
@@ -146,6 +153,7 @@ let transacoes = inicializarTransacoes();
     let orcamentos = inicializarOrcamentos();
     let orcamentosFechados = inicializarOrcamentosFechados();
         let dividasTerceiros = []; // NOVO: Array para armazenar as dívidas
+            let pessoas = []; // NOVO: Array para armazenar as pessoas cadastradas
     let currentFaturaDate = null;
     let currentModalStep = 1;
     let isEditMode = false;
@@ -519,6 +527,13 @@ function exibirDataUltimaAtualizacao(timestamp) {
             dividasTerceiros = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
             console.log("Dados de 'dividasTerceiros' atualizados em tempo real:", dividasTerceiros);
         }, error => console.error("Erro no ouvinte de dividasTerceiros:", error));
+                // --- NOVO: Ouvinte para Pessoas ---
+        userCollections.collection('pessoas').onSnapshot(snapshot => {
+            pessoas = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+            console.log("Dados de 'pessoas' atualizados em tempo real:", pessoas);
+            // Ordena as pessoas por nome
+            pessoas.sort((a, b) => a.nome.localeCompare(b.nome));
+        }, error => console.error("Erro no ouvinte de pessoas:", error));
     }
 
     // Função para agrupar a inicialização do app (agora é 'async')
@@ -978,7 +993,7 @@ function atualizarResumoFinanceiro() {
     }
     function preencherModalParaEdicao(id) { if (!tipoTransacaoSelect || !nomeTransacaoInput || !modalHeaderNovaTransacao) return; const transacao = transacoes.find(t => t.id === id); if (!transacao) { console.error("Transação não encontrada para edição:", id); fecharModalEspecifico(modalNovaTransacao); return; } const nomeOriginal = transacao.serieId ? transacao.nome.replace(/\s\(\d+\/\d+\)$/, '').replace(/\s\(Recorrente\)$/, '') : transacao.nome; const nomeCurto = nomeOriginal.substring(0, 25) + (nomeOriginal.length > 25 ? '...' : ''); modalHeaderNovaTransacao.textContent = `Editar Transação: ${nomeCurto} (Passo 1)`; tipoTransacaoSelect.value = transacao.tipo; nomeTransacaoInput.value = nomeOriginal; tipoTransacaoSelect.disabled = true; }
     if (btnAbrirModalNovaTransacao) { btnAbrirModalNovaTransacao.addEventListener('click', () => abrirModalEspecifico(modalNovaTransacao, null, 'transacao')); }
-    if (btnAvancarTransacao) {
+        if (btnAvancarTransacao) {
         btnAvancarTransacao.addEventListener('click', () => {
             if (!tipoTransacaoSelect || !nomeTransacaoInput || !passo2Container || !btnAvancarTransacao || !btnVoltarTransacao || !btnSalvarTransacao || !modalHeaderNovaTransacao) return;
             const tipo = tipoTransacaoSelect.value;
@@ -986,11 +1001,9 @@ function atualizarResumoFinanceiro() {
             if (!tipo) { alert("Por favor, selecione o tipo de transação."); tipoTransacaoSelect.focus(); return; }
             if (!nome) { alert("Por favor, informe o nome ou descrição."); nomeTransacaoInput.focus(); return; }
 
-            // Esconde os campos do Passo 1
             tipoTransacaoSelect.parentElement.style.display = 'none';
             nomeTransacaoInput.parentElement.style.display = 'none';
             
-            // Mostra os controles do Passo 2
             passo2Container.style.display = 'block';
             btnAvancarTransacao.style.display = 'none';
             btnVoltarTransacao.style.display = 'inline-block';
@@ -1000,10 +1013,8 @@ function atualizarResumoFinanceiro() {
             const transacaoOriginal = isEditMode ? transacoes.find(t => t.id === editingTransactionId) : null;
             const nomeCurto = nome.substring(0, 25) + (nome.length > 25 ? '...' : '');
 
-            // Limpa o container antes de adicionar conteúdo
             passo2Container.innerHTML = '';
 
-            // Carrega o formulário apropriado
             if (tipo === CONSTS.TIPO_TRANSACAO.RECEITA) {
                 modalHeaderNovaTransacao.textContent = isEditMode ? `Editar Receita: ${nomeCurto} (Passo 2)` : 'Nova Receita (Passo 2 de 2)';
                 carregarFormularioReceita(transacaoOriginal);
@@ -1013,16 +1024,27 @@ function atualizarResumoFinanceiro() {
                 carregarFormularioDespesa(transacaoOriginal);
             }
 
-            // NOVO E CORRIGIDO: Adiciona o campo "Nome da Pessoa" APÓS o formulário ter sido carregado
             if (isModoTerceiros) {
                 const campoPessoaHTML = `
-                    <div style="order: -1;"> <!-- Usa 'order' para forçar para o topo se o container for flex/grid -->
-                        <label for="nomePessoa">Nome da Pessoa:</label>
-                        <input type="text" id="nomePessoa" placeholder="Ex: João da Silva" required>
+                    <div style="order: -1;">
+                        <label for="pessoaSelect">Pessoa:</label>
+                        <select id="pessoaSelect" required></select>
                     </div>
                 `;
-                // Insere o campo no início do container, antes de qualquer outro filho
                 passo2Container.insertAdjacentHTML('afterbegin', campoPessoaHTML);
+                
+                atualizarSelectPessoas();
+                const pessoaSelect = passo2Container.querySelector('#pessoaSelect');
+                if (pessoaSelect) {
+                    pessoaSelect.addEventListener('change', () => {
+                        if (pessoaSelect.value === 'cadastrar_nova') {
+                            // MUDANÇA IMPORTANTE: Apenas mostra o modal de pessoa, sem fechar o atual
+                            modalCadastrarPessoa.style.display = 'flex';
+                            bodyEl.classList.add('modal-aberto'); // Garante que o fundo fique travado
+                            pessoaSelect.value = ''; // Reseta o select
+                        }
+                    });
+                }
             }
         });
     }
@@ -1355,11 +1377,10 @@ function validarDadosDaTransacao(dados) {
 // --- NOVAS FUNÇÕES PARA DÍVIDAS DE TERCEIROS ---
 
 function obterDadosFormularioTerceiros() {
-    // Busca o campo de "Nome da Pessoa" que ainda não existe. Vamos criá-lo dinamicamente.
-    const nomePessoaInput = passo2Container.querySelector('#nomePessoa');
-    const nomePessoa = nomePessoaInput ? nomePessoaInput.value.trim() : '';
+    // NOVO: Busca o <select> de pessoas
+    const pessoaSelect = passo2Container.querySelector('#pessoaSelect');
+    const pessoaId = pessoaSelect ? pessoaSelect.value : null;
     
-    // O campo 'nomeTransacaoInput' agora serve como "Descrição da Dívida"
     const descricaoDivida = nomeTransacaoInput.value.trim();
 
     const categoria = passo2Container.querySelector('#categoriaDespesa').value;
@@ -1368,7 +1389,7 @@ function obterDadosFormularioTerceiros() {
         : passo2Container.querySelector('#frequenciaDespesaCartao').value;
     
     let dados = {
-        nomePessoa: nomePessoa,
+        pessoaId: pessoaId, // NOVO: Salva o ID da pessoa
         nomeTransacao: descricaoDivida,
         categoria: categoria,
         frequencia: frequencia,
@@ -1406,14 +1427,35 @@ function obterDadosFormularioTerceiros() {
 
     return dados;
 }
+function atualizarSelectPessoas(idParaSelecionar = null) {
+    const pessoaSelect = passo2Container.querySelector('#pessoaSelect');
+    if (!pessoaSelect) return;
 
+    const valorSelecionadoAnteriormente = pessoaSelect.value;
+    
+    let opcoesHTML = '<option value="">-- Selecione a Pessoa --</option>';
+    pessoas.forEach(p => {
+        opcoesHTML += `<option value="${p.id}">${p.nome}</option>`;
+    });
+    opcoesHTML += '<option value="cadastrar_nova">Cadastrar nova pessoa...</option>';
+    
+    pessoaSelect.innerHTML = opcoesHTML;
+
+    // Lógica de seleção aprimorada
+    if (idParaSelecionar) {
+        pessoaSelect.value = idParaSelecionar;
+    } else {
+        pessoaSelect.value = valorSelecionadoAnteriormente;
+    }
+}
 async function adicionarNovaDividaTerceiro(dados) {
     if (!currentUser) {
         alert("Erro: Nenhum usuário logado para salvar a dívida.");
         return false;
     }
-    if (!dados.nomePessoa) {
-        alert("Por favor, informe o nome da pessoa.");
+    // NOVO: Valida o ID da pessoa
+    if (!dados.pessoaId) {
+        alert("Por favor, selecione uma pessoa.");
         return false;
     }
     if (!dados.nomeTransacao) {
@@ -1427,11 +1469,11 @@ async function adicionarNovaDividaTerceiro(dados) {
 
     let dividasParaAdicionar = [];
     const mesAnoReferenciaBase = getMesAnoChave(currentDate);
-    const serieId = db.collection('users').doc().id; // Gera um ID único para a série
+    const serieId = db.collection('users').doc().id; 
 
     const baseObject = {
         userId: currentUser.uid,
-        nomePessoa: dados.nomePessoa,
+        pessoaId: dados.pessoaId, // Salva o ID da pessoa
         nomeTransacao: dados.nomeTransacao,
         categoria: dados.categoria,
         frequencia: dados.frequencia,
@@ -2754,6 +2796,49 @@ function renderizarTransacoesDoMes(filtro = '') {
                 const dividaId = event.target.dataset.dividaId;
                 const novoStatus = event.target.checked;
                 atualizarStatusReembolso(dividaId, novoStatus);
+            }
+        });
+    }
+    // NOVO: Evento para salvar uma nova pessoa
+    if (btnSalvarPessoaModal) {
+        btnSalvarPessoaModal.addEventListener('click', async () => {
+            if (!currentUser) { alert("Erro: Você precisa estar logado."); return; }
+
+            const nome = nomePessoaInputModal.value.trim();
+            if (!nome) {
+                alert("Por favor, informe o nome da pessoa.");
+                nomePessoaInputModal.focus();
+                return;
+            }
+
+            // Desabilita o botão para evitar cliques duplos
+            btnSalvarPessoaModal.disabled = true;
+
+            try {
+                const pessoasCollectionRef = db.collection('users').doc(currentUser.uid).collection('pessoas');
+                const docRef = await pessoasCollectionRef.add({ nome: nome });
+                
+                // Adiciona a nova pessoa manualmente ao array local para uso imediato
+                const novaPessoa = { id: docRef.id, nome: nome };
+                pessoas.push(novaPessoa);
+                // Reordena o array local para manter a consistência
+                pessoas.sort((a, b) => a.nome.localeCompare(b.nome));
+                
+                console.log(`Pessoa "${nome}" cadastrada com ID: ${docRef.id}`);
+                
+                // Limpa e fecha apenas o modal de cadastro de pessoa
+                nomePessoaInputModal.value = '';
+                modalCadastrarPessoa.style.display = 'none';
+                
+                // Atualiza o select e já seleciona a nova pessoa pelo seu ID
+                atualizarSelectPessoas(docRef.id);
+
+            } catch (error) {
+                console.error("Erro ao salvar pessoa:", error);
+                alert("Ocorreu um erro ao salvar a pessoa.");
+            } finally {
+                // Reabilita o botão, seja em caso de sucesso ou erro
+                btnSalvarPessoaModal.disabled = false;
             }
         });
     }

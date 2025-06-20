@@ -521,6 +521,25 @@
             </div>
         </div>
     </div>
+        <!-- NOVO: Modal para Cadastrar Pessoa -->
+    <div id="modalCadastrarPessoa" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Cadastrar Nova Pessoa</h2>
+                <span class="close-button" data-modal-id="modalCadastrarPessoa">×</span>
+            </div>
+            <div class="modal-body">
+                <div>
+                    <label for="nomePessoaInputModal">Nome da Pessoa:</label>
+                    <input type="text" id="nomePessoaInputModal" placeholder="Nome completo" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary close-button-footer" data-modal-id="modalCadastrarPessoa">Cancelar</button>
+                <button id="btnSalvarPessoaModal" class="btn-primary">Salvar Pessoa</button>
+            </div>
+        </div>
+    </div>
         <!-- SDKs (Software Development Kits) do Firebase -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
