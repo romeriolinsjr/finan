@@ -920,6 +920,33 @@ body.modal-aberto {
     color: #e74c3c;
 }
 
+/* ESTILOS PARA A LISTA DE DETALHES DA SÉRIE */
+#listaDetalhesSerie {
+    list-style-type: none;
+    padding: 0;
+    max-height: 400px; /* Limita a altura para listas longas */
+    overflow-y: auto; /* Adiciona barra de rolagem se necessário */
+}
+
+#listaDetalhesSerie li {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 5px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+#listaDetalhesSerie li:last-child {
+    border-bottom: none;
+}
+
+#listaDetalhesSerie .parcela-nome {
+    font-weight: 500;
+}
+
+#listaDetalhesSerie .parcela-valor {
+    color: #333;
+}
+
 /* ========================================= */
 /*          ESTILOS PARA MOBILE              */
 /* ========================================= */

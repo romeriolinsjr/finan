@@ -56,7 +56,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // NOVO: Elementos da busca
     const searchInput = document.getElementById('searchInput');
     const clearSearchBtn = document.getElementById('clearSearchBtn');
-
+    // NOVO: Elementos do modal de detalhes da série
+    const modalDetalhesSerie = document.getElementById('modalDetalhesSerie');
+    const listaDetalhesSerieUl = document.getElementById('listaDetalhesSerie');
     const modalNovaTransacao = document.getElementById('modalNovaTransacao');
     const btnAbrirModalNovaTransacao = document.getElementById('btnNovaTransacao');
     const tipoTransacaoSelect = document.getElementById('tipoTransacao');
@@ -541,26 +543,53 @@ function exibirDataUltimaAtualizacao(timestamp) {
         }
     }
 
-        // --- NOVAS FUNÇÕES DE BUSCA GLOBAL ---
+    // --- NOVAS FUNÇÕES DE BUSCA GLOBAL (COM AGRUPAMENTO) ---
 
     function executarBuscaGlobal(termo) {
         const termoBusca = termo.trim().toLowerCase();
         
-        // Controla a visibilidade do botão de limpar
         clearSearchBtn.classList.toggle('visible', termoBusca.length > 0);
 
         if (termoBusca === '') {
-            // Se a busca está vazia, volta para a visão normal do mês
             renderizarTransacoesDoMes();
             return;
         }
 
-        // Filtra TODAS as transações, não apenas as do mês atual
-        const resultados = transacoes.filter(t => 
+        const resultadosFiltrados = transacoes.filter(t => 
             t.nome.toLowerCase().includes(termoBusca)
         );
 
-        renderizarResultadosBusca(resultados, termoBusca);
+        // Lógica de Agrupamento
+        const resultadosAgrupados = [];
+        const seriesProcessadas = new Set();
+
+        resultadosFiltrados.forEach(t => {
+            if (t.serieId) {
+                if (seriesProcessadas.has(t.serieId)) {
+                    return; // Já processamos esta série, pule
+                }
+                // É a primeira vez que vemos esta série na busca
+                const todasDaSerie = transacoes.filter(item => item.serieId === t.serieId);
+                const nomeBase = t.nome.replace(/\s\(\d+\/\d+\)$/, '').replace(/\s\(Recorrente\)$/, '');
+                
+                resultadosAgrupados.push({
+                    isGroup: true,
+                    serieId: t.serieId,
+                    nome: nomeBase,
+                    frequencia: t.frequencia,
+                    tipo: t.tipo,
+                    ocorrencias: todasDaSerie.length,
+                    valor: t.valor, // Pega o valor de uma das instâncias
+                    primeiraOcorrencia: todasDaSerie.sort((a,b) => a.mesAnoReferencia.localeCompare(b.mesAnoReferencia))[0]
+                });
+                seriesProcessadas.add(t.serieId);
+            } else {
+                // Transação única
+                resultadosAgrupados.push({ ...t, isGroup: false });
+            }
+        });
+
+        renderizarResultadosBusca(resultadosAgrupados, termoBusca);
     }
 
     function renderizarResultadosBusca(resultados, termoBusca) {
@@ -578,38 +607,43 @@ function exibirDataUltimaAtualizacao(timestamp) {
         
         // Ordena os resultados por data (do mais recente para o mais antigo)
         resultados.sort((a, b) => {
-            const dataA = parseDateString(a.dataEntrada || a.dataVencimento || a.mesAnoReferencia);
-            const dataB = parseDateString(b.dataEntrada || b.dataVencimento || b.mesAnoReferencia);
+            const dataA = parseDateString(a.isGroup ? a.primeiraOcorrencia.mesAnoReferencia : (a.dataEntrada || a.dataVencimento || a.mesAnoReferencia));
+            const dataB = parseDateString(b.isGroup ? b.primeiraOcorrencia.mesAnoReferencia : (b.dataEntrada || b.dataVencimento || b.mesAnoReferencia));
             return dataB - dataA;
         });
 
-        resultados.forEach(t => {
+        resultados.forEach(item => {
             const li = document.createElement('li');
             li.className = 'search-result-item';
 
-            const valorFormatado = t.tipo === 'receita' 
-                ? `+ ${formatCurrency(t.valor)}` 
-                : `- ${formatCurrency(t.valor)}`;
-            
-            const classeValor = t.tipo; // 'receita' ou 'despesa'
+            const valorFormatado = item.tipo === 'receita' 
+                ? `+ ${formatCurrency(item.valor)}` 
+                : `- ${formatCurrency(item.valor)}`;
+            const classeValor = item.tipo;
 
-            // Cria o texto de contexto (mês/ano ou fatura)
+            let nomeExibicao = item.nome;
             let contexto = '';
-            const [ano, mes] = t.mesAnoReferencia.split('-');
-            const nomeMes = new Date(ano, mes - 1).toLocaleString('pt-BR', { month: 'short' });
-            const contextoData = `${nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1)}/${ano}`;
 
-            if (t.categoria === 'cartao_credito') {
-                const cartao = cartoes.find(c => c.id === t.cartaoId);
-                const nomeCartao = cartao ? cartao.nome : 'Cartão Desconhecido';
-                contexto = `Fatura ${nomeCartao} - ${contextoData}`;
+            if (item.isGroup) {
+                // É um grupo (série)
+                if (item.frequencia === CONSTS.FREQUENCIA.PARCELADA) {
+                    li.classList.add('search-result-group', 'parcelada'); // Adiciona classes para o clique
+                    li.dataset.serieId = item.serieId;
+                    li.style.cursor = 'pointer';
+                    contexto = `${item.ocorrencias} parcelas encontradas. (Clique para ver)`;
+                } else if (item.frequencia === CONSTS.FREQUENCIA.RECORRENTE) {
+                    contexto = `Transação recorrente`;
+                }
             } else {
-                contexto = contextoData;
+                // É uma transação única
+                const [ano, mes] = item.mesAnoReferencia.split('-');
+                const nomeMes = new Date(ano, mes - 1).toLocaleString('pt-BR', { month: 'short' });
+                contexto = `${nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1)}/${ano}`;
             }
 
             li.innerHTML = `
                 <div class="search-result-info">
-                    <span class="result-name">${t.nome}</span>
+                    <span class="result-name">${nomeExibicao}</span>
                     <span class="result-context">${contexto}</span>
                 </div>
                 <span class="result-value ${classeValor}">${valorFormatado}</span>
@@ -618,11 +652,48 @@ function exibirDataUltimaAtualizacao(timestamp) {
         });
     }
 
-    // --- EVENTOS DA BUSCA ---
-    if (searchInput) {
-        searchInput.addEventListener('input', () => {
-            executarBuscaGlobal(searchInput.value);
+    function abrirModalDetalhesSerie(serieId) {
+        const transacoesDaSerie = transacoes
+            .filter(t => t.serieId === serieId)
+            .sort((a, b) => a.parcelaAtual - b.parcelaAtual); // Ordena pela parcela atual
+
+        if (transacoesDaSerie.length === 0) return;
+
+        const primeiraTransacao = transacoesDaSerie[0];
+        const nomeBase = primeiraTransacao.nome.replace(/\s\(\d+\/\d+\)$/, '');
+        
+        // NOVO: Verifica se é uma despesa de cartão e pega o nome do cartão
+        let subtitulo = '';
+        if (primeiraTransacao.categoria === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO) {
+            const cartao = cartoes.find(c => c.id === primeiraTransacao.cartaoId);
+            if (cartao) {
+                subtitulo = ` (Cartão: ${cartao.nome})`;
+            }
+        }
+        
+        document.getElementById('modalDetalhesSerieTitulo').textContent = `Detalhes: ${nomeBase}${subtitulo}`;
+        
+        listaDetalhesSerieUl.innerHTML = '';
+        transacoesDaSerie.forEach(t => {
+            const li = document.createElement('li');
+
+            // NOVO: Formata o mês e ano de cada parcela
+            const [ano, mes] = t.mesAnoReferencia.split('-');
+            const dataParcela = new Date(ano, mes - 1);
+            const nomeMes = dataParcela.toLocaleString('pt-BR', { month: 'long' });
+            const contextoData = `${nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1)}/${ano}`;
+
+            // Combina o nome da parcela com o seu respectivo mês/ano
+            const nomeCompletoParcela = `${t.nome} <small style="color: #777; margin-left: 5px;">- ${contextoData}</small>`;
+
+            li.innerHTML = `
+                <span class="parcela-nome">${nomeCompletoParcela}</span>
+                <span class="parcela-valor">${formatCurrency(t.valor)}</span>
+            `;
+            listaDetalhesSerieUl.appendChild(li);
         });
+
+        abrirModalEspecifico(modalDetalhesSerie);
     }
 
     if (clearSearchBtn) {
@@ -1292,7 +1363,22 @@ if (btnSalvarTransacao) {
         }
     });
 }
-        // --- Navegação e Ações na Lista ---
+    // --- EVENTOS DA BUSCA ---
+    if (searchInput) {
+        searchInput.addEventListener('input', () => {
+            executarBuscaGlobal(searchInput.value);
+        });
+    }
+
+    if (clearSearchBtn) {
+        clearSearchBtn.addEventListener('click', () => {
+            searchInput.value = ''; // Limpa o campo
+            executarBuscaGlobal(''); // Executa a busca com termo vazio para restaurar a tela
+            searchInput.focus(); // Devolve o foco ao campo de busca
+        });
+    }
+
+    // --- Navegação e Ações na Lista ---
     if (prevMonthBtn) {
         prevMonthBtn.addEventListener('click', () => {
             if (searchInput.value) {
@@ -1312,6 +1398,25 @@ if (btnSalvarTransacao) {
             }
             currentDate.setMonth(currentDate.getMonth() + 1);
             updateMonthDisplay();
+        });
+    }
+
+    // Listener para cliques nos resultados da busca e na lista normal
+    if (listaTransacoesUl) {
+        listaTransacoesUl.addEventListener('click', (event) => {
+            // Verifica se o clique foi em um resultado de busca de série parcelada
+            const itemBuscaClicado = event.target.closest('.search-result-group.parcelada');
+            if (itemBuscaClicado) {
+                const serieId = itemBuscaClicado.dataset.serieId;
+                if (serieId) {
+                    abrirModalDetalhesSerie(serieId);
+                }
+                return; // Para a execução para não confundir com o clique normal
+            }
+
+            // Se não foi um clique na busca, processa como um clique normal na lista de transações
+            // (Esta chamada precisa do `event` para funcionar)
+            handleTransactionListClick(event, listaTransacoesUl, false);
         });
     }
     if (btnAddDespesaFromFatura) {

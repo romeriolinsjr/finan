@@ -342,6 +342,24 @@
         </div>
     </div>
 </div>
+    <!-- NOVO: Modal para Detalhes de Série Parcelada -->
+    <div id="modalDetalhesSerie" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalDetalhesSerieTitulo">Detalhes da Compra Parcelada</h2>
+                <span class="close-button" data-modal-id="modalDetalhesSerie">×</span>
+            </div>
+            <div class="modal-body">
+                <h3>Lista de Parcelas:</h3>
+                <ul id="listaDetalhesSerie">
+                    <!-- Lista de parcelas será inserida via JS -->
+                </ul>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary close-button-footer" data-modal-id="modalDetalhesSerie">Fechar</button>
+            </div>
+        </div>
+    </div>
     <!-- NOVOS MOLDES (TEMPLATES) PARA OS FORMULÁRIOS -->
 <template id="template-form-receita">
     <p><strong><span class="form-title-action">Nova</span> Receita: <span class="form-title-name"></span></strong></p>
