@@ -145,6 +145,7 @@ let transacoes = inicializarTransacoes();
     let ajustesFatura = inicializarAjustes();
     let orcamentos = inicializarOrcamentos();
     let orcamentosFechados = inicializarOrcamentosFechados();
+        let dividasTerceiros = []; // NOVO: Array para armazenar as dívidas
     let currentFaturaDate = null;
     let currentModalStep = 1;
     let isEditMode = false;
@@ -513,6 +514,11 @@ function exibirDataUltimaAtualizacao(timestamp) {
             console.log("Dados de 'ajustesFatura' atualizados em tempo real.");
             updateMonthDisplay();
         }, error => console.error("Erro no ouvinte de ajustesFatura:", error));
+                // --- NOVO: Ouvinte para Dívidas de Terceiros ---
+        userCollections.collection('dividasTerceiros').onSnapshot(snapshot => {
+            dividasTerceiros = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+            console.log("Dados de 'dividasTerceiros' atualizados em tempo real:", dividasTerceiros);
+        }, error => console.error("Erro no ouvinte de dividasTerceiros:", error));
     }
 
     // Função para agrupar a inicialização do app (agora é 'async')
@@ -550,7 +556,62 @@ function exibirDataUltimaAtualizacao(timestamp) {
         loadingSpinnerOverlay.classList.add('hidden');
         }
     }
+    // --- NOVAS FUNÇÕES PARA CONSULTA DE DÍVIDAS DE TERCEIROS ---
+    let dividasTerceirosDate = new Date(); // Controla o mês da consulta
 
+    function renderizarDividasDoMes() {
+        if (!listaDividasTerceirosUl) return;
+
+        const mesAno = getMesAnoChave(dividasTerceirosDate);
+        const nomeMes = dividasTerceirosDate.toLocaleString('pt-BR', { month: 'long' });
+        const ano = dividasTerceirosDate.getFullYear();
+        document.getElementById('terceirosTitulo').textContent = `Dívidas de ${nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1)}/${ano}`;
+
+        const dividasDoMes = dividasTerceiros.filter(d => d.mesAnoReferencia === mesAno);
+        
+        listaDividasTerceirosUl.innerHTML = '';
+        if (dividasDoMes.length === 0) {
+            listaDividasTerceirosUl.innerHTML = '<li style="text-align: center; padding: 20px; color: #777;">Nenhuma dívida para este mês.</li>';
+            return;
+        }
+
+        // Ordena por nome da pessoa
+        dividasDoMes.sort((a, b) => a.nomePessoa.localeCompare(b.nomePessoa));
+
+        dividasDoMes.forEach(divida => {
+            const li = document.createElement('li');
+            li.className = 'divida-terceiro-item';
+            if (divida.reembolsado) {
+                li.classList.add('reembolsado');
+            }
+
+            let detalhesTransacao = divida.nomeTransacao;
+            if (divida.frequencia === 'parcelada') {
+                detalhesTransacao += ` (${divida.parcelaAtual}/${divida.totalParcelas})`;
+            }
+
+            li.innerHTML = `
+                <input type="checkbox" data-divida-id="${divida.id}" ${divida.reembolsado ? 'checked' : ''}>
+                <div class="divida-info">
+                    <span class="pessoa-nome">${divida.nomePessoa}</span>
+                    <span class="transacao-detalhes">${detalhesTransacao}</span>
+                </div>
+                <span class="divida-valor">${formatCurrency(divida.valor)}</span>
+            `;
+            listaDividasTerceirosUl.appendChild(li);
+        });
+    }
+
+    async function atualizarStatusReembolso(dividaId, novoStatus) {
+        if (!currentUser) return;
+        try {
+            const docRef = db.collection('users').doc(currentUser.uid).collection('dividasTerceiros').doc(dividaId);
+            await docRef.update({ reembolsado: novoStatus });
+            console.log(`Status de reembolso da dívida ${dividaId} atualizado para ${novoStatus}.`);
+        } catch (error) {
+            console.error("Erro ao atualizar status de reembolso:", error);
+        }
+    }
     // --- NOVAS FUNÇÕES DE BUSCA GLOBAL (COM AGRUPAMENTO) ---
 
     function executarBuscaGlobal(termo) {
@@ -2664,8 +2725,36 @@ function renderizarTransacoesDoMes(filtro = '') {
     if (btnAbrirConsultaTerceiros) {
         btnAbrirConsultaTerceiros.addEventListener('click', () => {
             fecharModalEspecifico(modalMenuTerceiros);
-            // Apenas abre o modal de consulta vazio por enquanto
-            abrirModalEspecifico(modalConsultarTerceiros); 
+            // Sincroniza a data da consulta com a data principal ao abrir
+            dividasTerceirosDate = new Date(currentDate); 
+            renderizarDividasDoMes();
+            abrirModalEspecifico(modalConsultarTerceiros);
+        });
+    }
+
+    // Eventos para navegação de mês no modal de consulta de dívidas
+    if (btnTerceirosAnterior) {
+        btnTerceirosAnterior.addEventListener('click', () => {
+            dividasTerceirosDate.setMonth(dividasTerceirosDate.getMonth() - 1);
+            renderizarDividasDoMes();
+        });
+    }
+
+    if (btnTerceirosProximo) {
+        btnTerceirosProximo.addEventListener('click', () => {
+            dividasTerceirosDate.setMonth(dividasTerceirosDate.getMonth() + 1);
+            renderizarDividasDoMes();
+        });
+    }
+
+    // Evento para cliques na lista de dívidas (checkbox)
+    if (listaDividasTerceirosUl) {
+        listaDividasTerceirosUl.addEventListener('click', (event) => {
+            if (event.target.type === 'checkbox') {
+                const dividaId = event.target.dataset.dividaId;
+                const novoStatus = event.target.checked;
+                atualizarStatusReembolso(dividaId, novoStatus);
+            }
         });
     }
         if (btnRelatorioAnterior) {
