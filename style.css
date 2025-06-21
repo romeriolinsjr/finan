@@ -805,27 +805,6 @@ body.modal-aberto {
     }
 }
 
-/* ESTILOS PARA A BARRA DE BUSCA */
-.search-container {
-    margin-bottom: 20px;
-}
-
-.search-container input {
-    width: 100%;
-    padding: 12px 15px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    font-size: 1em;
-    box-sizing: border-box;
-    transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-.search-container input:focus {
-    border-color: #3498db;
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
-}
-
 /* ESTILOS PARA A BARRA DE BUSCA E RESULTADOS */
 .search-container {
     position: relative; /* Necessário para posicionar o botão de limpar */
