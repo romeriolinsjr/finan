@@ -153,6 +153,21 @@ document.addEventListener('DOMContentLoaded', () => {
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.firestore();
+        try {
+        db.enablePersistence()
+          .catch((err) => {
+              if (err.code == 'failed-precondition') {
+                  // Provavelmente múltiplas abas abertas, o cache só pode ser ativado em uma.
+                  console.warn("Firestore: Múltiplas abas abertas, persistência não ativada.");
+              } else if (err.code == 'unimplemented') {
+                  // O navegador não suporta cache (muito raro).
+                  console.warn("Firestore: Navegador não suporta persistência.");
+              }
+          });
+        console.log("Persistência do Firestore ativada com sucesso.");
+    } catch (error) {
+        console.error("Erro ao tentar ativar a persistência do Firestore:", error);
+    }
 
     // --- Lógica de Autenticação ---
     auth.onAuthStateChanged(async (user) => {
