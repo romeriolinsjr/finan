@@ -506,14 +506,24 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderizarDividasDoMes() {
         const listaUl = document.getElementById('listaDividasTerceiros');
         const tituloEl = document.getElementById('terceirosTitulo');
-        if (!listaUl || !tituloEl) return;
+        const totalDisplayEl = document.getElementById('totalDividasTerceiros');
+
+        if (!listaUl || !tituloEl || !totalDisplayEl) return;
 
         const mesAno = getMesAnoChave(dividasTerceirosDate);
         const nomeMes = dividasTerceirosDate.toLocaleString('pt-BR', { month: 'long' });
         const ano = dividasTerceirosDate.getFullYear();
         tituloEl.textContent = `Dívidas de ${nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1)}/${ano}`;
 
+        // NOVO: Lógica para desabilitar a seta de avançar após 6 meses
+        const limitDate = new Date();
+        limitDate.setMonth(limitDate.getMonth() + 6);
+        btnTerceirosProximo.disabled = getMesAnoChave(dividasTerceirosDate) >= getMesAnoChave(limitDate);
+
         const dividasDoMes = dividasTerceiros.filter(d => d.mesAnoReferencia === mesAno);
+        
+        const totalMes = dividasDoMes.reduce((soma, divida) => soma + divida.valor, 0);
+        totalDisplayEl.textContent = `Total: ${formatCurrency(totalMes)}`;
         
         listaUl.innerHTML = '';
         if (dividasDoMes.length === 0) {
@@ -540,6 +550,8 @@ document.addEventListener('DOMContentLoaded', () => {
             tituloPessoa.textContent = grupo.nomePessoa;
             tituloPessoa.style.cssText = 'padding: 10px 15px 5px; margin: 15px 0 5px; background-color: #f8f9fa; border-top: 1px solid #eee; border-bottom: 1px solid #eee;';
             listaUl.appendChild(tituloPessoa);
+            
+            grupo.dividas.sort((a, b) => b.valor - a.valor);
             
             grupo.dividas.forEach(divida => {
                 const li = document.createElement('li');
@@ -1449,6 +1461,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     parcelaAtual: parcelaInicial + i,
                     totalParcelas: totalParcelas,
                     mesAnoReferencia: getMesAnoChave(mesReferenciaParcela),
+                });
+            }
+        // NOVA LÓGICA PARA TRATAR DÍVIDAS RECORRENTES
+        } else if (dados.frequencia === CONSTS.FREQUENCIA.RECORRENTE) {
+            for (let i = 0; i < CONSTS.RECORRENCIA_MESES; i++) {
+                let mesReferenciaRecorrente = new Date(currentDate);
+                mesReferenciaRecorrente.setMonth(mesReferenciaRecorrente.getMonth() + i);
+
+                dividasParaAdicionar.push({
+                    ...baseObject,
+                    valor: dados.valor,
+                    mesAnoReferencia: getMesAnoChave(mesReferenciaRecorrente),
                 });
             }
         } else { // Dívida Única

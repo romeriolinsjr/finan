@@ -396,6 +396,8 @@ body.modal-aberto {
     overflow-y: auto; /* A MÁGICA: Apenas o corpo do modal rola */
     padding-top: 0;
     padding-bottom: 0;
+    flex-grow: 1; /* NOVO: Faz o corpo do modal crescer para preencher o espaço */
+    min-height: 0; /* NOVO: Boa prática de flexbox para evitar problemas de encolhimento */
 }
 
 /* Estilo para modais maiores, como o de relatórios */
@@ -923,6 +925,24 @@ body.modal-aberto {
 }
 
 #listaDetalhesSerie .parcela-valor {
+    color: #333;
+}
+
+/* NOVO: Define uma altura fixa para o modal de consulta de dívidas */
+#modalConsultarTerceiros .modal-content {
+    height: 70vh; /* Define a altura como 70% da altura da tela */
+}
+
+/* NOVO: Alinha os itens do rodapé e estiliza o total */
+#modalConsultarTerceiros .modal-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.divida-total-display {
+    font-size: 1.2em;
+    font-weight: 600;
     color: #333;
 }
 
