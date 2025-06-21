@@ -542,6 +542,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         <span class="transacao-detalhes">${detalhesTransacao}</span>
                     </div>
                     <span class="divida-valor">${formatCurrency(divida.valor)}</span>
+                    <div class="transaction-actions">
+                        <button class="btn-delete btn-delete-divida" data-divida-id="${divida.id}" title="Excluir Dívida">✖</button>
+                    </div>
                 `;
                 listaUl.appendChild(li);
             });
@@ -556,6 +559,31 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log(`Status de reembolso da dívida ${dividaId} atualizado para ${novoStatus}.`);
         } catch (error) {
             console.error("Erro ao atualizar status de reembolso:", error);
+        }
+    }
+
+    async function excluirDividaTerceiro(dividaId) {
+        if (!currentUser) {
+            alert("Erro: Você precisa estar logado para excluir uma dívida.");
+            return;
+        }
+
+        const dividaParaExcluir = dividasTerceiros.find(d => d.id === dividaId);
+        if (!dividaParaExcluir) {
+            console.error("Dívida não encontrada para exclusão:", dividaId);
+            return;
+        }
+
+        if (window.confirm(`Tem certeza que deseja excluir a dívida "${dividaParaExcluir.nomeTransacao}"? Esta ação não pode ser desfeita.`)) {
+            try {
+                const dividaRef = db.collection('users').doc(currentUser.uid).collection('dividasTerceiros').doc(dividaId);
+                await dividaRef.delete();
+                console.log(`Dívida ${dividaId} excluída com sucesso do Firestore.`);
+                // A atualização da lista acontecerá automaticamente pelo ouvinte onSnapshot.
+            } catch (error) {
+                console.error("Erro ao excluir dívida do Firestore:", error);
+                alert("Ocorreu um erro ao tentar excluir a dívida.");
+            }
         }
     }
 
@@ -2635,10 +2663,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (listaDividasTerceirosUl) {
         listaDividasTerceirosUl.addEventListener('click', (event) => {
+            // Verifica se o clique foi no checkbox de reembolso
             if (event.target.type === 'checkbox' && event.target.dataset.dividaId) {
                 const dividaId = event.target.dataset.dividaId;
                 const novoStatus = event.target.checked;
                 atualizarStatusReembolso(dividaId, novoStatus);
+                return; // Encerra a execução para não prosseguir
+            }
+
+            // NOVO: Verifica se o clique foi no botão de excluir
+            const deleteBtn = event.target.closest('.btn-delete-divida');
+            if (deleteBtn) {
+                const dividaId = deleteBtn.dataset.dividaId;
+                if (dividaId) {
+                    excluirDividaTerceiro(dividaId);
+                }
             }
         });
     }

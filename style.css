@@ -984,6 +984,11 @@ body.modal-aberto {
     color: #555e68;
 }
 
+/* NOVO: Estilos para o botão de ação na lista de dívidas de terceiros */
+.divida-terceiro-item .transaction-actions {
+    margin-left: 10px;
+}
+
 /* ========================================= */
 /*          ESTILOS PARA MOBILE              */
 /* ========================================= */
