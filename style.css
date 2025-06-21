@@ -1016,6 +1016,23 @@ body.modal-aberto {
     margin-left: 10px;
 }
 
+/* NOVO: Estilos para o container de informações da dívida */
+.divida-info {
+    flex-grow: 1; /* Faz o container ocupar o espaço disponível */
+    display: flex;
+    justify-content: space-between; /* Alinha o nome à esquerda e o valor à direita no desktop */
+    align-items: center;
+}
+
+/* --- Media Query para Mobile --- */
+@media (max-width: 768px) {
+    .divida-info {
+        flex-direction: column; /* Empilha os itens verticalmente */
+        align-items: flex-start; /* Alinha tudo à esquerda */
+        gap: 4px; /* Adiciona um pequeno espaço entre o nome e o valor */
+    }
+}
+
 /* ========================================= */
 /*          ESTILOS PARA MOBILE              */
 /* ========================================= */

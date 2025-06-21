@@ -568,8 +568,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     <input type="checkbox" data-divida-id="${divida.id}" ${divida.reembolsado ? 'checked' : ''}>
                     <div class="divida-info">
                         <span class="transacao-detalhes">${detalhesTransacao}</span>
+                        <span class="divida-valor">${formatCurrency(divida.valor)}</span>
                     </div>
-                    <span class="divida-valor">${formatCurrency(divida.valor)}</span>
                     <div class="transaction-actions">
                         <button class="btn-delete btn-delete-divida" data-divida-id="${divida.id}" title="Excluir Dívida">✖</button>
                     </div>
