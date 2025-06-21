@@ -548,7 +548,14 @@ body.modal-aberto {
 }
 
 .modal-body-buttons { display: flex; justify-content: center; gap: 15px; margin-top: 25px; }
-.modal-body-buttons button { padding: 12px 28px; font-size: 1.05em; flex-grow: 1; }
+.modal-body-buttons button { 
+    padding: 12px 28px; 
+    font-size: 1.05em; 
+    flex-grow: 1; 
+    border-radius: 5px; /* NOVO: Adiciona os cantos arredondados */
+    border: none;       /* NOVO: Garante que não haja borda padrão */
+    cursor: pointer;    /* NOVO: Garante que o cursor seja uma "mãozinha" */
+}
 
 .ajuste-form {
     display: flex;

@@ -140,6 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let isModoTerceiros = false;
     let isRegisterMode = false;
     let currentUser = null;
+    let openModals = []; // NOVO: Para gerenciar modais empilhados
 
     // --- Conexão com o Firebase ---
     const firebaseConfig = {
@@ -589,7 +590,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function excluirDividaTerceiro(dividaId) {
+async function excluirDividaTerceiroUnica(dividaId) {
         if (!currentUser) {
             alert("Erro: Você precisa estar logado para excluir uma dívida.");
             return;
@@ -803,6 +804,13 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function abrirModalEspecifico(modalElement, idParaEditar = null, tipoModal = 'transacao') {
         if (!modalElement) return;
+
+        // NOVO: Gerenciamento de z-index para empilhamento de modais
+        modalElement.style.zIndex = 1000 + (openModals.length * 10);
+        if (!openModals.includes(modalElement)) {
+            openModals.push(modalElement);
+        }
+
         if (tipoModal === 'transacao') {
             isEditMode = !!idParaEditar;
             editingTransactionId = idParaEditar;
@@ -829,11 +837,17 @@ document.addEventListener('DOMContentLoaded', () => {
         bodyEl.classList.add('modal-aberto');
     }
     
-    function fecharModalEspecifico(modalElement) {
+        function fecharModalEspecifico(modalElement) {
         if (!modalElement) return;
         modalElement.style.display = 'none';
         
-        bodyEl.classList.remove('modal-aberto');
+        // NOVO: Remove o modal da lista de modais abertos
+        openModals = openModals.filter(m => m !== modalElement);
+        
+        // NOVO: Só remove a classe do body se for o último modal a ser fechado
+        if (openModals.length === 0) {
+            bodyEl.classList.remove('modal-aberto');
+        }
 
         switch (modalElement.id) {
             case 'modalNovaTransacao':
@@ -1910,54 +1924,79 @@ document.addEventListener('DOMContentLoaded', () => {
         listaComprasFaturaCartaoUl.addEventListener('click', (event) => handleTransactionListClick(event, listaComprasFaturaCartaoUl, true)); 
     }
     
-    function abrirModalConfirmarAcaoSerie(transacaoId, acao) { 
-        if (!modalConfirmarAcaoSerie) return; 
-        const transacao = transacoes.find(t => t.id === transacaoId); 
-        if (!transacao) return; 
-        modalConfirmarAcaoSerie.dataset.transacaoId = transacaoId; 
-        modalConfirmarAcaoSerie.dataset.serieId = transacao.serieId; 
-        modalConfirmarAcaoSerie.dataset.acao = acao; 
-        if (acao === CONSTS.ACAO_SERIE.EXCLUIR) { 
-            modalConfirmarAcaoSerieTitulo.textContent = "Excluir Transação em Série"; 
-            modalConfirmarAcaoSerieTexto.textContent = `Deseja excluir apenas a transação "${transacao.nome}" deste mês, ou todas as transações desta série?`; 
-        } else if (acao === CONSTS.ACAO_SERIE.EDITAR) { 
-            modalConfirmarAcaoSerieTitulo.textContent = "Editar Transação em Série"; 
-            modalConfirmarAcaoSerieTexto.textContent = `Deseja editar apenas esta transação, ou aplicar as alterações a todas as transações desta série?`; 
-        } 
-        modalConfirmarAcaoSerie.style.display = 'flex'; 
+    function abrirModalConfirmarAcaoSerie(itemId, acao, context) {
+        if (!modalConfirmarAcaoSerie) return;
+
+        let item, nomeItem;
+        if (context === 'dividaTerceiro') {
+            item = dividasTerceiros.find(d => d.id === itemId);
+            nomeItem = item ? item.nomeTransacao : '';
+        } else {
+            item = transacoes.find(t => t.id === itemId);
+            nomeItem = item ? item.nome : '';
+        }
+
+        if (!item) return;
+
+        // Limpa e define os novos datasets
+        modalConfirmarAcaoSerie.dataset.itemId = itemId;
+        modalConfirmarAcaoSerie.dataset.serieId = item.serieId;
+        modalConfirmarAcaoSerie.dataset.acao = acao;
+        modalConfirmarAcaoSerie.dataset.context = context; // Define o contexto
+
+        if (acao === CONSTS.ACAO_SERIE.EXCLUIR) {
+            modalConfirmarAcaoSerieTitulo.textContent = `Excluir Item em Série`;
+            modalConfirmarAcaoSerieTexto.textContent = `Deseja excluir apenas o item "${nomeItem}" deste mês, ou toda a série?`;
+        } else if (acao === CONSTS.ACAO_SERIE.EDITAR) {
+            modalConfirmarAcaoSerieTitulo.textContent = "Editar Transação em Série";
+            modalConfirmarAcaoSerieTexto.textContent = `Deseja editar apenas esta transação, ou aplicar as alterações a todas as transações desta série?`;
+        }
+        
+        // CORREÇÃO: Usa a função centralizada para abrir o modal,
+        // garantindo o gerenciamento correto de z-index e do array openModals.
+        abrirModalEspecifico(modalConfirmarAcaoSerie, null, 'confirmarAcao');
     }
     
     if (btnAcaoSerieApenasEsta) {
         btnAcaoSerieApenasEsta.addEventListener('click', async () => {
-            const transacaoId = modalConfirmarAcaoSerie.dataset.transacaoId; 
+            const itemId = modalConfirmarAcaoSerie.dataset.itemId;
             const acao = modalConfirmarAcaoSerie.dataset.acao;
+            const context = modalConfirmarAcaoSerie.dataset.context;
             fecharModalEspecifico(modalConfirmarAcaoSerie);
 
             if (acao === CONSTS.ACAO_SERIE.EXCLUIR) {
-                await excluirTransacaoUnica(transacaoId);
+                if (context === 'dividaTerceiro') {
+                    await excluirDividaTerceiroUnica(itemId);
+                } else {
+                    await excluirTransacaoUnica(itemId);
+                }
             } else if (acao === CONSTS.ACAO_SERIE.EDITAR) {
-                editingSerieId = null; 
-                abrirModalEspecifico(modalNovaTransacao, transacaoId, 'transacao');
+                // A edição por enquanto só se aplica a transações normais
+                editingSerieId = null;
+                abrirModalEspecifico(modalNovaTransacao, itemId, 'transacao');
             }
         });
-    }        
+    }
     
     if (btnAcaoSerieToda) {
         btnAcaoSerieToda.addEventListener('click', async () => {
-            const transacaoId = modalConfirmarAcaoSerie.dataset.transacaoId;
+            const itemId = modalConfirmarAcaoSerie.dataset.itemId;
             const serieId = modalConfirmarAcaoSerie.dataset.serieId;
             const acao = modalConfirmarAcaoSerie.dataset.acao;
+            const context = modalConfirmarAcaoSerie.dataset.context;
             fecharModalEspecifico(modalConfirmarAcaoSerie);
 
-            if (!currentUser || !serieId) { 
-                alert("Erro: Não foi possível realizar a ação em série."); 
-                return; 
+            if (!currentUser || !serieId) {
+                alert("Erro: Não foi possível realizar a ação em série.");
+                return;
             }
 
             if (acao === CONSTS.ACAO_SERIE.EXCLUIR) {
-                const transacaoModelo = transacoes.find(t => t.id === transacaoId);
-                console.log("Excluindo toda a série:", serieId);
-                const querySnapshot = await db.collection('users').doc(currentUser.uid).collection('transacoes').where('serieId', '==', serieId).get();
+                const collectionName = context === 'dividaTerceiro' ? 'dividasTerceiros' : 'transacoes';
+                const alertMessage = context === 'dividaTerceiro' ? "Toda a série de dívidas foi excluída." : "Toda a série de transações foi excluída.";
+                
+                console.log(`Excluindo toda a série ${serieId} da coleção ${collectionName}`);
+                const querySnapshot = await db.collection('users').doc(currentUser.uid).collection(collectionName).where('serieId', '==', serieId).get();
                 
                 const batch = db.batch();
                 querySnapshot.docs.forEach(doc => {
@@ -1966,18 +2005,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 try {
                     await batch.commit();
-                    if (transacaoModelo && transacaoModelo.tipo === CONSTS.TIPO_TRANSACAO.DESPESA) {
+                    if (context !== 'dividaTerceiro') {
                         await registrarUltimaAlteracao();
                     }
-                    alert("Toda a série de transações foi excluída.");
+                    alert(alertMessage);
                 } catch (error) {
-                    console.error("Erro ao excluir série de transações:", error);
+                    console.error(`Erro ao excluir série da coleção ${collectionName}:`, error);
                     alert("Ocorreu um erro ao excluir a série.");
                 }
 
             } else if (acao === CONSTS.ACAO_SERIE.EDITAR) {
                 editingSerieId = serieId;
-                abrirModalEspecifico(modalNovaTransacao, transacaoId, 'transacao');
+                abrirModalEspecifico(modalNovaTransacao, itemId, 'transacao');
             }
         });
     }
@@ -2702,20 +2741,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (listaDividasTerceirosUl) {
         listaDividasTerceirosUl.addEventListener('click', (event) => {
-            // Verifica se o clique foi no checkbox de reembolso
             if (event.target.type === 'checkbox' && event.target.dataset.dividaId) {
                 const dividaId = event.target.dataset.dividaId;
                 const novoStatus = event.target.checked;
                 atualizarStatusReembolso(dividaId, novoStatus);
-                return; // Encerra a execução para não prosseguir
+                return;
             }
 
-            // NOVO: Verifica se o clique foi no botão de excluir
             const deleteBtn = event.target.closest('.btn-delete-divida');
             if (deleteBtn) {
                 const dividaId = deleteBtn.dataset.dividaId;
-                if (dividaId) {
-                    excluirDividaTerceiro(dividaId);
+                if (!dividaId) return;
+
+                const divida = dividasTerceiros.find(d => d.id === dividaId);
+                if (!divida) return;
+
+                if (divida.frequencia === 'unica') {
+                    // Se for única, exclui diretamente (após confirmação)
+                    excluirDividaTerceiroUnica(dividaId);
+                } else {
+                    // Se for de uma série, abre o modal de confirmação
+                    abrirModalConfirmarAcaoSerie(dividaId, CONSTS.ACAO_SERIE.EXCLUIR, 'dividaTerceiro');
                 }
             }
         });
