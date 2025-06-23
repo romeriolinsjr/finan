@@ -2227,7 +2227,8 @@ async function excluirDividaTerceiroUnica(dividaId) {
 
         const viewButton = document.createElement('button');
         viewButton.className = 'btn-view-fatura';
-        viewButton.innerHTML = '👁️';
+        // ALTERAÇÃO: Trocamos o ícone de olho por uma lupa
+        viewButton.innerHTML = '🔍';
         viewButton.title = "Ver Detalhes da Fatura";
         viewButton.dataset.cartaoId = item.cartaoId;
         viewButton.dataset.mesAnoFatura = item.mesAnoReferencia;
@@ -2258,11 +2259,13 @@ async function excluirDividaTerceiroUnica(dividaId) {
         const actionButton = document.createElement('button');
         if (fechado) {
             actionButton.className = 'btn-abrir-orcamento';
-            actionButton.innerHTML = '🔓';
+            // Se está FECHADO, o ícone agora é um cadeado FECHADO e a ação é REABRIR.
+            actionButton.innerHTML = '🔒'; 
             actionButton.title = "Reabrir orçamento do mês";
         } else {
             actionButton.className = 'btn-fechar-orcamento';
-            actionButton.innerHTML = '🔒';
+            // Se está ABERTO, o ícone agora é um cadeado ABERTO e a ação é FECHAR.
+            actionButton.innerHTML = '🔓';
             actionButton.title = "Fechar orçamento do mês";
         }
         actionButton.dataset.orcamentoId = item.orcamentoId;
