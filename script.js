@@ -2171,12 +2171,29 @@ document.addEventListener("DOMContentLoaded", () => {
 
     try {
       if (editingSerieId) {
-        console.log("Atualizando toda a série no Firestore:", editingSerieId);
+        // NOVA LÓGICA PARA ATUALIZAR APENAS O PRESENTE E O FUTURO
+        const transacaoInicial = transacoes.find(
+          (t) => t.id === editingTransactionId
+        );
+        if (!transacaoInicial) {
+          alert(
+            "Erro: Transação de referência não encontrada para iniciar a alteração em série."
+          );
+          return false;
+        }
+        const mesAnoInicioAlteracao = transacaoInicial.mesAnoReferencia;
+
+        console.log(
+          `Atualizando a série ${editingSerieId} a partir de ${mesAnoInicioAlteracao}...`
+        );
+
+        // A consulta agora filtra pela série E pela data de início
         const querySnapshot = await db
           .collection("users")
           .doc(currentUser.uid)
           .collection("transacoes")
           .where("serieId", "==", editingSerieId)
+          .where("mesAnoReferencia", ">=", mesAnoInicioAlteracao)
           .get();
 
         const batch = db.batch();
@@ -2193,7 +2210,9 @@ document.addEventListener("DOMContentLoaded", () => {
           });
         });
         await batch.commit();
-        console.log("Série atualizada com sucesso.");
+        console.log(
+          `${querySnapshot.docs.length} transações da série foram atualizadas (presente e futuras).`
+        );
       } else {
         const docRef = db
           .collection("users")
@@ -2209,6 +2228,7 @@ document.addEventListener("DOMContentLoaded", () => {
       await registrarUltimaAlteracao();
       return true;
     } catch (error) {
+      // CHAVES ADICIONADAS AQUI
       console.error("Erro ao atualizar transação no Firestore:", error);
       alert("Ocorreu um erro ao atualizar a transação.");
       return false;
