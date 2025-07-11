@@ -1217,12 +1217,6 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     });
 
-  window.addEventListener("click", (event) => {
-    if (event.target.classList.contains("modal")) {
-      fecharModalEspecifico(event.target);
-    }
-  });
-
   function resetModalNovaTransacao() {
     if (
       !tipoTransacaoSelect ||
