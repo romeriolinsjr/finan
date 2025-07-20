@@ -956,6 +956,9 @@ document.addEventListener("DOMContentLoaded", () => {
       const classeValor = item.tipo;
       let nomeExibicao = item.nome;
       let contexto = "";
+      let transacaoRepresentativa = item.isGroup
+        ? item.primeiraOcorrencia
+        : item;
 
       if (item.isGroup) {
         if (item.frequencia === CONSTS.FREQUENCIA.PARCELADA) {
@@ -974,6 +977,19 @@ document.addEventListener("DOMContentLoaded", () => {
         contexto = `${
           nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1)
         }/${ano}`;
+      }
+
+      // NOVA LÓGICA: Adiciona o nome do cartão ao contexto, se aplicável
+      if (
+        transacaoRepresentativa.categoria ===
+        CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO
+      ) {
+        const cartao = cartoes.find(
+          (c) => c.id === transacaoRepresentativa.cartaoId
+        );
+        if (cartao) {
+          contexto += ` (Cartão: ${cartao.nome})`;
+        }
       }
 
       li.innerHTML = `
