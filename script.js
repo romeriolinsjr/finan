@@ -2734,20 +2734,38 @@ document.addEventListener("DOMContentLoaded", () => {
       if (acao === CONSTS.ACAO_SERIE.EXCLUIR) {
         const collectionName =
           context === "dividaTerceiro" ? "dividasTerceiros" : "transacoes";
-        const alertMessage =
+
+        // NOVA LÓGICA PARA ENCONTRAR O PONTO DE PARTIDA DA EXCLUSÃO
+        const itemInicial =
           context === "dividaTerceiro"
-            ? "Toda a série de dívidas foi excluída."
-            : "Toda a série de transações foi excluída.";
+            ? dividasTerceiros.find((d) => d.id === itemId)
+            : transacoes.find((t) => t.id === itemId);
+
+        if (!itemInicial) {
+          alert(
+            "Erro: Item de referência não encontrado para iniciar a exclusão em série."
+          );
+          return;
+        }
+        const mesAnoInicioExclusao = itemInicial.mesAnoReferencia;
 
         console.log(
-          `Excluindo toda a série ${serieId} da coleção ${collectionName}`
+          `Excluindo a série ${serieId} da coleção ${collectionName} a partir de ${mesAnoInicioExclusao}...`
         );
+
+        // A consulta agora filtra pela série E pela data de início
         const querySnapshot = await db
           .collection("users")
           .doc(currentUser.uid)
           .collection(collectionName)
           .where("serieId", "==", serieId)
+          .where("mesAnoReferencia", ">=", mesAnoInicioExclusao)
           .get();
+
+        if (querySnapshot.empty) {
+          alert("Nenhum item futuro encontrado para excluir.");
+          return;
+        }
 
         const batch = db.batch();
         querySnapshot.docs.forEach((doc) => {
@@ -2759,6 +2777,7 @@ document.addEventListener("DOMContentLoaded", () => {
           if (context !== "dividaTerceiro") {
             await registrarUltimaAlteracao();
           }
+          const alertMessage = `${querySnapshot.docs.length} item(ns) da série (a partir deste mês) foram excluídos.`;
           alert(alertMessage);
         } catch (error) {
           console.error(
