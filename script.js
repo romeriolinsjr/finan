@@ -3898,6 +3898,27 @@ document.addEventListener("DOMContentLoaded", () => {
     const gastosVinculados = transacoes.filter(
       (t) => t.orcamentoId === orcamentoId && t.mesAnoReferencia === mesAno
     );
+
+    // NOVO: Lógica de ordenação, replicada dos detalhes da fatura
+    const prioridade = {
+      [CONSTS.FREQUENCIA.RECORRENTE]: 1,
+      [CONSTS.FREQUENCIA.PARCELADA]: 2,
+      [CONSTS.FREQUENCIA.UNICA]: 3,
+    };
+
+    gastosVinculados.sort((a, b) => {
+      const prioridadeA = prioridade[a.frequencia] || 4; // Atribui prioridade baixa se não tiver frequência
+      const prioridadeB = prioridade[b.frequencia] || 4;
+
+      // 1. Ordena pela prioridade da frequência
+      if (prioridadeA !== prioridadeB) {
+        return prioridadeA - prioridadeB;
+      }
+
+      // 2. Se a frequência for a mesma, ordena pelo valor (maior para o menor)
+      return b.valor - a.valor;
+    });
+
     const totalGasto = gastosVinculados.reduce(
       (total, gasto) => total + gasto.valor,
       0
