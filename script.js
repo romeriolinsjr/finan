@@ -192,6 +192,7 @@ document.addEventListener("DOMContentLoaded", () => {
   );
   const sidebarFooter = document.querySelector(".sidebar-footer");
   const lastUpdatedDisplay = document.getElementById("lastUpdatedDisplay");
+  const btnToggleVisibility = document.getElementById("btnToggleVisibility");
 
   // --- Estado da Aplicação ---
   let currentDate = new Date();
@@ -217,6 +218,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let isRegisterMode = false;
   let currentUser = null;
   let openModals = []; // NOVO: Para gerenciar modais empilhados
+  let areValuesHidden = false;
 
   // --- Conexão com o Firebase ---
   const firebaseConfig = {
@@ -1104,8 +1106,14 @@ document.addEventListener("DOMContentLoaded", () => {
     totalReceitasDisplay.textContent = formatCurrency(receitasDoMes);
     totalDespesasDisplay.textContent = formatCurrency(despesasDoMes);
     saldoMesDisplay.textContent = formatCurrency(saldoDoMes);
-    saldoMesDisplay.style.color =
-      saldoDoMes > 0 ? "#27ae60" : saldoDoMes < 0 ? "#e74c3c" : "#3498db";
+
+    // CORREÇÃO: Aplica a cor do saldo apenas se os valores NÃO estiverem ocultos
+    if (!areValuesHidden) {
+      saldoMesDisplay.style.color =
+        saldoDoMes > 0 ? "#27ae60" : saldoDoMes < 0 ? "#e74c3c" : "#3498db";
+    } else {
+      saldoMesDisplay.style.color = ""; // Remove o estilo inline para usar a cor padrão do CSS
+    }
   }
 
   function resetModalCartao() {
@@ -2181,7 +2189,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     try {
       if (editingSerieId) {
-        // NOVA LÓGICA PARA ATUALIZAR APENAS O PRESENTE E O FUTURO
         const transacaoInicial = transacoes.find(
           (t) => t.id === editingTransactionId
         );
@@ -2197,7 +2204,6 @@ document.addEventListener("DOMContentLoaded", () => {
           `Atualizando a série ${editingSerieId} a partir de ${mesAnoInicioAlteracao}...`
         );
 
-        // A consulta agora filtra pela série E pela data de início
         const querySnapshot = await db
           .collection("users")
           .doc(currentUser.uid)
@@ -2238,7 +2244,6 @@ document.addEventListener("DOMContentLoaded", () => {
       await registrarUltimaAlteracao();
       return true;
     } catch (error) {
-      // CHAVES ADICIONADAS AQUI
       console.error("Erro ao atualizar transação no Firestore:", error);
       alert("Ocorreu um erro ao atualizar a transação.");
       return false;
@@ -4334,4 +4339,41 @@ document.addEventListener("DOMContentLoaded", () => {
   function inicializarOrcamentosFechados() {
     return [];
   }
+  // --- LÓGICA DE VISIBILIDADE DE VALORES (MODO DE PRIVACIDADE) ---
+
+  // Função que aplica as classes CSS com base no estado da variável areValuesHidden
+  function renderizarEstadoVisibilidade() {
+    if (areValuesHidden) {
+      bodyEl.classList.add("values-hidden");
+      if (btnToggleVisibility) {
+        btnToggleVisibility.innerHTML = "👁️"; // O ícone é sempre o olho
+        btnToggleVisibility.style.opacity = "0.5"; // Fica semitransparente no modo oculto
+      }
+    } else {
+      bodyEl.classList.remove("values-hidden");
+      if (btnToggleVisibility) {
+        btnToggleVisibility.innerHTML = "👁️"; // O ícone é sempre o olho
+        btnToggleVisibility.style.opacity = "1"; // Fica totalmente opaco no modo visível
+      }
+    }
+  }
+
+  // Função que carrega a preferência do usuário do localStorage e renderiza o estado inicial
+  function inicializarVisibilidade() {
+    const preferenciaSalva = localStorage.getItem("finanValuesHidden");
+    areValuesHidden = preferenciaSalva === "true";
+    renderizarEstadoVisibilidade();
+  }
+
+  // Adiciona o "ouvinte" ao botão para alternar o estado
+  if (btnToggleVisibility) {
+    btnToggleVisibility.addEventListener("click", () => {
+      areValuesHidden = !areValuesHidden; // Inverte o estado
+      localStorage.setItem("finanValuesHidden", areValuesHidden); // Salva a preferência
+      renderizarEstadoVisibilidade(); // Aplica a mudança visual
+    });
+  }
+
+  // Chama a função de inicialização para aplicar o estado salvo assim que o app carrega
+  inicializarVisibilidade();
 });

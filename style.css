@@ -103,6 +103,51 @@ body.modal-aberto {
   height: 36px; /* Define a altura da logo */
   width: auto; /* A largura se ajusta automaticamente */
 }
+/* NOVO: Estilos para o botão de visibilidade */
+#btnToggleVisibility {
+  background: none;
+  border: none;
+  font-size: 1.8em; /* Aumenta o tamanho do ícone */
+  cursor: pointer;
+  padding: 0 5px;
+  line-height: 1;
+  color: #7f8c8d;
+  transition: color 0.2s;
+}
+
+#btnToggleVisibility:hover {
+  color: #2c3e50;
+}
+
+/* NOVO: Regras para quando o modo de privacidade está ATIVADO */
+.values-hidden .financial-summary .summary-item span:last-child,
+.values-hidden .transaction-item .transaction-value,
+.values-hidden
+  .transaction-item.receita
+  .transaction-value-date-group
+  .transaction-value,
+.values-hidden .transaction-item .orcamento-restante {
+  color: transparent !important; /* Adiciona !important para garantir a sobreposição */
+  user-select: none;
+}
+
+.values-hidden .financial-summary .summary-item span:last-child::before,
+.values-hidden .transaction-item .transaction-value::before,
+.values-hidden .transaction-item .orcamento-restante::before {
+  content: "R$ ●●●●●●";
+  color: #333;
+  font-size: 1em;
+  font-weight: 600;
+  user-select: text;
+}
+
+/* CORREÇÃO SUPER-ESPECÍFICA: Garante que o placeholder do orçamento
+   fique SEMPRE preto, mesmo quando o valor original for verde ou vermelho. */
+.values-hidden .transaction-item .orcamento-restante.negativo::before,
+.values-hidden .transaction-item .orcamento-restante::before {
+  color: #333 !important;
+}
+
 .month-navigation {
   display: flex;
   align-items: center;
