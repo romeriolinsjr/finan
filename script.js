@@ -742,9 +742,9 @@ document.addEventListener("DOMContentLoaded", () => {
       nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1)
     }/${ano}`;
 
-    // NOVO: Lógica para desabilitar a seta de avançar após 6 meses
+    // NOVO: Lógica para desabilitar a seta de avançar após 12 meses
     const limitDate = new Date();
-    limitDate.setMonth(limitDate.getMonth() + 6);
+    limitDate.setMonth(limitDate.getMonth() + 12);
     btnTerceirosProximo.disabled =
       getMesAnoChave(dividasTerceirosDate) >= getMesAnoChave(limitDate);
 
@@ -1054,7 +1054,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }/${year}`;
 
     const limitDate = new Date();
-    limitDate.setMonth(limitDate.getMonth() + 6);
+    limitDate.setMonth(limitDate.getMonth() + 12;
     nextMonthBtn.disabled =
       getMesAnoChave(currentDate) >= getMesAnoChave(limitDate);
 
