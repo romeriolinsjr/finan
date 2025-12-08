@@ -1054,7 +1054,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }/${year}`;
 
     const limitDate = new Date();
-    limitDate.setMonth(limitDate.getMonth() + 12;
+    limitDate.setMonth(limitDate.getMonth() + 12);
     nextMonthBtn.disabled =
       getMesAnoChave(currentDate) >= getMesAnoChave(limitDate);
 
@@ -4183,7 +4183,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }/${ano}`;
 
     const limitDate = new Date();
-    limitDate.setMonth(limitDate.getMonth() + 6);
+    limitDate.setMonth(limitDate.getMonth() + 12);
     btnRelatorioProximo.disabled =
       getMesAnoChave(date) >= getMesAnoChave(limitDate);
 
