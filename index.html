@@ -839,3 +839,39 @@
     <script src="script.js"></script>
   </body>
 </html>
+
+<!-- NOVO: Modal para Editar Dívida de Terceiro -->
+<div id="modalEditarDivida" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2 id="modalEditarDividaTitulo">Editar Dívida</h2>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="dividaEditId" />
+      <input type="hidden" id="dividaEditSerieId" />
+      <input type="hidden" id="dividaEditContexto" />
+      <div>
+        <label for="nomeDividaEdit">Nome da Dívida:</label>
+        <input type="text" id="nomeDividaEdit" required />
+      </div>
+      <div>
+        <label for="valorDividaEdit">Valor (R$):</label>
+        <input
+          type="number"
+          id="valorDividaEdit"
+          step="0.01"
+          placeholder="0,00"
+          required
+        />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button id="btnCancelarEdicaoDivida" class="btn-secondary">
+        Cancelar
+      </button>
+      <button id="btnSalvarEdicaoDivida" class="btn-primary">
+        Salvar Alterações
+      </button>
+    </div>
+  </div>
+</div>

@@ -62,6 +62,21 @@ document.addEventListener("DOMContentLoaded", () => {
   );
   const btnTerceirosAnterior = document.getElementById("btnTerceirosAnterior");
   const btnTerceirosProximo = document.getElementById("btnTerceirosProximo");
+  const modalEditarDivida = document.getElementById("modalEditarDivida");
+  const modalEditarDividaTitulo = document.getElementById(
+    "modalEditarDividaTitulo"
+  );
+  const dividaEditIdInput = document.getElementById("dividaEditId");
+  const dividaEditSerieIdInput = document.getElementById("dividaEditSerieId");
+  const dividaEditContextoInput = document.getElementById("dividaEditContexto");
+  const nomeDividaEditInput = document.getElementById("nomeDividaEdit");
+  const valorDividaEditInput = document.getElementById("valorDividaEdit");
+  const btnCancelarEdicaoDivida = document.getElementById(
+    "btnCancelarEdicaoDivida"
+  );
+  const btnSalvarEdicaoDivida = document.getElementById(
+    "btnSalvarEdicaoDivida"
+  );
   const modalCadastrarPessoa = document.getElementById("modalCadastrarPessoa");
   const nomePessoaInputModal = document.getElementById("nomePessoaInputModal");
   const btnSalvarPessoaModal = document.getElementById("btnSalvarPessoaModal");
@@ -811,6 +826,9 @@ document.addEventListener("DOMContentLoaded", () => {
                         )}</span>
                     </div>
                     <div class="transaction-actions">
+                        <button class="btn-edit btn-edit-divida" data-divida-id="${
+                          divida.id
+                        }" title="Editar Dívida">✎</button>
                         <button class="btn-delete btn-delete-divida" data-divida-id="${
                           divida.id
                         }" title="Excluir Dívida">✖</button>
@@ -2716,9 +2734,12 @@ document.addEventListener("DOMContentLoaded", () => {
           await excluirTransacaoUnica(itemId);
         }
       } else if (acao === CONSTS.ACAO_SERIE.EDITAR) {
-        // A edição por enquanto só se aplica a transações normais
-        editingSerieId = null;
-        abrirModalEspecifico(modalNovaTransacao, itemId, "transacao");
+        if (context === "dividaTerceiro") {
+          abrirModalEdicaoDivida(itemId, "unica"); // Edita apenas esta dívida
+        } else {
+          editingSerieId = null;
+          abrirModalEspecifico(modalNovaTransacao, itemId, "transacao");
+        }
       }
     });
   }
@@ -2740,7 +2761,6 @@ document.addEventListener("DOMContentLoaded", () => {
         const collectionName =
           context === "dividaTerceiro" ? "dividasTerceiros" : "transacoes";
 
-        // NOVA LÓGICA PARA ENCONTRAR O PONTO DE PARTIDA DA EXCLUSÃO
         const itemInicial =
           context === "dividaTerceiro"
             ? dividasTerceiros.find((d) => d.id === itemId)
@@ -2758,7 +2778,6 @@ document.addEventListener("DOMContentLoaded", () => {
           `Excluindo a série ${serieId} da coleção ${collectionName} a partir de ${mesAnoInicioExclusao}...`
         );
 
-        // A consulta agora filtra pela série E pela data de início
         const querySnapshot = await db
           .collection("users")
           .doc(currentUser.uid)
@@ -2792,8 +2811,12 @@ document.addEventListener("DOMContentLoaded", () => {
           alert("Ocorreu um erro ao excluir a série.");
         }
       } else if (acao === CONSTS.ACAO_SERIE.EDITAR) {
-        editingSerieId = serieId;
-        abrirModalEspecifico(modalNovaTransacao, itemId, "transacao");
+        if (context === "dividaTerceiro") {
+          abrirModalEdicaoDivida(itemId, "serie"); // Edita toda a série
+        } else {
+          editingSerieId = serieId;
+          abrirModalEspecifico(modalNovaTransacao, itemId, "transacao");
+        }
       }
     });
   }
@@ -3770,6 +3793,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (listaDividasTerceirosUl) {
     listaDividasTerceirosUl.addEventListener("click", (event) => {
       if (event.target.type === "checkbox" && event.target.dataset.dividaId) {
+        // Lógica do checkbox (já existente)
         const dividaId = event.target.dataset.dividaId;
         const novoStatus = event.target.checked;
         atualizarStatusReembolso(dividaId, novoStatus);
@@ -3778,20 +3802,39 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const deleteBtn = event.target.closest(".btn-delete-divida");
       if (deleteBtn) {
+        // Lógica de exclusão (já existente)
         const dividaId = deleteBtn.dataset.dividaId;
         if (!dividaId) return;
-
         const divida = dividasTerceiros.find((d) => d.id === dividaId);
         if (!divida) return;
 
         if (divida.frequencia === "unica") {
-          // Se for única, exclui diretamente (após confirmação)
           excluirDividaTerceiroUnica(dividaId);
         } else {
-          // Se for de uma série, abre o modal de confirmação
           abrirModalConfirmarAcaoSerie(
             dividaId,
             CONSTS.ACAO_SERIE.EXCLUIR,
+            "dividaTerceiro"
+          );
+        }
+        return;
+      }
+
+      // NOVA LÓGICA PARA EDIÇÃO
+      const editBtn = event.target.closest(".btn-edit-divida");
+      if (editBtn) {
+        const dividaId = editBtn.dataset.dividaId;
+        if (!dividaId) return;
+        const divida = dividasTerceiros.find((d) => d.id === dividaId);
+        if (!divida) return;
+
+        if (divida.frequencia === "unica") {
+          abrirModalEdicaoDivida(dividaId, "unica");
+        } else {
+          // Para séries, abre o modal de confirmação primeiro
+          abrirModalConfirmarAcaoSerie(
+            dividaId,
+            CONSTS.ACAO_SERIE.EDITAR,
             "dividaTerceiro"
           );
         }
@@ -4397,4 +4440,109 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Chama a função de inicialização para aplicar o estado salvo assim que o app carrega
   inicializarVisibilidade();
+  // --- NOVAS FUNÇÕES PARA EDIÇÃO DE DÍVIDAS DE TERCEIROS ---
+
+  function abrirModalEdicaoDivida(dividaId, contexto) {
+    const divida = dividasTerceiros.find((d) => d.id === dividaId);
+    if (!divida) return;
+
+    fecharModalEspecifico(modalConsultarTerceiros); // Fecha o modal de consulta
+
+    dividaEditIdInput.value = divida.id;
+    dividaEditSerieIdInput.value = divida.serieId || "";
+    dividaEditContextoInput.value = contexto; // 'unica' ou 'serie'
+
+    const nomeBase =
+      divida.frequencia === "parcelada"
+        ? divida.nomeTransacao.replace(/\s\(\d+\/\d+\)$/, "")
+        : divida.nomeTransacao;
+
+    nomeDividaEditInput.value = nomeBase;
+    valorDividaEditInput.value = divida.valor;
+
+    modalEditarDividaTitulo.textContent = `Editar Dívida: ${nomeBase.substring(
+      0,
+      20
+    )}...`;
+
+    abrirModalEspecifico(modalEditarDivida);
+  }
+
+  async function atualizarDividaUnica(id, novoNome, novoValor) {
+    if (!currentUser) return;
+    try {
+      const docRef = db
+        .collection("users")
+        .doc(currentUser.uid)
+        .collection("dividasTerceiros")
+        .doc(id);
+      await docRef.update({ nomeTransacao: novoNome, valor: novoValor });
+      console.log("Dívida única atualizada com sucesso.");
+    } catch (error) {
+      console.error("Erro ao atualizar dívida única:", error);
+      alert("Ocorreu um erro ao salvar as alterações.");
+    }
+  }
+
+  async function atualizarDividaSerie(id, serieId, novoNome, novoValor) {
+    if (!currentUser) return;
+
+    const dividaInicial = dividasTerceiros.find((d) => d.id === id);
+    if (!dividaInicial) return;
+    const mesAnoInicio = dividaInicial.mesAnoReferencia;
+
+    try {
+      const querySnapshot = await db
+        .collection("users")
+        .doc(currentUser.uid)
+        .collection("dividasTerceiros")
+        .where("serieId", "==", serieId)
+        .where("mesAnoReferencia", ">=", mesAnoInicio)
+        .get();
+
+      const batch = db.batch();
+      querySnapshot.docs.forEach((doc) => {
+        // CORREÇÃO: O nome da transação salvo no banco de dados
+        // deve ser SEMPRE o nome base, sem a informação da parcela.
+        // A função de renderização é quem deve adicionar o "(X/Y)".
+        batch.update(doc.ref, { nomeTransacao: novoNome, valor: novoValor });
+      });
+      await batch.commit();
+      console.log(
+        `${querySnapshot.docs.length} dívidas da série foram atualizadas.`
+      );
+    } catch (error) {
+      console.error("Erro ao atualizar série de dívidas:", error);
+      alert("Ocorreu um erro ao salvar as alterações na série.");
+    }
+  }
+
+  if (btnSalvarEdicaoDivida) {
+    btnSalvarEdicaoDivida.addEventListener("click", async () => {
+      const id = dividaEditIdInput.value;
+      const serieId = dividaEditSerieIdInput.value;
+      const contexto = dividaEditContextoInput.value;
+      const novoNome = nomeDividaEditInput.value.trim();
+      const novoValor = parseFloat(valorDividaEditInput.value);
+
+      if (!novoNome || isNaN(novoValor) || novoValor <= 0) {
+        alert("Por favor, preencha o nome e um valor válido.");
+        return;
+      }
+
+      if (contexto === "unica") {
+        await atualizarDividaUnica(id, novoNome, novoValor);
+      } else if (contexto === "serie") {
+        await atualizarDividaSerie(id, serieId, novoNome, novoValor);
+      }
+
+      fecharModalEspecifico(modalEditarDivida);
+    });
+  }
+
+  if (btnCancelarEdicaoDivida) {
+    btnCancelarEdicaoDivida.addEventListener("click", () => {
+      fecharModalEspecifico(modalEditarDivida);
+    });
+  }
 });
