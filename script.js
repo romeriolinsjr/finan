@@ -25,12 +25,12 @@ document.addEventListener("DOMContentLoaded", () => {
       FATURA: "fatura_cartao",
       ORCAMENTO: "orcamento",
     },
-    RECORRENCIA_MESES: 24,
+    RECORRENCIA_MESES: 60,
   };
 
   // --- Elementos do DOM ---
   const loadingSpinnerOverlay = document.getElementById(
-    "loading-spinner-overlay"
+    "loading-spinner-overlay",
   );
   const btnToggleSidebar = document.getElementById("btnToggleSidebar");
   const modalOverlay = document.getElementById("modalOverlay");
@@ -49,22 +49,22 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnDespesasTerceiros = document.getElementById("btnDespesasTerceiros");
   const modalMenuTerceiros = document.getElementById("modalMenuTerceiros");
   const modalConsultarTerceiros = document.getElementById(
-    "modalConsultarTerceiros"
+    "modalConsultarTerceiros",
   );
   const btnAbrirCadastroTerceiros = document.getElementById(
-    "btnAbrirCadastroTerceiros"
+    "btnAbrirCadastroTerceiros",
   );
   const btnAbrirConsultaTerceiros = document.getElementById(
-    "btnAbrirConsultaTerceiros"
+    "btnAbrirConsultaTerceiros",
   );
   const listaDividasTerceirosUl = document.getElementById(
-    "listaDividasTerceiros"
+    "listaDividasTerceiros",
   );
   const btnTerceirosAnterior = document.getElementById("btnTerceirosAnterior");
   const btnTerceirosProximo = document.getElementById("btnTerceirosProximo");
   const modalEditarDivida = document.getElementById("modalEditarDivida");
   const modalEditarDividaTitulo = document.getElementById(
-    "modalEditarDividaTitulo"
+    "modalEditarDividaTitulo",
   );
   const dividaEditIdInput = document.getElementById("dividaEditId");
   const dividaEditSerieIdInput = document.getElementById("dividaEditSerieId");
@@ -72,10 +72,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const nomeDividaEditInput = document.getElementById("nomeDividaEdit");
   const valorDividaEditInput = document.getElementById("valorDividaEdit");
   const btnCancelarEdicaoDivida = document.getElementById(
-    "btnCancelarEdicaoDivida"
+    "btnCancelarEdicaoDivida",
   );
   const btnSalvarEdicaoDivida = document.getElementById(
-    "btnSalvarEdicaoDivida"
+    "btnSalvarEdicaoDivida",
   );
   const modalCadastrarPessoa = document.getElementById("modalCadastrarPessoa");
   const nomePessoaInputModal = document.getElementById("nomePessoaInputModal");
@@ -90,46 +90,46 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnVoltarTransacao = document.getElementById("btnVoltarTransacao");
   const btnSalvarTransacao = document.getElementById("btnSalvarTransacao");
   const modalHeaderNovaTransacao = document.getElementById(
-    "modalNovaTransacaoTitulo"
+    "modalNovaTransacaoTitulo",
   );
   const btnGerenciarCartoes = document.getElementById("btnGerenciarCartoes");
   const modalGerenciarCartoes = document.getElementById(
-    "modalGerenciarCartoes"
+    "modalGerenciarCartoes",
   );
   const btnAbrirModalCadastroCartao = document.getElementById(
-    "btnAbrirModalCadastroCartao"
+    "btnAbrirModalCadastroCartao",
   );
   const listaCartoesCadastradosUl = document.getElementById(
-    "listaCartoesCadastrados"
+    "listaCartoesCadastrados",
   );
   const btnMenuOrcamentos = document.getElementById("btnMenuOrcamentos");
   const modalCadastrarCartao = document.getElementById("modalCadastrarCartao");
   const modalCartaoTitulo = document.getElementById("modalCartaoTitulo");
   const nomeCartaoInputModal = document.getElementById("nomeCartao");
   const diaVencimentoFaturaInputModal = document.getElementById(
-    "diaVencimentoFatura"
+    "diaVencimentoFatura",
   );
   const btnSalvarCartaoModalBtn = document.getElementById(
-    "btnSalvarCartaoModal"
+    "btnSalvarCartaoModal",
   );
   const cartaoEditIdInput = document.getElementById("cartaoEditId");
   const modalDetalhesFaturaCartao = document.getElementById(
-    "modalDetalhesFaturaCartao"
+    "modalDetalhesFaturaCartao",
   );
   const faturaCartaoNomeTitulo = document.getElementById(
-    "faturaCartaoNomeTitulo"
+    "faturaCartaoNomeTitulo",
   );
   const faturaCartaoTotalValor = document.getElementById(
-    "faturaCartaoTotalValor"
+    "faturaCartaoTotalValor",
   );
   const faturaCartaoDataVencimento = document.getElementById(
-    "faturaCartaoDataVencimento"
+    "faturaCartaoDataVencimento",
   );
   const listaComprasFaturaCartaoUl = document.getElementById(
-    "listaComprasFaturaCartao"
+    "listaComprasFaturaCartao",
   );
   const btnAddDespesaFromFatura = document.getElementById(
-    "btnAddDespesaFromFatura"
+    "btnAddDespesaFromFatura",
   );
   const btnAjustesFatura = document.getElementById("btnAjustesFatura");
   const btnFaturaAnterior = document.getElementById("btnFaturaAnterior");
@@ -144,24 +144,24 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnSalvarOrcamento = document.getElementById("btnSalvarOrcamento");
   const listaOrcamentosUl = document.getElementById("listaOrcamentos");
   const modalDetalhesOrcamento = document.getElementById(
-    "modalDetalhesOrcamento"
+    "modalDetalhesOrcamento",
   );
   const orcamentoDetalhesTitulo = document.getElementById(
-    "orcamentoDetalhesTitulo"
+    "orcamentoDetalhesTitulo",
   );
   const orcamentoDetalhesTotal = document.getElementById(
-    "orcamentoDetalhesTotal"
+    "orcamentoDetalhesTotal",
   );
   const orcamentoDetalhesGasto = document.getElementById(
-    "orcamentoDetalhesGasto"
+    "orcamentoDetalhesGasto",
   );
   const orcamentoDetalhesRestante = document.getElementById(
-    "orcamentoDetalhesRestante"
+    "orcamentoDetalhesRestante",
   );
   const listaGastosOrcamento = document.getElementById("listaGastosOrcamento");
   const modalAjustesFatura = document.getElementById("modalAjustesFatura");
   const modalAjustesFaturaTitulo = document.getElementById(
-    "modalAjustesFaturaTitulo"
+    "modalAjustesFaturaTitulo",
   );
   const descricaoAjusteInput = document.getElementById("descricaoAjuste");
   const valorAjusteInput = document.getElementById("valorAjuste");
@@ -169,16 +169,16 @@ document.addEventListener("DOMContentLoaded", () => {
   const listaAjustesFaturaUl = document.getElementById("listaAjustesFatura");
   const totalAjustesValorSpan = document.getElementById("totalAjustesValor");
   const modalConfirmarAcaoSerie = document.getElementById(
-    "modalConfirmarAcaoSerie"
+    "modalConfirmarAcaoSerie",
   );
   const modalConfirmarAcaoSerieTitulo = document.getElementById(
-    "modalConfirmarAcaoSerieTitulo"
+    "modalConfirmarAcaoSerieTitulo",
   );
   const modalConfirmarAcaoSerieTexto = document.getElementById(
-    "modalConfirmarAcaoSerieTexto"
+    "modalConfirmarAcaoSerieTexto",
   );
   const btnAcaoSerieApenasEsta = document.getElementById(
-    "btnAcaoSerieApenasEsta"
+    "btnAcaoSerieApenasEsta",
   );
   const btnAcaoSerieToda = document.getElementById("btnAcaoSerieToda");
   const btnRelatorios = document.getElementById("btnRelatorios");
@@ -196,14 +196,14 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnToggleAuthMode = document.getElementById("btnToggleAuthMode");
   const btnLogout = document.getElementById("btnLogout");
   const btnResendVerification = document.getElementById(
-    "btnResendVerification"
+    "btnResendVerification",
   );
   const modalVerificacaoEmail = document.getElementById(
-    "modalVerificacaoEmail"
+    "modalVerificacaoEmail",
   );
   const btnIrParaLogin = document.getElementById("btnIrParaLogin");
   const btnReenviarVerificacaoModal = document.getElementById(
-    "btnReenviarVerificacaoModal"
+    "btnReenviarVerificacaoModal",
   );
   const sidebarFooter = document.querySelector(".sidebar-footer");
   const lastUpdatedDisplay = document.getElementById("lastUpdatedDisplay");
@@ -252,7 +252,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (err.code == "failed-precondition") {
         // Provavelmente múltiplas abas abertas, o cache só pode ser ativado em uma.
         console.warn(
-          "Firestore: Múltiplas abas abertas, persistência não ativada."
+          "Firestore: Múltiplas abas abertas, persistência não ativada.",
         );
       } else if (err.code == "unimplemented") {
         // O navegador não suporta cache (muito raro).
@@ -273,7 +273,7 @@ document.addEventListener("DOMContentLoaded", () => {
           "Usuário verificado e logado:",
           user.email,
           "ID:",
-          user.uid
+          user.uid,
         );
         currentUser = user;
         isRegisterMode = false;
@@ -336,7 +336,7 @@ document.addEventListener("DOMContentLoaded", () => {
           const user = userCredential.user;
           console.log(
             "Usuário cadastrado, enviando e-mail de verificação para:",
-            user.email
+            user.email,
           );
           userAguardandoVerificacao = user;
           return user.sendEmailVerification().then(() => auth.signOut());
@@ -357,7 +357,7 @@ document.addEventListener("DOMContentLoaded", () => {
         .then((userCredential) => {
           console.log(
             "Tentativa de login bem-sucedida para:",
-            userCredential.user.email
+            userCredential.user.email,
           );
         })
         .catch((error) => {
@@ -395,14 +395,14 @@ document.addEventListener("DOMContentLoaded", () => {
         .then(() => {
           mostrarFeedbackAuth(
             "Um novo link de verificação foi enviado para o seu e-mail.",
-            false
+            false,
           );
         })
         .catch((error) => {
           console.error("Erro ao reenviar e-mail de verificação:", error);
           mostrarFeedbackAuth(
             "Ocorreu um erro ao reenviar o e-mail. Tente novamente mais tarde.",
-            true
+            true,
           );
         });
     }
@@ -426,7 +426,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     } else {
       alert(
-        "Não foi possível identificar o usuário. Por favor, tente fazer o login e reenviar pela tela de verificação."
+        "Não foi possível identificar o usuário. Por favor, tente fazer o login e reenviar pela tela de verificação.",
       );
     }
   });
@@ -464,7 +464,7 @@ document.addEventListener("DOMContentLoaded", () => {
     btnToggleAuthMode.style.display = "none";
     mostrarFeedbackAuth(
       `Olá, ${user.email}! Um link de confirmação foi enviado para seu e-mail. Por favor, verifique sua caixa de entrada (e spam) para continuar.`,
-      false
+      false,
     );
     btnResendVerification.style.display = "block";
     btnLogout.style.display = "block";
@@ -490,7 +490,7 @@ document.addEventListener("DOMContentLoaded", () => {
         {
           lastModified: firebase.firestore.FieldValue.serverTimestamp(),
         },
-        { merge: true }
+        { merge: true },
       );
       console.log("Timestamp de última alteração registrado no Firestore.");
     } catch (error) {
@@ -513,7 +513,7 @@ document.addEventListener("DOMContentLoaded", () => {
       });
       lastUpdatedDisplay.textContent = `Atualizado em ${dataFormatada}, às ${horaFormatada.replace(
         ":",
-        "h"
+        "h",
       )}.`;
     } else {
       lastUpdatedDisplay.textContent = "Nenhuma despesa registrada.";
@@ -524,7 +524,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!currentUser) return;
     console.log(
       "Configurando ouvintes em tempo real para o usuário:",
-      currentUser.uid
+      currentUser.uid,
     );
     const userCollections = db.collection("users").doc(currentUser.uid);
 
@@ -548,7 +548,7 @@ document.addEventListener("DOMContentLoaded", () => {
         console.log("Dados de 'transacoes' atualizados em tempo real.");
         updateAndRender();
       },
-      (error) => console.error("Erro no ouvinte de transações:", error)
+      (error) => console.error("Erro no ouvinte de transações:", error),
     );
 
     userCollections.collection("cartoes").onSnapshot(
@@ -557,7 +557,7 @@ document.addEventListener("DOMContentLoaded", () => {
         console.log("Dados de 'cartoes' atualizados em tempo real.");
         updateAndRender();
       },
-      (error) => console.error("Erro no ouvinte de cartões:", error)
+      (error) => console.error("Erro no ouvinte de cartões:", error),
     );
 
     userCollections.collection("orcamentos").onSnapshot(
@@ -569,7 +569,7 @@ document.addEventListener("DOMContentLoaded", () => {
         console.log("Dados de 'orcamentos' atualizados em tempo real.");
         updateAndRender();
       },
-      (error) => console.error("Erro no ouvinte de orçamentos:", error)
+      (error) => console.error("Erro no ouvinte de orçamentos:", error),
     );
 
     userCollections.collection("orcamentosFechados").onSnapshot(
@@ -581,7 +581,7 @@ document.addEventListener("DOMContentLoaded", () => {
         console.log("Dados de 'orcamentosFechados' atualizados em tempo real.");
         updateAndRender();
       },
-      (error) => console.error("Erro no ouvinte de orçamentosFechados:", error)
+      (error) => console.error("Erro no ouvinte de orçamentosFechados:", error),
     );
 
     userCollections.collection("ajustesFatura").onSnapshot(
@@ -593,7 +593,7 @@ document.addEventListener("DOMContentLoaded", () => {
         console.log("Dados de 'ajustesFatura' atualizados em tempo real.");
         updateAndRender();
       },
-      (error) => console.error("Erro no ouvinte de ajustesFatura:", error)
+      (error) => console.error("Erro no ouvinte de ajustesFatura:", error),
     );
 
     userCollections.collection("dividasTerceiros").onSnapshot(
@@ -605,7 +605,7 @@ document.addEventListener("DOMContentLoaded", () => {
         console.log("Dados de 'dividasTerceiros' atualizados em tempo real.");
         updateAndRender();
       },
-      (error) => console.error("Erro no ouvinte de dividasTerceiros:", error)
+      (error) => console.error("Erro no ouvinte de dividasTerceiros:", error),
     );
 
     userCollections.collection("pessoas").onSnapshot(
@@ -615,7 +615,7 @@ document.addEventListener("DOMContentLoaded", () => {
         pessoas.sort((a, b) => a.nome.localeCompare(b.nome));
         // Não precisa de re-renderização aqui, a menos que uma UI de pessoas esteja aberta
       },
-      (error) => console.error("Erro no ouvinte de pessoas:", error)
+      (error) => console.error("Erro no ouvinte de pessoas:", error),
     );
   }
 
@@ -623,7 +623,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!currentUser) return;
     console.log(
       "Carregando dados iniciais do Firestore para o usuário:",
-      currentUser.uid
+      currentUser.uid,
     );
 
     const userCollections = db.collection("users").doc(currentUser.uid);
@@ -681,7 +681,7 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch (error) {
       console.error("Erro crítico ao carregar dados iniciais:", error);
       alert(
-        "Não foi possível carregar seus dados. Verifique sua conexão e tente recarregar a página."
+        "Não foi possível carregar seus dados. Verifique sua conexão e tente recarregar a página.",
       );
     }
   }
@@ -720,7 +720,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return new Date(
         parseInt(parts[0]),
         parseInt(parts[1]) - 1,
-        parseInt(parts[2])
+        parseInt(parts[2]),
       );
     return null;
   }
@@ -731,7 +731,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   function isOrcamentoFechado(orcamentoId, mesAno) {
     return orcamentosFechados.some(
-      (o) => o.orcamentoId === orcamentoId && o.mesAno === mesAno
+      (o) => o.orcamentoId === orcamentoId && o.mesAno === mesAno,
     );
   }
 
@@ -757,19 +757,19 @@ document.addEventListener("DOMContentLoaded", () => {
       nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1)
     }/${ano}`;
 
-    // NOVO: Lógica para desabilitar a seta de avançar após 12 meses
+    // NOVO: Lógica para desabilitar a seta de avançar após 24 meses
     const limitDate = new Date();
-    limitDate.setMonth(limitDate.getMonth() + 12);
+    limitDate.setMonth(limitDate.getMonth() + 24);
     btnTerceirosProximo.disabled =
       getMesAnoChave(dividasTerceirosDate) >= getMesAnoChave(limitDate);
 
     const dividasDoMes = dividasTerceiros.filter(
-      (d) => d.mesAnoReferencia === mesAno
+      (d) => d.mesAnoReferencia === mesAno,
     );
 
     const totalMes = dividasDoMes.reduce(
       (soma, divida) => soma + divida.valor,
-      0
+      0,
     );
     totalDisplayEl.textContent = `Total: ${formatCurrency(totalMes)}`;
 
@@ -793,7 +793,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }, {});
 
     const listaOrdenada = Object.values(dividasAgrupadas).sort((a, b) =>
-      a.nomePessoa.localeCompare(b.nomePessoa)
+      a.nomePessoa.localeCompare(b.nomePessoa),
     );
 
     listaOrdenada.forEach((grupo) => {
@@ -817,12 +817,12 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         li.innerHTML = `
                     <input type="checkbox" data-divida-id="${divida.id}" ${
-          divida.reembolsado ? "checked" : ""
-        }>
+                      divida.reembolsado ? "checked" : ""
+                    }>
                     <div class="divida-info">
                         <span class="transacao-detalhes">${detalhesTransacao}</span>
                         <span class="divida-valor">${formatCurrency(
-                          divida.valor
+                          divida.valor,
                         )}</span>
                     </div>
                     <div class="transaction-actions">
@@ -849,7 +849,7 @@ document.addEventListener("DOMContentLoaded", () => {
         .doc(dividaId);
       await docRef.update({ reembolsado: novoStatus });
       console.log(
-        `Status de reembolso da dívida ${dividaId} atualizado para ${novoStatus}.`
+        `Status de reembolso da dívida ${dividaId} atualizado para ${novoStatus}.`,
       );
     } catch (error) {
       console.error("Erro ao atualizar status de reembolso:", error);
@@ -870,7 +870,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (
       window.confirm(
-        `Tem certeza que deseja excluir a dívida "${dividaParaExcluir.nomeTransacao}"? Esta ação não pode ser desfeita.`
+        `Tem certeza que deseja excluir a dívida "${dividaParaExcluir.nomeTransacao}"? Esta ação não pode ser desfeita.`,
       )
     ) {
       try {
@@ -900,7 +900,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const resultadosFiltrados = transacoes.filter((t) =>
-      t.nome.toLowerCase().includes(termoBusca)
+      t.nome.toLowerCase().includes(termoBusca),
     );
 
     const resultadosAgrupados = [];
@@ -912,7 +912,7 @@ document.addEventListener("DOMContentLoaded", () => {
           return;
         }
         const todasDaSerie = transacoes.filter(
-          (item) => item.serieId === t.serieId
+          (item) => item.serieId === t.serieId,
         );
         const nomeBase = t.nome
           .replace(/\s\(\d+\/\d+\)$/, "")
@@ -927,7 +927,7 @@ document.addEventListener("DOMContentLoaded", () => {
           ocorrencias: todasDaSerie.length,
           valor: t.valor,
           primeiraOcorrencia: todasDaSerie.sort((a, b) =>
-            a.mesAnoReferencia.localeCompare(b.mesAnoReferencia)
+            a.mesAnoReferencia.localeCompare(b.mesAnoReferencia),
           )[0],
         });
         seriesProcessadas.add(t.serieId);
@@ -956,12 +956,12 @@ document.addEventListener("DOMContentLoaded", () => {
       const dataA = parseDateString(
         a.isGroup
           ? a.primeiraOcorrencia.mesAnoReferencia
-          : a.dataEntrada || a.dataVencimento || a.mesAnoReferencia
+          : a.dataEntrada || a.dataVencimento || a.mesAnoReferencia,
       );
       const dataB = parseDateString(
         b.isGroup
           ? b.primeiraOcorrencia.mesAnoReferencia
-          : b.dataEntrada || b.dataVencimento || b.mesAnoReferencia
+          : b.dataEntrada || b.dataVencimento || b.mesAnoReferencia,
       );
       return dataB - dataA;
     });
@@ -1005,7 +1005,7 @@ document.addEventListener("DOMContentLoaded", () => {
         CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO
       ) {
         const cartao = cartoes.find(
-          (c) => c.id === transacaoRepresentativa.cartaoId
+          (c) => c.id === transacaoRepresentativa.cartaoId,
         );
         if (cartao) {
           contexto += ` (Cartão: ${cartao.nome})`;
@@ -1040,9 +1040,8 @@ document.addEventListener("DOMContentLoaded", () => {
         subtitulo = ` (Cartão: ${cartao.nome})`;
       }
     }
-    document.getElementById(
-      "modalDetalhesSerieTitulo"
-    ).textContent = `Detalhes: ${nomeBase}${subtitulo}`;
+    document.getElementById("modalDetalhesSerieTitulo").textContent =
+      `Detalhes: ${nomeBase}${subtitulo}`;
 
     listaDetalhesSerieUl.innerHTML = "";
     transacoesDaSerie.forEach((t) => {
@@ -1072,7 +1071,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }/${year}`;
 
     const limitDate = new Date();
-    limitDate.setMonth(limitDate.getMonth() + 12);
+    limitDate.setMonth(limitDate.getMonth() + 24);
     nextMonthBtn.disabled =
       getMesAnoChave(currentDate) >= getMesAnoChave(limitDate);
 
@@ -1086,7 +1085,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     const mesAnoAtual = getMesAnoChave(currentDate);
     const transacoesDoMesReferencia = transacoes.filter(
-      (t) => t.mesAnoReferencia === mesAnoAtual
+      (t) => t.mesAnoReferencia === mesAnoAtual,
     );
 
     let receitasDoMes = 0;
@@ -1097,11 +1096,11 @@ document.addEventListener("DOMContentLoaded", () => {
       .reduce((total, t) => total + t.valor, 0);
 
     const despesasNaoOrcadas = transacoesDoMesReferencia.filter(
-      (t) => t.tipo === CONSTS.TIPO_TRANSACAO.DESPESA && !t.orcamentoId
+      (t) => t.tipo === CONSTS.TIPO_TRANSACAO.DESPESA && !t.orcamentoId,
     );
     despesasDoMes += despesasNaoOrcadas.reduce(
       (total, t) => total + t.valor,
-      0
+      0,
     );
 
     orcamentos.forEach((orcamento) => {
@@ -1155,7 +1154,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function abrirModalEspecifico(
     modalElement,
     idParaEditar = null,
-    tipoModal = "transacao"
+    tipoModal = "transacao",
   ) {
     if (!modalElement) return;
 
@@ -1327,7 +1326,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (btnAbrirModalNovaTransacao) {
     btnAbrirModalNovaTransacao.addEventListener("click", () =>
-      abrirModalEspecifico(modalNovaTransacao, null, "transacao")
+      abrirModalEspecifico(modalNovaTransacao, null, "transacao"),
     );
   }
 
@@ -1379,8 +1378,8 @@ document.addEventListener("DOMContentLoaded", () => {
         const tituloAcao = isModoTerceiros
           ? "Nova Dívida"
           : isEditMode
-          ? "Editar Despesa"
-          : "Nova Despesa";
+            ? "Editar Despesa"
+            : "Nova Despesa";
         modalHeaderNovaTransacao.textContent = `${tituloAcao}: ${nomeCurto} (Passo 2)`;
         carregarFormularioDespesa(transacaoOriginal);
       }
@@ -1452,11 +1451,10 @@ document.addEventListener("DOMContentLoaded", () => {
     clone.querySelector(".form-title-action").textContent = isEditMode
       ? "Editando"
       : "Nova";
-    clone.querySelector(
-      ".form-title-name"
-    ).textContent = `${nomeTransacaoInput.value.substring(0, 30)}${
-      nomeTransacaoInput.value.length > 30 ? "..." : ""
-    }`;
+    clone.querySelector(".form-title-name").textContent =
+      `${nomeTransacaoInput.value.substring(0, 30)}${
+        nomeTransacaoInput.value.length > 30 ? "..." : ""
+      }`;
     clone.querySelector("#valorReceita").value =
       transacao && typeof transacao.valor !== "undefined"
         ? transacao.valor
@@ -1467,10 +1465,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const freqSelect = clone.querySelector("#frequenciaReceita");
     freqSelect.querySelector(
-      `option[value="${CONSTS.FREQUENCIA.UNICA}"]`
+      `option[value="${CONSTS.FREQUENCIA.UNICA}"]`,
     ).value = CONSTS.FREQUENCIA.UNICA;
     freqSelect.querySelector(
-      `option[value="${CONSTS.FREQUENCIA.RECORRENTE}"]`
+      `option[value="${CONSTS.FREQUENCIA.RECORRENTE}"]`,
     ).value = CONSTS.FREQUENCIA.RECORRENTE;
 
     if (transacao && transacao.frequencia) {
@@ -1480,14 +1478,14 @@ document.addEventListener("DOMContentLoaded", () => {
       freqSelect.disabled = true;
       freqSelect.insertAdjacentHTML(
         "afterend",
-        '<small class="form-note">A frequência não pode ser alterada em uma transação existente.</small>'
+        '<small class="form-note">A frequência não pode ser alterada em uma transação existente.</small>',
       );
     }
     if (editingSerieId) {
       dataEntradaInput.disabled = true;
       dataEntradaInput.insertAdjacentHTML(
         "afterend",
-        '<small class="form-note">Data de início não pode ser alterada ao editar uma série.</small>'
+        '<small class="form-note">Data de início não pode ser alterada ao editar uma série.</small>',
       );
     }
 
@@ -1502,22 +1500,21 @@ document.addEventListener("DOMContentLoaded", () => {
     clone.querySelector(".form-title-action").textContent = isEditMode
       ? "Editando"
       : "Nova";
-    clone.querySelector(
-      ".form-title-name"
-    ).textContent = `${nomeTransacaoInput.value.substring(0, 30)}${
-      nomeTransacaoInput.value.length > 30 ? "..." : ""
-    }`;
+    clone.querySelector(".form-title-name").textContent =
+      `${nomeTransacaoInput.value.substring(0, 30)}${
+        nomeTransacaoInput.value.length > 30 ? "..." : ""
+      }`;
 
     const categoriaSelect = clone.querySelector("#categoriaDespesa");
     categoriaSelect.querySelector(
-      `option[value="${CONSTS.CATEGORIA_DESPESA.ORDINARIA}"]`
+      `option[value="${CONSTS.CATEGORIA_DESPESA.ORDINARIA}"]`,
     ).value = CONSTS.CATEGORIA_DESPESA.ORDINARIA;
     categoriaSelect.querySelector(
-      `option[value="${CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO}"]`
+      `option[value="${CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO}"]`,
     ).value = CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO;
 
     const formCamposAdicionaisContainer = clone.querySelector(
-      "#formCamposAdicionaisDespesa"
+      "#formCamposAdicionaisDespesa",
     );
 
     if (transacao && transacao.categoria) {
@@ -1541,7 +1538,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (categoriaSelecionada === CONSTS.CATEGORIA_DESPESA.ORDINARIA) {
         carregarFormularioDespesaOrdinaria(
           formCamposAdicionaisContainer,
-          transacaoParaSubForm
+          transacaoParaSubForm,
         );
         modalHeaderNovaTransacao.textContent = isEditMode
           ? `Editar Desp. Ordinária: ${nomeCurto} (Passo 2)`
@@ -1551,7 +1548,7 @@ document.addEventListener("DOMContentLoaded", () => {
       ) {
         carregarFormularioDespesaCartao(
           formCamposAdicionaisContainer,
-          transacaoParaSubForm
+          transacaoParaSubForm,
         );
         modalHeaderNovaTransacao.textContent = isEditMode
           ? `Editar Desp. Cartão: ${nomeCurto} (Passo 2)`
@@ -1571,7 +1568,7 @@ document.addEventListener("DOMContentLoaded", () => {
         categoriaSelect.disabled = true;
         categoriaSelect.insertAdjacentHTML(
           "afterend",
-          '<small class="form-note">Categoria não pode ser alterada.</small>'
+          '<small class="form-note">Categoria não pode ser alterada.</small>',
         );
       }
     }
@@ -1583,24 +1580,24 @@ document.addEventListener("DOMContentLoaded", () => {
     const clone = template.content.cloneNode(true);
 
     const dataVencimentoInput = clone.querySelector(
-      "#dataVencimentoDespesaOrd"
+      "#dataVencimentoDespesaOrd",
     );
     dataVencimentoInput.value =
       transacao && transacao.dataVencimento ? transacao.dataVencimento : hoje;
 
     const frequenciaSelect = clone.querySelector("#frequenciaDespesaOrd");
     const valorUnicaRecorrenteInput = clone.querySelector(
-      "#valorDespesaOrdUnicaRecorrente"
+      "#valorDespesaOrdUnicaRecorrente",
     );
     const valorParceladaInput = clone.querySelector(
-      "#valorDespesaOrdParcelada"
+      "#valorDespesaOrdParcelada",
     );
     const valorContainerOrdUnicaRecorrente = clone.querySelector(
-      "#valorContainerOrdUnicaRecorrente"
+      "#valorContainerOrdUnicaRecorrente",
     );
     const camposParceladaDiv = clone.querySelector("#camposParceladaOrd");
     const tipoCadastroParcelaSelect = clone.querySelector(
-      "#tipoCadastroParcelaOrd"
+      "#tipoCadastroParcelaOrd",
     );
     const qtdParcelasInput = clone.querySelector("#qtdParcelasOrd");
     const parcelaAtualInput = clone.querySelector("#parcelaAtualOrd");
@@ -1624,7 +1621,7 @@ document.addEventListener("DOMContentLoaded", () => {
       frequenciaSelect.disabled = true;
       frequenciaSelect.insertAdjacentHTML(
         "afterend",
-        '<small class="form-note">A frequência não pode ser alterada.</small>'
+        '<small class="form-note">A frequência não pode ser alterada.</small>',
       );
       if (transacao?.frequencia === CONSTS.FREQUENCIA.PARCELADA) {
         tipoCadastroParcelaSelect.disabled = true;
@@ -1632,7 +1629,7 @@ document.addEventListener("DOMContentLoaded", () => {
         parcelaAtualInput.disabled = true;
         camposParceladaDiv.insertAdjacentHTML(
           "beforeend",
-          '<small class="form-note">Detalhes do parcelamento não podem ser alterados.</small>'
+          '<small class="form-note">Detalhes do parcelamento não podem ser alterados.</small>',
         );
       }
     }
@@ -1663,7 +1660,7 @@ document.addEventListener("DOMContentLoaded", () => {
       dataVencimentoInput.disabled = true;
       dataVencimentoInput.insertAdjacentHTML(
         "afterend",
-        '<small class="form-note">Data de início não pode ser alterada ao editar uma série.</small>'
+        '<small class="form-note">Data de início não pode ser alterada ao editar uma série.</small>',
       );
     }
 
@@ -1674,7 +1671,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function carregarFormularioDespesaCartao(
     container,
     transacao = null,
-    cartaoPredefinidoId = null
+    cartaoPredefinidoId = null,
   ) {
     if (!modalCadastrarCartao) return;
     const template = document.getElementById("template-form-despesa-cartao");
@@ -1710,24 +1707,24 @@ document.addEventListener("DOMContentLoaded", () => {
       cartaoSelect.disabled = true;
       cartaoSelect.insertAdjacentHTML(
         "afterend",
-        '<small class="form-note">Cartão não pode ser alterado.</small>'
+        '<small class="form-note">Cartão não pode ser alterado.</small>',
       );
     }
 
     const frequenciaSelect = clone.querySelector("#frequenciaDespesaCartao");
     const camposParcelamentoDiv = clone.querySelector(
-      "#camposParcelamentoCartao"
+      "#camposParcelamentoCartao",
     );
     const tipoCadastroParcelaSelect = clone.querySelector(
-      "#tipoCadastroParcelaCartao"
+      "#tipoCadastroParcelaCartao",
     );
     const valorDespesaCartaoParceladaInput = clone.querySelector(
-      "#valorDespesaCartaoParcelada"
+      "#valorDespesaCartaoParcelada",
     );
     const qtdParcelasInput = clone.querySelector("#qtdParcelasCartao");
     const parcelaAtualInput = clone.querySelector("#parcelaAtualCartao");
     const valorContainerCartaoUnicaRecorrente = clone.querySelector(
-      "#valorContainerCartaoUnicaRecorrente"
+      "#valorContainerCartaoUnicaRecorrente",
     );
 
     if (transacao) {
@@ -1760,7 +1757,7 @@ document.addEventListener("DOMContentLoaded", () => {
       frequenciaSelect.disabled = true;
       frequenciaSelect.insertAdjacentHTML(
         "afterend",
-        '<small class="form-note">Frequência não pode ser alterada.</small>'
+        '<small class="form-note">Frequência não pode ser alterada.</small>',
       );
       if (transacao?.frequencia === CONSTS.FREQUENCIA.PARCELADA) {
         tipoCadastroParcelaSelect.disabled = true;
@@ -1768,7 +1765,7 @@ document.addEventListener("DOMContentLoaded", () => {
         parcelaAtualInput.disabled = true;
         camposParcelamentoDiv.insertAdjacentHTML(
           "beforeend",
-          '<small class="form-note">Detalhes do parcelamento (exceto valor) não podem ser alterados.</small>'
+          '<small class="form-note">Detalhes do parcelamento (exceto valor) não podem ser alterados.</small>',
         );
       }
     }
@@ -1797,7 +1794,7 @@ document.addEventListener("DOMContentLoaded", () => {
         abrirModalEspecifico(
           modalCadastrarCartao,
           null,
-          "cartaoCadastroEdicao"
+          "cartaoCadastroEdicao",
         );
         e.target.value = "";
       }
@@ -1811,29 +1808,29 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!passo2Container || !nomeTransacaoInput || !quickAddFeedback) return;
     nomeTransacaoInput.value = "";
     const frequenciaSelect = passo2Container.querySelector(
-      "#frequenciaDespesaCartao"
+      "#frequenciaDespesaCartao",
     );
     if (frequenciaSelect) {
       frequenciaSelect.value = CONSTS.FREQUENCIA.UNICA;
       frequenciaSelect.dispatchEvent(new Event("change"));
     }
     const valorUnicaRecorrenteInput = passo2Container.querySelector(
-      "#valorDespesaCartaoUnicaRecorrente"
+      "#valorDespesaCartaoUnicaRecorrente",
     );
     if (valorUnicaRecorrenteInput) valorUnicaRecorrenteInput.value = "";
     const valorParceladaInput = passo2Container.querySelector(
-      "#valorDespesaCartaoParcelada"
+      "#valorDespesaCartaoParcelada",
     );
     if (valorParceladaInput) valorParceladaInput.value = "";
     const qtdParcelasInput =
       passo2Container.querySelector("#qtdParcelasCartao");
     if (qtdParcelasInput) qtdParcelasInput.value = "";
     const parcelaAtualInput = passo2Container.querySelector(
-      "#parcelaAtualCartao"
+      "#parcelaAtualCartao",
     );
     if (parcelaAtualInput) parcelaAtualInput.value = "1";
     const orcamentoSelect = passo2Container.querySelector(
-      "#orcamentoVinculado"
+      "#orcamentoVinculado",
     );
     if (orcamentoSelect) orcamentoSelect.value = "";
     quickAddFeedback.textContent = "Despesa salva! Adicione a próxima.";
@@ -1854,7 +1851,7 @@ document.addEventListener("DOMContentLoaded", () => {
       dados.valor =
         parseFloat(passo2Container.querySelector("#valorReceita").value) || 0;
       dados.dataEntrada = passo2Container.querySelector(
-        "#dataEntradaReceita"
+        "#dataEntradaReceita",
       ).value;
       dados.frequencia =
         passo2Container.querySelector("#frequenciaReceita").value;
@@ -1864,22 +1861,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (dados.categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA) {
         dados.dataVencimento = passo2Container.querySelector(
-          "#dataVencimentoDespesaOrd"
+          "#dataVencimentoDespesaOrd",
         ).value;
         dados.frequencia = passo2Container.querySelector(
-          "#frequenciaDespesaOrd"
+          "#frequenciaDespesaOrd",
         ).value;
 
         if (dados.frequencia === CONSTS.FREQUENCIA.PARCELADA) {
           dados.valor =
             parseFloat(
-              passo2Container.querySelector("#valorDespesaOrdParcelada").value
+              passo2Container.querySelector("#valorDespesaOrdParcelada").value,
             ) || 0;
           dados.tipoCadastroParcela = passo2Container.querySelector(
-            "#tipoCadastroParcelaOrd"
+            "#tipoCadastroParcelaOrd",
           ).value;
           dados.totalParcelas = parseInt(
-            passo2Container.querySelector("#qtdParcelasOrd").value
+            passo2Container.querySelector("#qtdParcelasOrd").value,
           );
           dados.parcelaAtual =
             parseInt(passo2Container.querySelector("#parcelaAtualOrd").value) ||
@@ -1888,42 +1885,42 @@ document.addEventListener("DOMContentLoaded", () => {
           dados.valor =
             parseFloat(
               passo2Container.querySelector("#valorDespesaOrdUnicaRecorrente")
-                .value
+                .value,
             ) || 0;
         }
       } else if (dados.categoria === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO) {
         dados.frequencia = passo2Container.querySelector(
-          "#frequenciaDespesaCartao"
+          "#frequenciaDespesaCartao",
         ).value;
         if (dados.frequencia === CONSTS.FREQUENCIA.PARCELADA) {
           dados.valor =
             parseFloat(
               passo2Container.querySelector("#valorDespesaCartaoParcelada")
-                .value
+                .value,
             ) || 0;
           dados.tipoCadastroParcela = passo2Container.querySelector(
-            "#tipoCadastroParcelaCartao"
+            "#tipoCadastroParcelaCartao",
           ).value;
           dados.totalParcelas = parseInt(
-            passo2Container.querySelector("#qtdParcelasCartao").value
+            passo2Container.querySelector("#qtdParcelasCartao").value,
           );
           dados.parcelaAtual =
             parseInt(
-              passo2Container.querySelector("#parcelaAtualCartao").value
+              passo2Container.querySelector("#parcelaAtualCartao").value,
             ) || 1;
         } else {
           dados.valor =
             parseFloat(
               passo2Container.querySelector(
-                "#valorDespesaCartaoUnicaRecorrente"
-              ).value
+                "#valorDespesaCartaoUnicaRecorrente",
+              ).value,
             ) || 0;
         }
         const cartaoEl = passo2Container.querySelector("#cartaoDespesa");
         dados.cartaoId = cartaoEl.value;
         dados.cartaoNome = cartaoEl.options[cartaoEl.selectedIndex].text;
         const orcamentoEl = passo2Container.querySelector(
-          "#orcamentoVinculado"
+          "#orcamentoVinculado",
         );
         dados.orcamentoId =
           orcamentoEl && orcamentoEl.value ? orcamentoEl.value : null;
@@ -2011,13 +2008,13 @@ document.addEventListener("DOMContentLoaded", () => {
       if (categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA) {
         dados.valor =
           parseFloat(
-            passo2Container.querySelector("#valorDespesaOrdParcelada").value
+            passo2Container.querySelector("#valorDespesaOrdParcelada").value,
           ) || 0;
         dados.tipoCadastroParcela = passo2Container.querySelector(
-          "#tipoCadastroParcelaOrd"
+          "#tipoCadastroParcelaOrd",
         ).value;
         dados.totalParcelas = parseInt(
-          passo2Container.querySelector("#qtdParcelasOrd").value
+          passo2Container.querySelector("#qtdParcelasOrd").value,
         );
         dados.parcelaAtual =
           parseInt(passo2Container.querySelector("#parcelaAtualOrd").value) ||
@@ -2026,17 +2023,17 @@ document.addEventListener("DOMContentLoaded", () => {
         // Cartão de Crédito
         dados.valor =
           parseFloat(
-            passo2Container.querySelector("#valorDespesaCartaoParcelada").value
+            passo2Container.querySelector("#valorDespesaCartaoParcelada").value,
           ) || 0;
         dados.tipoCadastroParcela = passo2Container.querySelector(
-          "#tipoCadastroParcelaCartao"
+          "#tipoCadastroParcelaCartao",
         ).value;
         dados.totalParcelas = parseInt(
-          passo2Container.querySelector("#qtdParcelasCartao").value
+          passo2Container.querySelector("#qtdParcelasCartao").value,
         );
         dados.parcelaAtual =
           parseInt(
-            passo2Container.querySelector("#parcelaAtualCartao").value
+            passo2Container.querySelector("#parcelaAtualCartao").value,
           ) || 1;
       }
     } else {
@@ -2045,14 +2042,14 @@ document.addEventListener("DOMContentLoaded", () => {
         dados.valor =
           parseFloat(
             passo2Container.querySelector("#valorDespesaOrdUnicaRecorrente")
-              .value
+              .value,
           ) || 0;
       } else {
         // Cartão de Crédito
         dados.valor =
           parseFloat(
             passo2Container.querySelector("#valorDespesaCartaoUnicaRecorrente")
-              .value
+              .value,
           ) || 0;
       }
     }
@@ -2145,7 +2142,7 @@ document.addEventListener("DOMContentLoaded", () => {
       for (let i = 0; i < CONSTS.RECORRENCIA_MESES; i++) {
         let mesReferenciaRecorrente = new Date(currentDate);
         mesReferenciaRecorrente.setMonth(
-          mesReferenciaRecorrente.getMonth() + i
+          mesReferenciaRecorrente.getMonth() + i,
         );
 
         dividasParaAdicionar.push({
@@ -2179,7 +2176,7 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       await batch.commit();
       console.log(
-        `${dividasParaAdicionar.length} dívida(s) de terceiro salvas no Firestore.`
+        `${dividasParaAdicionar.length} dívida(s) de terceiro salvas no Firestore.`,
       );
       return true;
     } catch (error) {
@@ -2208,18 +2205,18 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       if (editingSerieId) {
         const transacaoInicial = transacoes.find(
-          (t) => t.id === editingTransactionId
+          (t) => t.id === editingTransactionId,
         );
         if (!transacaoInicial) {
           alert(
-            "Erro: Transação de referência não encontrada para iniciar a alteração em série."
+            "Erro: Transação de referência não encontrada para iniciar a alteração em série.",
           );
           return false;
         }
         const mesAnoInicioAlteracao = transacaoInicial.mesAnoReferencia;
 
         console.log(
-          `Atualizando a série ${editingSerieId} a partir de ${mesAnoInicioAlteracao}...`
+          `Atualizando a série ${editingSerieId} a partir de ${mesAnoInicioAlteracao}...`,
         );
 
         const querySnapshot = await db
@@ -2245,7 +2242,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
         await batch.commit();
         console.log(
-          `${querySnapshot.docs.length} transações da série foram atualizadas (presente e futuras).`
+          `${querySnapshot.docs.length} transações da série foram atualizadas (presente e futuras).`,
         );
       } else {
         const docRef = db
@@ -2256,7 +2253,7 @@ document.addEventListener("DOMContentLoaded", () => {
         await docRef.update(dadosParaAtualizar);
         console.log(
           "Transação única atualizada no Firestore:",
-          editingTransactionId
+          editingTransactionId,
         );
       }
       await registrarUltimaAlteracao();
@@ -2297,7 +2294,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         for (let i = 0; i < totalParcelas - parcelaInicial + 1; i++) {
           let dataTransacaoParcela = new Date(
-            parseDateString(dados.dataEntrada || dados.dataVencimento)
+            parseDateString(dados.dataEntrada || dados.dataVencimento),
           );
           dataTransacaoParcela.setMonth(dataTransacaoParcela.getMonth() + i);
           let mesReferenciaParcela = new Date(currentDate);
@@ -2325,14 +2322,14 @@ document.addEventListener("DOMContentLoaded", () => {
         // Lógica para RECORRENTE
         for (let i = 0; i < CONSTS.RECORRENCIA_MESES; i++) {
           let dataTransacaoRecorrente = new Date(
-            parseDateString(dados.dataEntrada || dados.dataVencimento)
+            parseDateString(dados.dataEntrada || dados.dataVencimento),
           );
           dataTransacaoRecorrente.setMonth(
-            dataTransacaoRecorrente.getMonth() + i
+            dataTransacaoRecorrente.getMonth() + i,
           );
           let mesReferenciaRecorrente = new Date(currentDate);
           mesReferenciaRecorrente.setMonth(
-            mesReferenciaRecorrente.getMonth() + i
+            mesReferenciaRecorrente.getMonth() + i,
           );
 
           transacoesParaAdicionar.push({
@@ -2384,7 +2381,7 @@ document.addEventListener("DOMContentLoaded", () => {
       try {
         await batch.commit();
         console.log(
-          `${transacoesParaAdicionar.length} transação(ões) salvas no Firestore.`
+          `${transacoesParaAdicionar.length} transação(ões) salvas no Firestore.`,
         );
         return true;
       } catch (error) {
@@ -2472,7 +2469,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (listaTransacoesUl) {
     listaTransacoesUl.addEventListener("click", (event) => {
       const itemBuscaClicado = event.target.closest(
-        ".search-result-group.parcelada"
+        ".search-result-group.parcelada",
       );
       if (itemBuscaClicado) {
         const serieId = itemBuscaClicado.dataset.serieId;
@@ -2513,7 +2510,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const cartaoId = faturaCartaoNomeTitulo.dataset.cartaoId;
       if (!cartaoId) {
         console.error(
-          "Não foi possível encontrar o ID do cartão para navegar a fatura."
+          "Não foi possível encontrar o ID do cartão para navegar a fatura.",
         );
         return;
       }
@@ -2529,7 +2526,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const cartaoId = faturaCartaoNomeTitulo.dataset.cartaoId;
       if (!cartaoId) {
         console.error(
-          "Não foi possível encontrar o ID do cartão para navegar a fatura."
+          "Não foi possível encontrar o ID do cartão para navegar a fatura.",
         );
         return;
       }
@@ -2540,7 +2537,7 @@ document.addEventListener("DOMContentLoaded", () => {
   async function handleTransactionListClick(
     event,
     ulElement,
-    isInModal = false
+    isInModal = false,
   ) {
     const target = event.target;
     const button = target.closest("button");
@@ -2564,7 +2561,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       listItem.classList.toggle("paga", marcarComoPaga);
       const valueDateContainer = listItem.querySelector(
-        ".transaction-value-date"
+        ".transaction-value-date",
       );
       if (valueDateContainer) {
         const statusSpanExistente =
@@ -2626,7 +2623,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (listItem.classList.contains("orcamento")) {
         const orcamentoId = listItem.dataset.orcamentoId.replace(
           "orcamento-",
-          ""
+          "",
         );
         abrirModalDetalhesOrcamento(orcamentoId, getMesAnoChave(currentDate));
       }
@@ -2641,7 +2638,7 @@ document.addEventListener("DOMContentLoaded", () => {
         abrirModalDetalhesFatura(cartaoId, mesAno);
       } else {
         console.error(
-          "Não foi possível obter cartaoId ou mesAno do botão da fatura."
+          "Não foi possível obter cartaoId ou mesAno do botão da fatura.",
         );
       }
       return;
@@ -2654,7 +2651,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!transacao) {
       console.error(
         "Transação não encontrada no array local. ID:",
-        transacaoId
+        transacaoId,
       );
       return;
     }
@@ -2683,7 +2680,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (listaComprasFaturaCartaoUl) {
     listaComprasFaturaCartaoUl.addEventListener("click", (event) =>
-      handleTransactionListClick(event, listaComprasFaturaCartaoUl, true)
+      handleTransactionListClick(event, listaComprasFaturaCartaoUl, true),
     );
   }
 
@@ -2768,14 +2765,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (!itemInicial) {
           alert(
-            "Erro: Item de referência não encontrado para iniciar a exclusão em série."
+            "Erro: Item de referência não encontrado para iniciar a exclusão em série.",
           );
           return;
         }
         const mesAnoInicioExclusao = itemInicial.mesAnoReferencia;
 
         console.log(
-          `Excluindo a série ${serieId} da coleção ${collectionName} a partir de ${mesAnoInicioExclusao}...`
+          `Excluindo a série ${serieId} da coleção ${collectionName} a partir de ${mesAnoInicioExclusao}...`,
         );
 
         const querySnapshot = await db
@@ -2806,7 +2803,7 @@ document.addEventListener("DOMContentLoaded", () => {
         } catch (error) {
           console.error(
             `Erro ao excluir série da coleção ${collectionName}:`,
-            error
+            error,
           );
           alert("Ocorreu um erro ao excluir a série.");
         }
@@ -2894,30 +2891,30 @@ document.addEventListener("DOMContentLoaded", () => {
     const dataVenc = new Date(ano, mes - 1, cartao.diaVencimentoFatura);
     faturaCartaoDataVencimento.textContent = dataVenc.toLocaleDateString(
       "pt-BR",
-      { day: "2-digit", month: "2-digit", year: "numeric" }
+      { day: "2-digit", month: "2-digit", year: "numeric" },
     );
 
     const comprasDaFatura = transacoes.filter(
       (t) =>
         t.categoria === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO &&
         t.cartaoId === cartaoId &&
-        t.mesAnoReferencia === mesAnoFatura
+        t.mesAnoReferencia === mesAnoFatura,
     );
 
     const ajustesDaFatura = ajustesFatura.filter(
-      (a) => a.cartaoId === cartaoId && a.mesAnoReferencia === mesAnoFatura
+      (a) => a.cartaoId === cartaoId && a.mesAnoReferencia === mesAnoFatura,
     );
 
     const totalFaturaBruto = comprasDaFatura.reduce(
       (total, compra) => total + compra.valor,
-      0
+      0,
     );
     const totalAjustes = ajustesDaFatura.reduce(
       (total, ajuste) => total + ajuste.valor,
-      0
+      0,
     );
     faturaCartaoTotalValor.textContent = formatCurrency(
-      totalFaturaBruto - totalAjustes
+      totalFaturaBruto - totalAjustes,
     );
 
     let itensParaRenderizar = [
@@ -2975,7 +2972,7 @@ document.addEventListener("DOMContentLoaded", () => {
         detailsDiv.innerHTML = `<span class="compra-nome">${
           item.nome
         }</span><span class="compra-valor">${formatCurrency(
-          item.valor
+          item.valor,
         )}</span>`;
         const actionsDiv = document.createElement("div");
         actionsDiv.classList.add("transaction-actions");
@@ -2998,7 +2995,7 @@ document.addEventListener("DOMContentLoaded", () => {
         li.innerHTML = `<div class="transaction-details"><span class="compra-nome">${
           item.descricao
         }</span><span class="compra-valor">- ${formatCurrency(
-          item.valor
+          item.valor,
         )}</span></div>`;
       }
       listaComprasFaturaCartaoUl.appendChild(li);
@@ -3009,7 +3006,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const dataFormatada = item.dataEntrada
       ? new Date(parseDateString(item.dataEntrada)).toLocaleDateString(
           "pt-BR",
-          { day: "2-digit", month: "2-digit", year: "numeric" }
+          { day: "2-digit", month: "2-digit", year: "numeric" },
         )
       : "N/D";
     const editButton = document.createElement("button");
@@ -3029,7 +3026,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return `<span class="transaction-name">${item.nome}</span>
                 <div class="transaction-value-date-group">
                     <span class="transaction-value">${formatCurrency(
-                      item.valor
+                      item.valor,
                     )}</span>
                     <span class="transaction-date">Entrada: ${dataFormatada}</span>
                 </div>`;
@@ -3048,7 +3045,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const dataFormatada = item.dataVencimento
       ? new Date(parseDateString(item.dataVencimento)).toLocaleDateString(
           "pt-BR",
-          { day: "2-digit", month: "2-digit", year: "numeric" }
+          { day: "2-digit", month: "2-digit", year: "numeric" },
         )
       : "N/D";
 
@@ -3070,8 +3067,8 @@ document.addEventListener("DOMContentLoaded", () => {
                     <input type="checkbox" id="despesa-${
                       item.id
                     }" data-transaction-id="${item.id}" ${
-      item.paga ? "checked" : ""
-    }>
+                      item.paga ? "checked" : ""
+                    }>
                     <div class="transaction-name-category">
                         <span class="transaction-name">${nomeDisplay}</span>
                         <span class="transaction-category">${categoriaDisplay}</span>
@@ -3079,7 +3076,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 </label>
                 <div class="transaction-value-date">
                     <span class="transaction-value">- ${formatCurrency(
-                      item.valor
+                      item.valor,
                     )}</span>
                     <span class="transaction-date">Venc: ${dataFormatada}</span>
                     ${item.paga ? '<span class="status-paga">Paga</span>' : ""}
@@ -3089,7 +3086,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function criarElementoFatura(item, actionsDiv) {
     const dataFormatada = item.dataVencimentoDisplay
       ? new Date(
-          parseDateString(item.dataVencimentoDisplay)
+          parseDateString(item.dataVencimentoDisplay),
         ).toLocaleDateString("pt-BR", {
           day: "2-digit",
           month: "2-digit",
@@ -3117,10 +3114,10 @@ document.addEventListener("DOMContentLoaded", () => {
                     <input type="checkbox" id="fatura-check-${
                       item.cartaoId
                     }" class="fatura-checkbox" data-cartao-id="${
-      item.cartaoId
-    }" data-mes-ano-fatura="${item.mesAnoReferencia}" ${
-      item.paga ? "checked" : ""
-    }>
+                      item.cartaoId
+                    }" data-mes-ano-fatura="${item.mesAnoReferencia}" ${
+                      item.paga ? "checked" : ""
+                    }>
                     <div class="transaction-name-category">
                         <span class="transaction-name">${item.nome}</span>
                         <span class="transaction-category">(Fatura do Cartão)</span>
@@ -3128,7 +3125,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 </label>
                 <div class="transaction-value-date">
                     <span class="transaction-value">- ${formatCurrency(
-                      item.valor
+                      item.valor,
                     )}</span>
                     <div class="fatura-date-container">
                         <span class="transaction-date">Venc: ${dataFormatada}</span>
@@ -3167,11 +3164,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 </div>
                 <div class="transaction-value-date">
                     <span class="transaction-value">- ${formatCurrency(
-                      item.valorTotalOrcamento
+                      item.valorTotalOrcamento,
                     )}</span>
                     <span class="orcamento-restante ${classeRestante}">Restante: ${formatCurrency(
-      item.valor
-    )}</span>
+                      item.valor,
+                    )}</span>
                 </div>`;
   }
 
@@ -3184,7 +3181,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (transacoes.length > 0) {
       primeiroMesAnoComDados = transacoes.reduce(
         (min, t) => (t.mesAnoReferencia < min ? t.mesAnoReferencia : min),
-        transacoes[0].mesAnoReferencia
+        transacoes[0].mesAnoReferencia,
       );
     }
 
@@ -3200,38 +3197,38 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const transacoesDoMesVisivel = transacoes.filter(
-      (t) => t.mesAnoReferencia === mesAnoAtual
+      (t) => t.mesAnoReferencia === mesAnoAtual,
     );
     let itensParaRenderizar = [];
 
     const receitasDoMes = transacoesDoMesVisivel.filter(
-      (t) => t.tipo === CONSTS.TIPO_TRANSACAO.RECEITA
+      (t) => t.tipo === CONSTS.TIPO_TRANSACAO.RECEITA,
     );
     receitasDoMes.forEach((r) =>
       itensParaRenderizar.push({
         ...r,
         tipoDisplay: CONSTS.TIPO_RENDERIZACAO.RECEITA,
         dataOrdenacao: parseDateString(r.dataEntrada),
-      })
+      }),
     );
 
     const despesasOrdinariasDoMes = transacoesDoMesVisivel.filter(
       (t) =>
         t.tipo === CONSTS.TIPO_TRANSACAO.DESPESA &&
-        t.categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA
+        t.categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA,
     );
     despesasOrdinariasDoMes.forEach((d) =>
       itensParaRenderizar.push({
         ...d,
         tipoDisplay: CONSTS.TIPO_RENDERIZACAO.DESPESA,
         dataOrdenacao: parseDateString(d.dataVencimento),
-      })
+      }),
     );
 
     const despesasCartaoDoMes = transacoesDoMesVisivel.filter(
       (t) =>
         t.tipo === CONSTS.TIPO_TRANSACAO.DESPESA &&
-        t.categoria === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO
+        t.categoria === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO,
     );
     const faturasAgrupadas = {};
     despesasCartaoDoMes.forEach((dc) => {
@@ -3257,7 +3254,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const dataVencimentoFatura = new Date(
         ano,
         mes - 1 + ajusteDeMes,
-        fatura.diaVencimentoFatura
+        fatura.diaVencimentoFatura,
       );
       const totalAjustes = calcularTotalAjustes(fatura.cartaoId, mesAnoAtual);
       const valorFinalFatura = fatura.totalValor - totalAjustes;
@@ -3349,7 +3346,7 @@ document.addEventListener("DOMContentLoaded", () => {
           li.dataset.transactionId = item.id;
           transactionDetailsDiv.innerHTML = criarElementoReceita(
             item,
-            actionsDiv
+            actionsDiv,
           );
           break;
         case CONSTS.TIPO_RENDERIZACAO.DESPESA:
@@ -3358,7 +3355,7 @@ document.addEventListener("DOMContentLoaded", () => {
           li.dataset.transactionId = item.id;
           transactionDetailsDiv.innerHTML = criarElementoDespesa(
             item,
-            actionsDiv
+            actionsDiv,
           );
           break;
         case CONSTS.TIPO_RENDERIZACAO.FATURA:
@@ -3368,7 +3365,7 @@ document.addEventListener("DOMContentLoaded", () => {
           li.dataset.mesAnoFatura = item.mesAnoReferencia;
           transactionDetailsDiv.innerHTML = criarElementoFatura(
             item,
-            actionsDiv
+            actionsDiv,
           );
           break;
         case CONSTS.TIPO_RENDERIZACAO.ORCAMENTO:
@@ -3380,7 +3377,7 @@ document.addEventListener("DOMContentLoaded", () => {
           li.dataset.orcamentoId = item.id;
           transactionDetailsDiv.innerHTML = criarElementoOrcamento(
             item,
-            actionsDiv
+            actionsDiv,
           );
           break;
       }
@@ -3471,12 +3468,12 @@ document.addEventListener("DOMContentLoaded", () => {
             document.getElementById("categoriaDespesa")?.value;
           if (categoriaAtual === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO) {
             const formCamposAdicionais = passo2Container.querySelector(
-              "#formCamposAdicionaisDespesa"
+              "#formCamposAdicionaisDespesa",
             );
             if (formCamposAdicionais)
               carregarFormularioDespesaCartao(
                 formCamposAdicionais,
-                transacaoOriginal
+                transacaoOriginal,
               );
           }
         }
@@ -3497,7 +3494,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const cartoesOrdenados = [...cartoes].sort(
-      (a, b) => a.diaVencimentoFatura - b.diaVencimentoFatura
+      (a, b) => a.diaVencimentoFatura - b.diaVencimentoFatura,
     );
 
     cartoesOrdenados.forEach((cartao) => {
@@ -3555,7 +3552,7 @@ document.addEventListener("DOMContentLoaded", () => {
         abrirModalEspecifico(
           modalCadastrarCartao,
           cartaoId,
-          "cartaoCadastroEdicao"
+          "cartaoCadastroEdicao",
         );
       } else if (deleteButton) {
         const cartaoId = deleteButton.dataset.id;
@@ -3563,7 +3560,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (
           cartaoParaExcluir &&
           window.confirm(
-            `Tem certeza que deseja excluir o cartão "${cartaoParaExcluir.nome}"? Esta ação não pode ser desfeita.`
+            `Tem certeza que deseja excluir o cartão "${cartaoParaExcluir.nome}"? Esta ação não pode ser desfeita.`,
           )
         ) {
           (async () => {
@@ -3619,7 +3616,7 @@ document.addEventListener("DOMContentLoaded", () => {
         cartaoDespesaSelect.disabled = true;
         cartaoDespesaSelect.insertAdjacentHTML(
           "afterend",
-          '<small class="form-note">Cartão pré-selecionado.</small>'
+          '<small class="form-note">Cartão pré-selecionado.</small>',
         );
       }
     }
@@ -3641,7 +3638,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function popularModalAjustes(cartaoId, mesAno) {
     listaAjustesFaturaUl.innerHTML = "";
     const ajustesDoPeriodo = ajustesFatura.filter(
-      (a) => a.cartaoId === cartaoId && a.mesAnoReferencia === mesAno
+      (a) => a.cartaoId === cartaoId && a.mesAnoReferencia === mesAno,
     );
     if (ajustesDoPeriodo.length === 0) {
       listaAjustesFaturaUl.innerHTML =
@@ -3652,7 +3649,7 @@ document.addEventListener("DOMContentLoaded", () => {
         li.innerHTML = `<span class="ajuste-descricao">${
           ajuste.descricao
         }</span><span class="ajuste-valor">- ${formatCurrency(
-          ajuste.valor
+          ajuste.valor,
         )}</span><button class="btn-delete-ajuste" data-id="${
           ajuste.id
         }" title="Excluir Ajuste">✖</button>`;
@@ -3814,7 +3811,7 @@ document.addEventListener("DOMContentLoaded", () => {
           abrirModalConfirmarAcaoSerie(
             dividaId,
             CONSTS.ACAO_SERIE.EXCLUIR,
-            "dividaTerceiro"
+            "dividaTerceiro",
           );
         }
         return;
@@ -3835,7 +3832,7 @@ document.addEventListener("DOMContentLoaded", () => {
           abrirModalConfirmarAcaoSerie(
             dividaId,
             CONSTS.ACAO_SERIE.EDITAR,
-            "dividaTerceiro"
+            "dividaTerceiro",
           );
         }
       }
@@ -3907,7 +3904,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const orcamentosOrdenados = [...orcamentos].sort(
-      (a, b) => b.valor - a.valor
+      (a, b) => b.valor - a.valor,
     );
 
     orcamentosOrdenados.forEach((orcamento) => {
@@ -3916,7 +3913,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 <div class="orcamento-info">
                     <span class="orcamento-nome">${orcamento.nome}</span>
                     <span class="orcamento-detalhes">${formatCurrency(
-                      orcamento.valor
+                      orcamento.valor,
                     )} - Dia ${orcamento.dia}</span>
                 </div>
                 <div class="transaction-actions">
@@ -3939,7 +3936,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const gastosVinculados = transacoes.filter(
-      (t) => t.orcamentoId === orcamentoId && t.mesAnoReferencia === mesAno
+      (t) => t.orcamentoId === orcamentoId && t.mesAnoReferencia === mesAno,
     );
 
     // NOVO: Lógica de ordenação, replicada dos detalhes da fatura
@@ -3964,7 +3961,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const totalGasto = gastosVinculados.reduce(
       (total, gasto) => total + gasto.valor,
-      0
+      0,
     );
     const valorRestante = orcamento.valor - totalGasto;
 
@@ -3985,7 +3982,7 @@ document.addEventListener("DOMContentLoaded", () => {
         li.innerHTML = `<span class="gasto-nome">${
           gasto.nome
         }</span><span class="gasto-valor">${formatCurrency(
-          gasto.valor
+          gasto.valor,
         )}</span>`;
         listaGastosOrcamento.appendChild(li);
       });
@@ -4080,7 +4077,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (
           orcamento &&
           window.confirm(
-            `Tem certeza que deseja excluir o orçamento "${orcamento.nome}"?`
+            `Tem certeza que deseja excluir o orçamento "${orcamento.nome}"?`,
           )
         ) {
           if (!currentUser) {
@@ -4139,7 +4136,7 @@ document.addEventListener("DOMContentLoaded", () => {
       await docRef.update({ paga: novoStatus });
       await registrarUltimaAlteracao();
       console.log(
-        `Status da transação ${transacaoId} atualizado para ${novoStatus}.`
+        `Status da transação ${transacaoId} atualizado para ${novoStatus}.`,
       );
       const transacaoLocal = transacoes.find((t) => t.id === transacaoId);
       if (transacaoLocal) transacaoLocal.paga = novoStatus;
@@ -4167,7 +4164,7 @@ document.addEventListener("DOMContentLoaded", () => {
       await batch.commit();
       await registrarUltimaAlteracao();
       console.log(
-        `Status de ${querySnapshot.size} transações da fatura atualizado para ${novoStatus}.`
+        `Status de ${querySnapshot.size} transações da fatura atualizado para ${novoStatus}.`,
       );
 
       transacoes.forEach((t) => {
@@ -4226,7 +4223,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }/${ano}`;
 
     const limitDate = new Date();
-    limitDate.setMonth(limitDate.getMonth() + 12);
+    limitDate.setMonth(limitDate.getMonth() + 24);
     btnRelatorioProximo.disabled =
       getMesAnoChave(date) >= getMesAnoChave(limitDate);
 
@@ -4234,7 +4231,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (transacoes.length > 0) {
       primeiroMesAnoComDados = transacoes.reduce(
         (min, t) => (t.mesAnoReferencia < min ? t.mesAnoReferencia : min),
-        transacoes[0].mesAnoReferencia
+        transacoes[0].mesAnoReferencia,
       );
     }
 
@@ -4251,10 +4248,10 @@ document.addEventListener("DOMContentLoaded", () => {
         `;
 
     const transacoesDoMes = transacoes.filter(
-      (t) => t.mesAnoReferencia === mesAno
+      (t) => t.mesAnoReferencia === mesAno,
     );
     const despesasDoMes = transacoesDoMes.filter(
-      (t) => t.tipo === CONSTS.TIPO_TRANSACAO.DESPESA
+      (t) => t.tipo === CONSTS.TIPO_TRANSACAO.DESPESA,
     );
 
     const totalReceitas = transacoesDoMes
@@ -4307,10 +4304,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const resumoHTML = `<section class="relatorio-secao"><h3>Resumo Geral</h3><div class="relatorio-grid">
             <div class="relatorio-item"><span>Receitas Totais</span><strong class="valor-receita">${formatCurrency(
-              totalReceitas
+              totalReceitas,
             )}</strong></div>
             <div class="relatorio-item"><span>Despesas Totais</span><strong class="valor-despesa">${formatCurrency(
-              despesasParaSaldoFinal
+              despesasParaSaldoFinal,
             )}</strong></div>
             <div class="relatorio-item"><span>Saldo Final</span><strong style="color: ${
               saldoFinal >= 0 ? "#27ae60" : "#e74c3c"
@@ -4323,7 +4320,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const calcularSubtotais = (categoria) => {
       const despesasFiltradas = despesasDoMes.filter(
-        (d) => d.categoria === categoria
+        (d) => d.categoria === categoria,
       );
       return {
         unica: despesasFiltradas
@@ -4340,17 +4337,17 @@ document.addEventListener("DOMContentLoaded", () => {
     const subtotaisOrd = calcularSubtotais("ordinaria");
     const subtotaisCartao = calcularSubtotais("cartao_credito");
     const analiseDespesasHTML = `<section class="relatorio-secao"><h3>Análise de Despesas</h3><div class="relatorio-grid-analise"><div class="relatorio-sub-secao"><h4>Gastos Ordinários</h4><div class="relatorio-item-analise"><span>Únicas</span> <strong>${formatCurrency(
-      subtotaisOrd.unica
+      subtotaisOrd.unica,
     )}</strong></div><div class="relatorio-item-analise"><span>Recorrentes</span> <strong>${formatCurrency(
-      subtotaisOrd.recorrente
+      subtotaisOrd.recorrente,
     )}</strong></div><div class="relatorio-item-analise"><span>Parceladas</span> <strong>${formatCurrency(
-      subtotaisOrd.parcelada
+      subtotaisOrd.parcelada,
     )}</strong></div></div><div class="relatorio-sub-secao"><h4>Gastos com Cartão de Crédito</h4><div class="relatorio-item-analise"><span>Únicas</span> <strong>${formatCurrency(
-      subtotaisCartao.unica
+      subtotaisCartao.unica,
     )}</strong></div><div class="relatorio-item-analise"><span>Recorrentes</span> <strong>${formatCurrency(
-      subtotaisCartao.recorrente
+      subtotaisCartao.recorrente,
     )}</strong></div><div class="relatorio-item-analise"><span>Parceladas</span> <strong>${formatCurrency(
-      subtotaisCartao.parcelada
+      subtotaisCartao.parcelada,
     )}</strong></div></div></div></section>`;
     document.getElementById("relatorio-secao-analise-despesas").innerHTML =
       analiseDespesasHTML;
@@ -4364,24 +4361,24 @@ document.addEventListener("DOMContentLoaded", () => {
       orcamentosHTML += `<div class="relatorio-orcamento-item"><span>${
         orc.nome
       }</span><div class="orcamento-valores"><small>Previsto: ${formatCurrency(
-        orc.valor
+        orc.valor,
       )}</small><small>Gasto: ${formatCurrency(
-        gastoNoOrcamento
+        gastoNoOrcamento,
       )}</small><strong style="color: ${
         saldoOrcamento >= 0 ? "#27ae60" : "#e74c3c"
       };">Saldo: ${formatCurrency(saldoOrcamento)}</strong></div></div>`;
     });
 
     const analiseOrcamentosHTML = `<section class="relatorio-secao"><h3>Análise de Orçamentos</h3><div class="relatorio-orcamento-lista">${orcamentosHTML}</div><div class="relatorio-orcamento-total"><span>TOTAIS</span><div class="orcamento-valores"><small>Previsto: ${formatCurrency(
-      totalPrevistoOrcamentos
+      totalPrevistoOrcamentos,
     )}</small><small>Gasto: ${formatCurrency(
-      totalGastoOrcamentos
+      totalGastoOrcamentos,
     )}</small><strong style="color: ${
       totalPrevistoOrcamentos - totalGastoOrcamentos >= 0
         ? "#27ae60"
         : "#e74c3c"
     };">Saldo: ${formatCurrency(
-      totalPrevistoOrcamentos - totalGastoOrcamentos
+      totalPrevistoOrcamentos - totalGastoOrcamentos,
     )}</strong></div></div></section>`;
     document.getElementById("relatorio-secao-analise-orcamentos").innerHTML =
       analiseOrcamentosHTML;
@@ -4462,7 +4459,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     modalEditarDividaTitulo.textContent = `Editar Dívida: ${nomeBase.substring(
       0,
-      20
+      20,
     )}...`;
 
     abrirModalEspecifico(modalEditarDivida);
@@ -4509,7 +4506,7 @@ document.addEventListener("DOMContentLoaded", () => {
       });
       await batch.commit();
       console.log(
-        `${querySnapshot.docs.length} dívidas da série foram atualizadas.`
+        `${querySnapshot.docs.length} dívidas da série foram atualizadas.`,
       );
     } catch (error) {
       console.error("Erro ao atualizar série de dívidas:", error);
