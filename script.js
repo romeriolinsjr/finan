@@ -2679,9 +2679,20 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   if (listaComprasFaturaCartaoUl) {
-    listaComprasFaturaCartaoUl.addEventListener("click", (event) =>
-      handleTransactionListClick(event, listaComprasFaturaCartaoUl, true),
-    );
+    listaComprasFaturaCartaoUl.addEventListener("click", (event) => {
+      const skipButton = event.target.closest(".btn-skip-parcela");
+
+      if (skipButton) {
+        // Se o botão de pular foi clicado, executa a nova lógica
+        const id = skipButton.dataset.id;
+        const serieId = skipButton.dataset.serieId;
+        const mesAnoReferencia = skipButton.dataset.mesAnoReferencia;
+        adiarParcelaEmSerie(id, serieId, mesAnoReferencia);
+      } else {
+        // Se foi outro botão (editar/excluir), executa a função de clique padrão
+        handleTransactionListClick(event, listaComprasFaturaCartaoUl, true);
+      }
+    });
   }
 
   function abrirModalConfirmarAcaoSerie(itemId, acao, context) {
@@ -2969,34 +2980,42 @@ document.addEventListener("DOMContentLoaded", () => {
         li.dataset.id = item.id;
         const detailsDiv = document.createElement("div");
         detailsDiv.classList.add("transaction-details");
-        detailsDiv.innerHTML = `<span class="compra-nome">${
-          item.nome
-        }</span><span class="compra-valor">${formatCurrency(
-          item.valor,
-        )}</span>`;
+        detailsDiv.innerHTML = `<span class="compra-nome">${item.nome}</span><span class="compra-valor">${formatCurrency(item.valor)}</span>`;
+
         const actionsDiv = document.createElement("div");
         actionsDiv.classList.add("transaction-actions");
+
+        // NOVO: Botão de Pular Parcela (só para itens parcelados)
+        if (item.frequencia === CONSTS.FREQUENCIA.PARCELADA) {
+          const skipButton = document.createElement("button");
+          skipButton.className = "btn-skip-parcela";
+          skipButton.innerHTML = "⏩";
+          skipButton.title = "Adiar esta parcela e as seguintes em um mês";
+          skipButton.dataset.id = item.id;
+          skipButton.dataset.serieId = item.serieId;
+          skipButton.dataset.mesAnoReferencia = item.mesAnoReferencia;
+          actionsDiv.appendChild(skipButton);
+        }
+
         const editButton = document.createElement("button");
         editButton.classList.add("btn-edit");
         editButton.innerHTML = "✎";
         editButton.title = "Editar Compra";
         editButton.dataset.id = item.id;
         actionsDiv.appendChild(editButton);
+
         const deleteButton = document.createElement("button");
         deleteButton.classList.add("btn-delete");
         deleteButton.innerHTML = "✖";
         deleteButton.title = "Excluir Compra";
         deleteButton.dataset.id = item.id;
         actionsDiv.appendChild(deleteButton);
+
         li.appendChild(detailsDiv);
         li.appendChild(actionsDiv);
       } else if (item.renderType === "ajuste") {
         li.classList.add("ajuste-fatura-item");
-        li.innerHTML = `<div class="transaction-details"><span class="compra-nome">${
-          item.descricao
-        }</span><span class="compra-valor">- ${formatCurrency(
-          item.valor,
-        )}</span></div>`;
+        li.innerHTML = `<div class="transaction-details"><span class="compra-nome">${item.descricao}</span><span class="compra-valor">- ${formatCurrency(item.valor)}</span></div>`;
       }
       listaComprasFaturaCartaoUl.appendChild(li);
     });
@@ -4541,5 +4560,66 @@ document.addEventListener("DOMContentLoaded", () => {
     btnCancelarEdicaoDivida.addEventListener("click", () => {
       fecharModalEspecifico(modalEditarDivida);
     });
+  }
+  // --- NOVA FUNÇÃO PARA ADIAR PARCELAS ---
+  async function adiarParcelaEmSerie(id, serieId, mesAnoInicio) {
+    if (!currentUser || !serieId) {
+      alert("Erro: Não foi possível identificar a série da parcela.");
+      return;
+    }
+
+    // Encontra a última parcela da série para calcular a nova data final
+    const parcelasDaSerie = transacoes.filter((t) => t.serieId === serieId);
+    const ultimaParcela = parcelasDaSerie.sort((a, b) =>
+      b.mesAnoReferencia.localeCompare(a.mesAnoReferencia),
+    )[0];
+    const dataUltimaParcela = parseDateString(ultimaParcela.mesAnoReferencia);
+    dataUltimaParcela.setMonth(dataUltimaParcela.getMonth() + 1);
+    const novaDataFinalFormatada = `${(dataUltimaParcela.getMonth() + 1).toString().padStart(2, "0")}/${dataUltimaParcela.getFullYear()}`;
+
+    const confirmacao = window.confirm(
+      `Você tem certeza que deseja adiar esta parcela e todas as futuras em um mês?\n\nO final deste parcelamento será movido para ${novaDataFinalFormatada}.`,
+    );
+
+    if (!confirmacao) {
+      return; // Usuário cancelou
+    }
+
+    try {
+      const querySnapshot = await db
+        .collection("users")
+        .doc(currentUser.uid)
+        .collection("transacoes")
+        .where("serieId", "==", serieId)
+        .where("mesAnoReferencia", ">=", mesAnoInicio)
+        .get();
+
+      if (querySnapshot.empty) {
+        alert("Nenhuma parcela encontrada para adiar.");
+        return;
+      }
+
+      const batch = db.batch();
+      querySnapshot.docs.forEach((doc) => {
+        const data = doc.data();
+        const dataParcela = parseDateString(data.mesAnoReferencia);
+        dataParcela.setMonth(dataParcela.getMonth() + 1);
+        const novoMesAno = getMesAnoChave(dataParcela);
+        batch.update(doc.ref, { mesAnoReferencia: novoMesAno });
+      });
+
+      await batch.commit();
+      await registrarUltimaAlteracao();
+
+      alert(
+        `${querySnapshot.docs.length} parcela(s) foram adiadas com sucesso.`,
+      );
+
+      // Fecha o modal de detalhes para forçar o usuário a ver o estado atualizado na tela principal
+      fecharModalEspecifico(modalDetalhesFaturaCartao);
+    } catch (error) {
+      console.error("Erro ao adiar parcelas em série:", error);
+      alert("Ocorreu um erro ao tentar adiar as parcelas. Tente novamente.");
+    }
   }
 });
