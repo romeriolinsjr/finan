@@ -298,9 +298,16 @@ document.addEventListener("DOMContentLoaded", () => {
       } else if (!isDuringRegistration) {
         console.log("Usuário logado, mas e-mail não verificado:", user.email);
         currentUser = user;
-        appContainer.style.display = "none";
+
+        // Em vez de esconder tudo, apenas garantimos que o container apareça
+        // O modal de autenticação vai cobrir o conteúdo principal
+        appContainer.style.display = "flex";
+
         showVerificationScreen(user);
+
+        // Garante que o rodapé da sidebar (onde está o botão Sair) apareça
         sidebarFooter.style.display = "block";
+
         hideSpinner();
       }
     } else {
@@ -458,16 +465,26 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!user) return;
     modalAuth.style.display = "flex";
     modalAuthTitulo.textContent = "Verifique seu E-mail";
+
+    // Esconde os campos de digitação de senha
     emailInput.parentElement.style.display = "none";
     passwordInput.parentElement.style.display = "none";
     btnAuthAction.style.display = "none";
     btnToggleAuthMode.style.display = "none";
+
     mostrarFeedbackAuth(
-      `Olá, ${user.email}! Um link de confirmação foi enviado para seu e-mail. Por favor, verifique sua caixa de entrada (e spam) para continuar.`,
+      `Olá, ${user.email}! Verifique sua caixa de entrada ou spam para confirmar seu cadastro.`,
       false,
     );
+
+    // Mostra o botão de reenviar e o botão de sair
     btnResendVerification.style.display = "block";
     btnLogout.style.display = "block";
+
+    // Configura o botão de logout para funcionar mesmo nesta tela
+    btnLogout.onclick = () => {
+      auth.signOut().then(() => location.reload());
+    };
   }
 
   function resetAuthModalUI() {
