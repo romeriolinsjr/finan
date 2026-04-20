@@ -195,16 +195,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnAuthAction = document.getElementById("btnAuthAction");
   const btnToggleAuthMode = document.getElementById("btnToggleAuthMode");
   const btnLogout = document.getElementById("btnLogout");
-  const btnResendVerification = document.getElementById(
-    "btnResendVerification",
-  );
-  const modalVerificacaoEmail = document.getElementById(
-    "modalVerificacaoEmail",
-  );
-  const btnIrParaLogin = document.getElementById("btnIrParaLogin");
-  const btnReenviarVerificacaoModal = document.getElementById(
-    "btnReenviarVerificacaoModal",
-  );
   const sidebarFooter = document.querySelector(".sidebar-footer");
   const lastUpdatedDisplay = document.getElementById("lastUpdatedDisplay");
   const btnToggleVisibility = document.getElementById("btnToggleVisibility");
@@ -399,49 +389,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  btnResendVerification.addEventListener("click", () => {
-    if (currentUser) {
-      currentUser
-        .sendEmailVerification()
-        .then(() => {
-          mostrarFeedbackAuth(
-            "Um novo link de verificação foi enviado para o seu e-mail.",
-            false,
-          );
-        })
-        .catch((error) => {
-          console.error("Erro ao reenviar e-mail de verificação:", error);
-          mostrarFeedbackAuth(
-            "Ocorreu um erro ao reenviar o e-mail. Tente novamente mais tarde.",
-            true,
-          );
-        });
-    }
-  });
-
-  btnIrParaLogin.addEventListener("click", () => {
-    fecharModalEspecifico(modalVerificacaoEmail);
-    auth.signOut();
-    isRegisterMode = false;
-    resetAuthModalUI();
-  });
-
-  btnReenviarVerificacaoModal.addEventListener("click", () => {
-    if (userAguardandoVerificacao) {
-      userAguardandoVerificacao
-        .sendEmailVerification()
-        .then(() => alert("Um novo e-mail de verificação foi enviado!"))
-        .catch((error) => {
-          console.error("Erro ao reenviar e-mail:", error);
-          alert("Ocorreu um erro ao reenviar o e-mail. Tente novamente.");
-        });
-    } else {
-      alert(
-        "Não foi possível identificar o usuário. Por favor, tente fazer o login e reenviar pela tela de verificação.",
-      );
-    }
-  });
-
   function mostrarFeedbackAuth(mensagem, isError = false) {
     authFeedback.textContent = mensagem;
     authFeedback.style.color = isError ? "#e74c3c" : "#27ae60";
@@ -485,8 +432,23 @@ document.addEventListener("DOMContentLoaded", () => {
       false,
     );
 
-    btnResendVerification.style.display = "block";
+    // Busca e mostra o botão de Reenviar
+    const btnResend = document.getElementById("btnResendVerification");
+    if (btnResend) {
+      btnResend.style.display = "block";
+      btnResend.onclick = () => {
+        if (user) {
+          user
+            .sendEmailVerification()
+            .then(() =>
+              alert("Link de verificação reenviado! Verifique seu e-mail."),
+            )
+            .catch((err) => alert("Erro ao reenviar: " + err.message));
+        }
+      };
+    }
 
+    // Busca e configura o botão de Sair Vermelho
     const btnSairAuth = document.getElementById("btnSairAuth");
     if (btnSairAuth) {
       btnSairAuth.style.display = "block";
