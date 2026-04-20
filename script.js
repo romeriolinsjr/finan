@@ -265,66 +265,66 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // --- Lógica de Autenticação ---
+  // --- Lógica de Autenticação Blindada ---
   auth.onAuthStateChanged(async (user) => {
     const appContainer = document.querySelector(".app-container");
+
+    // NOVO: Se estivermos no meio de um processo de cadastro, o vigia fica em silêncio
+    // para evitar que os modais fiquem piscando ou sobrepostos.
+    if (isDuringRegistration) return;
+
+    // 1. Reset inicial por segurança: esconde tudo
+    if (appContainer) appContainer.style.display = "none";
+
     if (user) {
+      // Caso A: Logado e Verificado -> LIBERAR ACESSO
       if (user.emailVerified) {
-        console.log(
-          "Usuário verificado e logado:",
-          user.email,
-          "ID:",
-          user.uid,
-        );
+        console.log("Usuário verificado. Liberando acesso...");
         currentUser = user;
         isRegisterMode = false;
+
         modalAuth.style.display = "none";
-        appContainer.style.display = "flex";
+        if (appContainer) appContainer.style.display = "flex";
         sidebarFooter.style.display = "block";
+
         try {
           const userDocRef = db.collection("users").doc(currentUser.uid);
           const userDoc = await userDocRef.get();
           if (userDoc.exists) {
-            const lastModifiedTimestamp = userDoc.data().lastModified;
-            exibirDataUltimaAtualizacao(lastModifiedTimestamp);
-          } else {
-            exibirDataUltimaAtualizacao(null);
+            exibirDataUltimaAtualizacao(userDoc.data().lastModified);
           }
         } catch (error) {
-          console.error("Erro ao buscar dados do usuário:", error);
-          exibirDataUltimaAtualizacao(null);
+          console.error("Erro ao buscar dados:", error);
         }
+
         hideSpinner();
         inicializarErenderizarApp();
-      } else if (!isDuringRegistration) {
-        console.log("Usuário logado, mas e-mail não verificado:", user.email);
+      }
+      // Caso B: Logado mas NÃO verificado -> BLOQUEIO TOTAL
+      else {
+        console.log("Usuário não verificado. Bloqueando...");
         currentUser = user;
 
-        // Em vez de esconder tudo, apenas garantimos que o container apareça
-        // O modal de autenticação vai cobrir o conteúdo principal
-        appContainer.style.display = "flex";
+        // Garante que o app continue escondido e limpa a lista
+        if (appContainer) appContainer.style.display = "none";
+        if (listaTransacoesUl) listaTransacoesUl.innerHTML = "";
 
         showVerificationScreen(user);
-
-        // Garante que o rodapé da sidebar (onde está o botão Sair) apareça
-        sidebarFooter.style.display = "block";
-
         hideSpinner();
       }
-    } else {
-      console.log("Nenhum usuário logado.");
+    }
+    // Caso C: Deslogado -> MOSTRAR LOGIN
+    else {
+      console.log("Sessão encerrada.");
       currentUser = null;
       isRegisterMode = false;
-      appContainer.style.display = "none";
+      if (appContainer) appContainer.style.display = "none";
       resetAuthModalUI();
-      sidebarFooter.style.display = "none";
       hideSpinner();
+      // Limpa dados da memória
       transacoes = [];
       cartoes = [];
       orcamentos = [];
-      ajustesFatura = [];
-      orcamentosFechados = [];
-      dividasTerceiros = [];
-      pessoas = [];
     }
   });
 
@@ -336,27 +336,31 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
     if (isRegisterMode) {
-      isDuringRegistration = true;
+      isDuringRegistration = true; // Ativa o silêncio do vigia
       auth
         .createUserWithEmailAndPassword(email, password)
         .then((userCredential) => {
           const user = userCredential.user;
-          console.log(
-            "Usuário cadastrado, enviando e-mail de verificação para:",
-            user.email,
-          );
-          userAguardandoVerificacao = user;
+          // Envia o e-mail e desloga
           return user.sendEmailVerification().then(() => auth.signOut());
         })
         .then(() => {
-          fecharModalEspecifico(modalAuth);
-          abrirModalEspecifico(modalVerificacaoEmail);
-          isDuringRegistration = false;
+          // Só agora, com o usuário deslogado, limpamos a tela
+          resetAuthModalUI();
+          mostrarFeedbackAuth(
+            "Conta criada! Enviamos um link de confirmação para seu e-mail. Verifique a caixa de entrada e spam antes de entrar.",
+            false,
+          );
+
+          // Pequeno atraso para o vigia não pegar o final do processo
+          setTimeout(() => {
+            isDuringRegistration = false;
+          }, 500);
         })
         .catch((error) => {
+          isDuringRegistration = false;
           console.error("Erro ao cadastrar:", error.message);
           mostrarFeedbackAuth(traduzirErroAuth(error.code), true);
-          isDuringRegistration = false;
         });
     } else {
       auth
@@ -463,39 +467,51 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function showVerificationScreen(user) {
     if (!user) return;
+
+    // Garante que o app principal esteja escondido
+    const appContainer = document.querySelector(".app-container");
+    if (appContainer) appContainer.style.display = "none";
+
     modalAuth.style.display = "flex";
     modalAuthTitulo.textContent = "Verifique seu E-mail";
 
-    // Esconde os campos de digitação de senha
     emailInput.parentElement.style.display = "none";
     passwordInput.parentElement.style.display = "none";
     btnAuthAction.style.display = "none";
     btnToggleAuthMode.style.display = "none";
 
     mostrarFeedbackAuth(
-      `Olá, ${user.email}! Verifique sua caixa de entrada ou spam para confirmar seu cadastro.`,
+      `Olá, ${user.email}! Sua conta foi criada, mas você precisa confirmar seu e-mail para acessar o sistema.`,
       false,
     );
 
-    // Mostra o botão de reenviar e o botão de sair
     btnResendVerification.style.display = "block";
-    btnLogout.style.display = "block";
 
-    // Configura o botão de logout para funcionar mesmo nesta tela
-    btnLogout.onclick = () => {
-      auth.signOut().then(() => location.reload());
-    };
+    const btnSairAuth = document.getElementById("btnSairAuth");
+    if (btnSairAuth) {
+      btnSairAuth.style.display = "block";
+      btnSairAuth.onclick = () => {
+        auth.signOut().then(() => location.reload());
+      };
+    }
   }
 
   function resetAuthModalUI() {
     modalAuth.style.display = "flex";
     modalAuthTitulo.textContent = isRegisterMode ? "Cadastre-se" : "Login";
     btnAuthAction.textContent = isRegisterMode ? "Cadastrar" : "Entrar";
+
+    // Mostra os campos de login novamente
     emailInput.parentElement.style.display = "block";
     passwordInput.parentElement.style.display = "block";
     btnAuthAction.style.display = "block";
     btnToggleAuthMode.style.display = "block";
+
+    // Esconde botões de verificação e o botão de sair vermelho do modal
     btnResendVerification.style.display = "none";
+    const btnSairAuth = document.getElementById("btnSairAuth");
+    if (btnSairAuth) btnSairAuth.style.display = "none";
+
     authFeedback.style.display = "none";
   }
 

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
@@ -222,6 +222,20 @@
             style="display: none; width: 100%; margin: 0"
           >
             Reenviar E-mail
+          </button>
+          <!-- NOVO: Botão de Sair específico para a tela de verificação/login -->
+          <button
+            id="btnSairAuth"
+            class="btn-secondary"
+            style="
+              display: none;
+              width: 100%;
+              margin: 10px 0 0 0;
+              background-color: #e74c3c;
+              color: white;
+            "
+          >
+            Sair / Trocar de Conta
           </button>
         </div>
       </div>
@@ -540,27 +554,6 @@
       </div>
     </div>
     <!-- NOVO: Modal para informar sobre a verificação de e-mail -->
-    <div id="modalVerificacaoEmail" class="modal">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h2>Confirme seu E-mail</h2>
-        </div>
-        <div class="modal-body">
-          <p>
-            Cadastro realizado com sucesso! Um link de confirmação foi enviado
-            para o seu e-mail. Por favor, clique no link para ativar sua conta
-            antes de fazer o login.
-          </p>
-        </div>
-        <!-- CORREÇÃO: Botões movidos para um modal-footer para o layout correto -->
-        <div class="modal-footer">
-          <button id="btnReenviarVerificacaoModal" class="btn-secondary">
-            Reenviar E-mail
-          </button>
-          <button id="btnIrParaLogin" class="btn-primary">Ir para Login</button>
-        </div>
-      </div>
-    </div>
     <!-- NOVO: Modal para Detalhes de Série Parcelada -->
     <div id="modalDetalhesSerie" class="modal">
       <div class="modal-content">
