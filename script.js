@@ -396,19 +396,30 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function traduzirErroAuth(errorCode) {
+    console.log("DEBUG - Código de erro recebido do Firebase:", errorCode);
+
     switch (errorCode) {
+      // Erros que temos certeza que são credenciais
+      case "auth/invalid-credential":
+      case "auth/user-not-found":
+      case "auth/wrong-password":
+        return "E-mail ou senha inválidos. Tente novamente.";
+
+      // O "erro interno" pode ser credencial (no seu caso é) ou erro técnico.
+      // Usaremos uma mensagem que cobre as duas possibilidades.
+      case "auth/internal-error":
+        return "Não foi possível processar o login. Verifique seus dados ou tente novamente em instantes.";
+
       case "auth/invalid-email":
         return "O formato do e-mail é inválido.";
-      case "auth/user-not-found":
-        return "E-mail não cadastrado.";
-      case "auth/wrong-password":
-        return "Senha inválida. Tente novamente.";
-      case "auth/email-already-in-use":
-        return "Este e-mail já está cadastrado.";
-      case "auth/weak-password":
-        return "A senha precisa ter no mínimo 6 caracteres.";
+      case "auth/user-disabled":
+        return "Esta conta foi desativada. Entre em contato com o suporte.";
+      case "auth/too-many-requests":
+        return "Muitas tentativas sem sucesso. Tente novamente mais tarde.";
+      case "auth/network-request-failed":
+        return "Falha na rede. Verifique sua conexão com a internet.";
       default:
-        return "Ocorreu um erro de autenticação. Tente novamente.";
+        return "Erro ao acessar conta. Verifique sua conexão.";
     }
   }
 
@@ -459,6 +470,9 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function resetAuthModalUI() {
+    // LIMPEZA DE SEGURANÇA: Zera os campos ao abrir/resetar a tela
+    if (emailInput) emailInput.value = "";
+    if (passwordInput) passwordInput.value = "";
     modalAuth.style.display = "flex";
     modalAuthTitulo.textContent = isRegisterMode ? "Cadastre-se" : "Login";
     btnAuthAction.textContent = isRegisterMode ? "Cadastrar" : "Entrar";
