@@ -746,13 +746,23 @@
         <div class="modal-body">
           <p>O que você gostaria de fazer?</p>
         </div>
-        <div class="modal-footer">
-          <!-- Botões movidos para o rodapé para o estilo correto -->
+        <div
+          class="modal-footer"
+          style="flex-wrap: wrap; gap: 10px; justify-content: center"
+        >
           <button id="btnAbrirCadastroTerceiros" class="btn-secondary">
             Cadastrar Nova Dívida
           </button>
           <button id="btnAbrirConsultaTerceiros" class="btn-primary">
             Consultar Dívidas
+          </button>
+          <!-- NOVO BOTÃO -->
+          <button
+            id="btnAbrirConsultaPessoas"
+            class="btn-primary"
+            style="background-color: #34495e"
+          >
+            Consultar Pessoas
           </button>
         </div>
       </div>
@@ -818,6 +828,33 @@
           </button>
           <button id="btnSalvarPessoaModal" class="btn-primary">
             Salvar Pessoa
+          </button>
+        </div>
+      </div>
+    </div>
+    <!-- NOVO: Modal para Gerenciar Pessoas -->
+    <div id="modalGerenciarPessoas" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Gerenciar Pessoas</h2>
+          <span class="close-button" data-modal-id="modalGerenciarPessoas"
+            >×</span
+          >
+        </div>
+        <div class="modal-body">
+          <ul id="listaPessoasCadastradas">
+            <!-- Lista via JS -->
+          </ul>
+        </div>
+        <div class="modal-footer">
+          <button id="btnAbrirModalCadastroPessoaDirect" class="btn-primary">
+            Cadastrar Nova Pessoa
+          </button>
+          <button
+            class="btn-secondary close-button-footer"
+            data-modal-id="modalGerenciarPessoas"
+          >
+            Fechar
           </button>
         </div>
       </div>

@@ -131,4 +131,11 @@ export const elements = {
   btnToggleVisibility: document.getElementById("btnToggleVisibility"),
   btnResendVerification: document.getElementById("btnResendVerification"),
   btnSairAuth: document.getElementById("btnSairAuth"),
+  // ... (mantenha os outros)
+  btnAbrirConsultaPessoas: document.getElementById("btnAbrirConsultaPessoas"),
+  modalGerenciarPessoas: document.getElementById("modalGerenciarPessoas"),
+  listaPessoasCadastradasUl: document.getElementById("listaPessoasCadastradas"),
+  btnAbrirModalCadastroPessoaDirect: document.getElementById(
+    "btnAbrirModalCadastroPessoaDirect",
+  ),
 };

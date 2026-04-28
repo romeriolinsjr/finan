@@ -156,6 +156,11 @@ document.addEventListener("DOMContentLoaded", () => {
     userRef.collection("pessoas").onSnapshot((s) => {
       state.pessoas = s.docs.map((d) => ({ ...d.data(), id: d.id }));
       state.pessoas.sort((a, b) => a.nome.localeCompare(b.nome));
+
+      // NOVO: Se o modal de gerenciar pessoas estiver aberto, atualiza a lista na hora
+      if (elements.modalGerenciarPessoas.style.display === "flex") {
+        third.renderizarListaPessoas();
+      }
     });
   }
 
@@ -702,14 +707,34 @@ document.addEventListener("DOMContentLoaded", () => {
   elements.btnSalvarPessoaModal.addEventListener("click", async () => {
     const n = elements.nomePessoaInputModal.value.trim();
     if (!n) return;
-    const doc = await db
+    const ref = db
       .collection("users")
       .doc(state.currentUser.uid)
-      .collection("pessoas")
-      .add({ nome: n });
+      .collection("pessoas");
+
+    if (state.isPessoaEditMode && state.editingPessoaId) {
+      await ref.doc(state.editingPessoaId).update({ nome: n });
+      alert("Nome atualizado!");
+    } else {
+      const doc = await ref.add({ nome: n });
+      // Se estiver no fluxo de Nova Transação, já seleciona a pessoa
+      if (
+        state.isModoTerceiros &&
+        elements.passo2Container.style.display === "block"
+      ) {
+        third.atualizarSelectPessoas(doc.id);
+      }
+    }
+
     elements.nomePessoaInputModal.value = "";
     ui.fecharModalEspecifico(elements.modalCadastrarPessoa);
-    third.atualizarSelectPessoas(doc.id);
+    if (state.isPessoaEditMode) {
+      ui.abrirModalEspecifico(elements.modalGerenciarPessoas, null, "generic", {
+        renderizarListaCartoesCadastrados: third.renderizarListaPessoas,
+      });
+    }
+    state.isPessoaEditMode = false;
+    state.editingPessoaId = null;
   });
 
   // Relatórios
@@ -862,5 +887,44 @@ document.addEventListener("DOMContentLoaded", () => {
     state.areValuesHidden = !state.areValuesHidden;
     localStorage.setItem("finanValuesHidden", state.areValuesHidden);
     ui.renderizarEstadoVisibilidade();
+  });
+  // Ouvinte para abrir o gerenciador de pessoas
+  elements.btnAbrirConsultaPessoas.addEventListener("click", () => {
+    ui.fecharModalEspecifico(elements.modalMenuTerceiros);
+    // TIPO ALTERADO PARA "gerenciarPessoas" e callback ajustado
+    ui.abrirModalEspecifico(
+      elements.modalGerenciarPessoas,
+      null,
+      "gerenciarPessoas",
+      {
+        renderizarListaPessoas: third.renderizarListaPessoas,
+      },
+    );
+  });
+
+  // Ouvinte para cadastrar pessoa a partir do gerenciador
+  elements.btnAbrirModalCadastroPessoaDirect.addEventListener("click", () => {
+    ui.fecharModalEspecifico(elements.modalGerenciarPessoas);
+    state.isPessoaEditMode = false;
+    document.querySelector("#modalCadastrarPessoa h2").textContent =
+      "Cadastrar Nova Pessoa";
+    elements.btnSalvarPessoaModal.textContent = "Salvar Pessoa";
+    ui.abrirModalEspecifico(elements.modalCadastrarPessoa);
+  });
+
+  // Ouvinte para a lista de pessoas (Editar/Excluir)
+  elements.listaPessoasCadastradasUl.addEventListener("click", (e) => {
+    const id = e.target.closest("button")?.dataset.id;
+    if (!id) return;
+
+    if (e.target.closest(".btn-edit-pessoa")) {
+      ui.fecharModalEspecifico(elements.modalGerenciarPessoas);
+      state.isPessoaEditMode = true;
+      state.editingPessoaId = id;
+      third.preencherModalEdicaoPessoa(id);
+      ui.abrirModalEspecifico(elements.modalCadastrarPessoa);
+    } else if (e.target.closest(".btn-delete-pessoa")) {
+      third.excluirPessoa(id);
+    }
   });
 });

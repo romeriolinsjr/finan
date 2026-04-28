@@ -23,4 +23,7 @@ export const state = {
   currentUser: null,
   openModals: [],
   areValuesHidden: false,
+  // NOVAS VARIÁVEIS:
+  isPessoaEditMode: false,
+  editingPessoaId: null,
 };

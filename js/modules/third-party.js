@@ -441,3 +441,77 @@ export async function atualizarDividaSerie(id, serieId, novoNome, novoValor) {
     alert("Ocorreu um erro ao salvar as alterações na série.");
   }
 }
+
+export function renderizarListaPessoas() {
+  // Busca o elemento diretamente caso o mapa falhe por algum motivo
+  const listaUl =
+    elements.listaPessoasCadastradasUl ||
+    document.getElementById("listaPessoasCadastradas");
+  if (!listaUl) return;
+
+  listaUl.innerHTML = "";
+
+  if (state.pessoas.length === 0) {
+    listaUl.innerHTML =
+      '<li style="text-align: center; padding: 15px; color: #777;">Nenhuma pessoa cadastrada.</li>';
+    return;
+  }
+
+  state.pessoas.forEach((pessoa) => {
+    const li = document.createElement("li");
+    li.className = "cartao-item"; // Usando classe existente para manter o estilo
+    li.style.display = "flex";
+    li.style.justifyContent = "space-between";
+    li.style.alignItems = "center";
+    li.style.padding = "10px";
+    li.style.borderBottom = "1px solid #eee";
+
+    li.innerHTML = `
+            <span style="font-weight: 500;">${pessoa.nome}</span>
+            <div class="transaction-actions">
+                <button class="btn-edit btn-edit-pessoa" data-id="${pessoa.id}" title="Editar Nome">✎</button>
+                <button class="btn-delete btn-delete-pessoa" data-id="${pessoa.id}" title="Excluir Pessoa">✖</button>
+            </div>`;
+    listaUl.appendChild(li);
+  });
+}
+
+export function preencherModalEdicaoPessoa(pessoaId) {
+  const pessoa = state.pessoas.find((p) => p.id === pessoaId);
+  if (pessoa) {
+    elements.nomePessoaInputModal.value = pessoa.nome;
+    document.querySelector("#modalCadastrarPessoa h2").textContent =
+      "Editar Pessoa";
+    elements.btnSalvarPessoaModal.textContent = "Salvar Alterações";
+  }
+}
+
+export async function excluirPessoa(pessoaId) {
+  if (!state.currentUser) return;
+
+  // Verifica se a pessoa tem dívidas vinculadas antes de excluir
+  const temDividas = state.dividasTerceiros.some(
+    (d) => d.pessoaId === pessoaId,
+  );
+  if (temDividas) {
+    alert(
+      "Não é possível excluir esta pessoa pois ela possui dívidas vinculadas.",
+    );
+    return;
+  }
+
+  if (confirm("Tem certeza que deseja excluir este cadastro?")) {
+    try {
+      await db
+        .collection("users")
+        .doc(state.currentUser.uid)
+        .collection("pessoas")
+        .doc(pessoaId)
+        .delete();
+      // O onSnapshot no main.js cuidará de atualizar a lista local state.pessoas
+      alert("Pessoa removida com sucesso.");
+    } catch (error) {
+      console.error("Erro ao excluir pessoa:", error);
+    }
+  }
+}

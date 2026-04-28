@@ -116,6 +116,7 @@ export function abrirModalEspecifico(
   } else if (tipoModal === "gerenciarCartoes") {
     if (callbacks.renderizarListaCartoesCadastrados)
       callbacks.renderizarListaCartoesCadastrados();
+    // ... (dentro da função abrirModalEspecifico)
   } else if (tipoModal === "orcamentos") {
     if (callbacks.renderizarListaOrcamentos)
       callbacks.renderizarListaOrcamentos();
@@ -123,6 +124,9 @@ export function abrirModalEspecifico(
     state.reportDate = new Date(state.currentDate);
     if (callbacks.popularModalRelatorio)
       callbacks.popularModalRelatorio(state.reportDate);
+  } else if (tipoModal === "gerenciarPessoas") {
+    // NOVO CASO ADICIONADO
+    if (callbacks.renderizarListaPessoas) callbacks.renderizarListaPessoas();
   }
 
   modalElement.style.display = "flex";
