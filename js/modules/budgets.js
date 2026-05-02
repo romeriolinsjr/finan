@@ -21,6 +21,12 @@ export function renderizarListaOrcamentos() {
   );
   orcamentosOrdenados.forEach((orcamento) => {
     const li = document.createElement("li");
+
+    // LÓGICA REINSERIDA: Só mostra o botão de excluir se NÃO for um orçamento fixo
+    const btnDeleteHTML = orcamento.isFixed
+      ? ""
+      : `<button class="btn-delete-orcamento" data-id="${orcamento.id}" title="Excluir Orçamento">✖</button>`;
+
     li.innerHTML = `
                 <div class="orcamento-info">
                     <span class="orcamento-nome">${orcamento.nome}</span>
@@ -28,7 +34,7 @@ export function renderizarListaOrcamentos() {
                 </div>
                 <div class="transaction-actions">
                     <button class="btn-edit-orcamento" data-id="${orcamento.id}" title="Editar Orçamento">✎</button>
-                    <button class="btn-delete-orcamento" data-id="${orcamento.id}" title="Excluir Orçamento">✖</button>
+                    ${btnDeleteHTML}
                 </div>`;
     elements.listaOrcamentosUl.appendChild(li);
   });
@@ -42,9 +48,19 @@ export function abrirModalDetalhesOrcamento(
   const orcamento = state.orcamentos.find((o) => o.id === orcamentoId);
   if (!orcamento) return;
 
-  const gastosVinculados = state.transacoes.filter(
-    (t) => t.orcamentoId === orcamentoId && t.mesAnoReferencia === mesAno,
-  );
+  // LÓGICA ATUALIZADA: Filtra gastos diretos e também os automáticos (se for o fixo)
+  const gastosVinculados = state.transacoes.filter((t) => {
+    const mesBate = t.mesAnoReferencia === mesAno;
+    const vinculadoDiretamente = t.orcamentoId === orcamentoId;
+
+    // Se for o orçamento fixo, captura também despesas de cartão sem orcamentoId
+    const ehGastoDeCartaoSemOrcamento =
+      orcamento.isFixed &&
+      t.categoria === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO &&
+      !t.orcamentoId;
+
+    return mesBate && (vinculadoDiretamente || ehGastoDeCartaoSemOrcamento);
+  });
 
   const prioridade = {
     [CONSTS.FREQUENCIA.RECORRENTE]: 1,

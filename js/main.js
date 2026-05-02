@@ -68,6 +68,35 @@ document.addEventListener("DOMContentLoaded", () => {
     elements.currentMonthDisplay.textContent = "Carregando dados...";
     elements.listaTransacoesUl.innerHTML = "<li>Carregando...</li>";
     await carregarDadosIniciais();
+
+    // --- LÓGICA NOVA: Garantir existência do orçamento "Outros Gastos" ---
+    const orcamentoFixo = state.orcamentos.find((o) => o.isFixed === true);
+
+    if (!orcamentoFixo && state.currentUser) {
+      console.log("Orçamento 'Outros Gastos' não encontrado. Criando...");
+      const novoOrcamentoFixo = {
+        nome: "Outros Gastos",
+        valor: 0,
+        dia: 1,
+        isFixed: true, // Identificador blindado
+      };
+
+      try {
+        const docRef = await db
+          .collection("users")
+          .doc(state.currentUser.uid)
+          .collection("orcamentos")
+          .add(novoOrcamentoFixo);
+
+        // Adiciona ao estado local para renderização imediata
+        state.orcamentos.push({ ...novoOrcamentoFixo, id: docRef.id });
+        console.log("Orçamento fixo criado com sucesso.");
+      } catch (error) {
+        console.error("Erro ao criar orçamento fixo:", error);
+      }
+    }
+    // --- FIM DA LÓGICA NOVA ---
+
     ui.updateMonthDisplay(ui.renderizarTransacoesDoMes);
     carregarDadosDoFirestore();
     ui.inicializarVisibilidade();

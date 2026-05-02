@@ -46,26 +46,49 @@ export function atualizarResumoFinanceiro() {
   let receitasDoMes = 0;
   let despesasDoMes = 0;
 
+  // 1. Soma das Receitas
   receitasDoMes = transacoesDoMesReferencia
     .filter((t) => t.tipo === CONSTS.TIPO_TRANSACAO.RECEITA)
     .reduce((total, t) => total + t.valor, 0);
 
-  const despesasNaoOrcadas = transacoesDoMesReferencia.filter(
-    (t) => t.tipo === CONSTS.TIPO_TRANSACAO.DESPESA && !t.orcamentoId,
+  // 2. Despesas Ordinárias (Débito/Pix direto da conta)
+  // Como as ordinárias não usam orçamentos, elas são somadas integralmente
+  const despesasOrdinarias = transacoesDoMesReferencia.filter(
+    (t) =>
+      t.tipo === CONSTS.TIPO_TRANSACAO.DESPESA &&
+      t.categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA,
   );
-  despesasDoMes += despesasNaoOrcadas.reduce((total, t) => total + t.valor, 0);
+  despesasDoMes += despesasOrdinarias.reduce((total, t) => total + t.valor, 0);
 
+  // 3. Lógica de Orçamentos (Previsão vs Real)
   state.orcamentos.forEach((orcamento) => {
-    const gastosNesteOrcamento = transacoesDoMesReferencia
+    // Busca gastos vinculados diretamente a este ID
+    let gastosNesteOrcamento = transacoesDoMesReferencia
       .filter((t) => t.orcamentoId === orcamento.id)
       .reduce((total, t) => total + t.valor, 0);
+
+    // LÓGICA NOVA: Se for o orçamento fixo, captura também todos os cartões sem orcamentoId
+    if (orcamento.isFixed) {
+      const gastosCartaoNaoCategorizados = transacoesDoMesReferencia
+        .filter(
+          (t) =>
+            t.categoria === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO &&
+            !t.orcamentoId,
+        )
+        .reduce((total, t) => total + t.valor, 0);
+      gastosNesteOrcamento += gastosCartaoNaoCategorizados;
+    }
+
     if (isOrcamentoFechado(orcamento.id, mesAnoAtual)) {
+      // Se estiver fechado (cadeado), usa o valor real gasto
       despesasDoMes += gastosNesteOrcamento;
     } else {
+      // Se aberto, usa o que for maior: a previsão (teto) ou o gasto real
       despesasDoMes += Math.max(orcamento.valor, gastosNesteOrcamento);
     }
   });
 
+  // 4. Abate os ajustes de fatura (Cashbacks/Estornos)
   const totalAjustesDoMes = state.ajustesFatura
     .filter((a) => a.mesAnoReferencia === mesAnoAtual)
     .reduce((total, a) => total + a.valor, 0);
@@ -433,9 +456,24 @@ export function renderizarTransacoesDoMes() {
   state.orcamentos.forEach((orcamento) => {
     const [ano, mes] = mesAnoAtual.split("-").map(Number);
     const dataOrcamento = new Date(ano, mes - 1, orcamento.dia);
-    const gastosNoOrcamento = transacoesDoMesVisivel
+
+    // Soma gastos vinculados ao ID
+    let gastosNoOrcamento = transacoesDoMesVisivel
       .filter((t) => t.orcamentoId === orcamento.id)
       .reduce((total, t) => total + t.valor, 0);
+
+    // LÓGICA NOVA: Se for o orçamento fixo, exibe o "Restante" considerando os cartões sem categoria
+    if (orcamento.isFixed) {
+      const gastosCartaoSemVinculo = transacoesDoMesVisivel
+        .filter(
+          (t) =>
+            t.categoria === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO &&
+            !t.orcamentoId,
+        )
+        .reduce((total, t) => total + t.valor, 0);
+      gastosNoOrcamento += gastosCartaoSemVinculo;
+    }
+
     const valorRestante = orcamento.valor - gastosNoOrcamento;
     itensParaRenderizar.push({
       id: `orcamento-${orcamento.id}`,
