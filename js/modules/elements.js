@@ -26,8 +26,7 @@ export const elements = {
   listaDividasTerceirosUl: document.getElementById("listaDividasTerceiros"),
   // ADICIONADO:
   terceirosTitulo: document.getElementById("terceirosTitulo"),
-  totalDividasTerceiros: document.getElementById("totalDividasTerceiros"),
-
+  resumoDividasTerceiros: document.getElementById("resumoDividasTerceiros"),
   btnTerceirosAnterior: document.getElementById("btnTerceirosAnterior"),
   btnTerceirosProximo: document.getElementById("btnTerceirosProximo"),
   modalEditarDivida: document.getElementById("modalEditarDivida"),

@@ -317,8 +317,20 @@ document.addEventListener("DOMContentLoaded", () => {
     const transacaoOriginal = state.isEditMode
       ? state.transacoes.find((t) => t.id === state.editingTransactionId)
       : null;
-    if (tipo === "receita") trans.carregarFormularioReceita(transacaoOriginal);
-    else
+    const nomeCurto = nome.substring(0, 25) + (nome.length > 25 ? "..." : "");
+
+    if (tipo === "receita") {
+      elements.modalHeaderNovaTransacao.textContent = state.isEditMode
+        ? `Editar Receita: ${nomeCurto} (Passo 2)`
+        : "Nova Receita (Passo 2 de 2)";
+      trans.carregarFormularioReceita(transacaoOriginal);
+    } else {
+      const tituloAcao = state.isModoTerceiros
+        ? "Nova Dívida"
+        : state.isEditMode
+          ? "Editar Despesa"
+          : "Nova Despesa";
+      elements.modalHeaderNovaTransacao.textContent = `${tituloAcao}: ${nomeCurto} (Passo 2)`;
       trans.carregarFormularioDespesa(
         transacaoOriginal,
         trans.carregarFormularioDespesaOrdinaria,
@@ -330,6 +342,7 @@ document.addEventListener("DOMContentLoaded", () => {
             ui.abrirModalEspecifico,
           ),
       );
+    }
     if (state.isModoTerceiros) {
       elements.passo2Container.insertAdjacentHTML(
         "afterbegin",

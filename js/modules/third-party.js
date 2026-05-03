@@ -7,24 +7,20 @@ import { formatCurrency, getMesAnoChave } from "./utils.js";
 export function renderizarDividasDoMes() {
   const listaUl = elements.listaDividasTerceirosUl;
   const tituloEl = elements.terceirosTitulo;
-  const totalDisplayEl = elements.totalDividasTerceiros;
+  const resumoEl = elements.resumoDividasTerceiros;
 
-  if (!listaUl || !tituloEl || !totalDisplayEl) return;
+  if (!listaUl || !tituloEl || !resumoEl) return;
 
-  // CORRIGIDO: Removido o prefixo "utils."
   const mesAno = getMesAnoChave(state.dividasTerceirosDate);
   const nomeMes = state.dividasTerceirosDate.toLocaleString("pt-BR", {
     month: "long",
   });
   const ano = state.dividasTerceirosDate.getFullYear();
-  tituloEl.textContent = `Dívidas de ${
-    nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1)
-  }/${ano}`;
-
-  const limitDate = new Date();
-  limitDate.setMonth(limitDate.getMonth() + 24);
+  tituloEl.textContent = `Dívidas de ${nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1)}/${ano}`;
 
   if (elements.btnTerceirosProximo) {
+    const limitDate = new Date();
+    limitDate.setMonth(limitDate.getMonth() + 24);
     elements.btnTerceirosProximo.disabled =
       getMesAnoChave(state.dividasTerceirosDate) >= getMesAnoChave(limitDate);
   }
@@ -33,12 +29,60 @@ export function renderizarDividasDoMes() {
     (d) => d.mesAnoReferencia === mesAno,
   );
 
-  const totalMes = dividasDoMes.reduce(
-    (soma, divida) => soma + divida.valor,
-    0,
-  );
-  totalDisplayEl.textContent = `Total: ${formatCurrency(totalMes)}`;
+  // --- CÁLCULOS DO NOVO RESUMO ---
+  let totalGeral = 0;
+  let totalFaltaReceber = 0;
+  let totalOrdinarias = 0;
+  let totaisPorCartao = {}; // { "ID_CARTAO": { nome: "Nubank", valor: 0 } }
 
+  dividasDoMes.forEach((divida) => {
+    totalGeral += divida.valor;
+    if (!divida.reembolsado) {
+      totalFaltaReceber += divida.valor;
+    }
+
+    if (divida.categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA) {
+      totalOrdinarias += divida.valor;
+    } else if (divida.categoria === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO) {
+      if (!totaisPorCartao[divida.cartaoId]) {
+        const cartaoInfo = state.cartoes.find((c) => c.id === divida.cartaoId);
+        totaisPorCartao[divida.cartaoId] = {
+          nome: cartaoInfo ? cartaoInfo.nome : "Cartão Desconhecido",
+          valor: 0,
+        };
+      }
+      totaisPorCartao[divida.cartaoId].valor += divida.valor;
+    }
+  });
+
+  // --- CONSTRUÇÃO DO HTML DO RESUMO ---
+  let resumoHTML = `
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #dee2e6;">
+            <div>
+                <p style="margin: 0; color: #7f8c8d; font-size: 0.85em;">Total no Mês:</p>
+                <strong style="font-size: 1.2em; color: #2c3e50;">${formatCurrency(totalGeral)}</strong>
+            </div>
+            <div>
+                <p style="margin: 0; color: #e74c3c; font-size: 0.85em;">Falta Receber:</p>
+                <strong style="font-size: 1.2em; color: #e74c3c;">${formatCurrency(totalFaltaReceber)}</strong>
+            </div>
+            <div style="grid-column: span 2; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px;">
+                <p style="margin-bottom: 5px; font-weight: bold; font-size: 0.9em;">Detalhamento:</p>
+                <ul style="list-style: none; padding: 0; margin: 0; font-size: 0.9em; color: #34495e;">
+                    ${totalOrdinarias > 0 ? `<li>• Ordinárias (PIX/Dinheiro): ${formatCurrency(totalOrdinarias)}</li>` : ""}
+                    ${Object.values(totaisPorCartao)
+                      .map(
+                        (c) =>
+                          `<li>• ${c.nome}: ${formatCurrency(c.valor)}</li>`,
+                      )
+                      .join("")}
+                </ul>
+            </div>
+        </div>
+    `;
+  resumoEl.innerHTML = resumoHTML;
+
+  // --- RENDERIZAÇÃO DA LISTA (GRUPOS POR PESSOA) ---
   listaUl.innerHTML = "";
   if (dividasDoMes.length === 0) {
     listaUl.innerHTML =
@@ -66,40 +110,29 @@ export function renderizarDividasDoMes() {
     const tituloPessoa = document.createElement("h4");
     tituloPessoa.textContent = grupo.nomePessoa;
     tituloPessoa.style.cssText =
-      "padding: 10px 15px 5px; margin: 15px 0 5px; background-color: #f8f9fa; border-top: 1px solid #eee; border-bottom: 1px solid #eee;";
+      "padding: 10px 15px 5px; margin: 15px 0 5px; background-color: #e9ecef; border-radius: 4px;";
     listaUl.appendChild(tituloPessoa);
-
-    grupo.dividas.sort((a, b) => b.valor - a.valor);
 
     grupo.dividas.forEach((divida) => {
       const li = document.createElement("li");
       li.className = "divida-terceiro-item";
-      if (divida.reembolsado) {
-        li.classList.add("reembolsado");
-      }
-      let detalhesTransacao = divida.nomeTransacao;
-      if (divida.frequencia === "parcelada") {
-        detalhesTransacao += ` (${divida.parcelaAtual}/${divida.totalParcelas})`;
-      }
+      if (divida.reembolsado) li.classList.add("reembolsado");
+
+      let detalhes = divida.nomeTransacao;
+      if (divida.frequencia === "parcelada")
+        detalhes += ` (${divida.parcelaAtual}/${divida.totalParcelas})`;
+
       li.innerHTML = `
-                    <input type="checkbox" data-divida-id="${divida.id}" ${
-                      divida.reembolsado ? "checked" : ""
-                    }>
-                    <div class="divida-info">
-                        <span class="transacao-detalhes">${detalhesTransacao}</span>
-                        <span class="divida-valor">${formatCurrency(
-                          divida.valor,
-                        )}</span>
-                    </div>
-                    <div class="transaction-actions">
-                        <button class="btn-edit btn-edit-divida" data-divida-id="${
-                          divida.id
-                        }" title="Editar Dívida">✎</button>
-                        <button class="btn-delete btn-delete-divida" data-divida-id="${
-                          divida.id
-                        }" title="Excluir Dívida">✖</button>
-                    </div>
-                `;
+                <input type="checkbox" data-divida-id="${divida.id}" ${divida.reembolsado ? "checked" : ""}>
+                <div class="divida-info">
+                    <span class="transacao-detalhes">${detalhes}</span>
+                    <span class="divida-valor">${formatCurrency(divida.valor)}</span>
+                </div>
+                <div class="transaction-actions">
+                    <button class="btn-edit btn-edit-divida" data-divida-id="${divida.id}" title="Editar">✎</button>
+                    <button class="btn-delete btn-delete-divida" data-divida-id="${divida.id}" title="Excluir">✖</button>
+                </div>
+            `;
       listaUl.appendChild(li);
     });
   });

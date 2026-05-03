@@ -833,15 +833,18 @@
           >
         </div>
         <div class="modal-body">
+          <!-- NOVO: Container para o resumo detalhado no topo -->
+          <div
+            id="resumoDividasTerceiros"
+            class="resumo-terceiros-container"
+          ></div>
+          <hr />
           <ul id="listaDividasTerceiros">
             <!-- Lista de dívidas será inserida via JS -->
           </ul>
         </div>
         <div class="modal-footer">
-          <!-- NOVO: Display para o total das dívidas -->
-          <span id="totalDividasTerceiros" class="divida-total-display"
-            >Total: R$ 0,00</span
-          >
+          <!-- Removido o span de total daqui, pois agora está no resumo acima -->
           <button
             class="btn-secondary close-button-footer"
             data-modal-id="modalConsultarTerceiros"

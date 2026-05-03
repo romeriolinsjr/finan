@@ -289,6 +289,12 @@ export function carregarFormularioDespesaCartao(
   const cartaoSelect = clone.querySelector("#cartaoDespesa");
   const orcamentoSelect = clone.querySelector("#orcamentoVinculado");
 
+  // LÓGICA ATUALIZADA: Esconde o campo de Orçamento se for dívida de terceiro
+  if (state.isModoTerceiros) {
+    const orcamentoContainer = orcamentoSelect.parentElement;
+    if (orcamentoContainer) orcamentoContainer.style.display = "none";
+  }
+
   let opcoesCartoes = '<option value="">-- Selecione --</option>';
   // LÓGICA ATUALIZADA: Só mostra no seletor cartões que NÃO foram deletados
   const cartoesAtivos = state.cartoes.filter((c) => !c.deletado);
