@@ -28,7 +28,6 @@ export function abrirModalDetalhesFatura(
 export function popularModalDetalhesFatura(cartaoId, mesAnoFatura) {
   if (
     !elements.faturaCartaoNomeTitulo ||
-    !elements.faturaCartaoTotalValor ||
     !elements.faturaCartaoDataVencimento ||
     !elements.listaComprasFaturaCartaoUl ||
     !elements.btnAddDespesaFromFatura ||
@@ -47,10 +46,12 @@ export function popularModalDetalhesFatura(cartaoId, mesAnoFatura) {
     return;
   }
 
-  // Reset do Simulador ao abrir
+  // Limpa o simulador ao abrir uma nova fatura
   if (elements.inputValorBanco) elements.inputValorBanco.value = "";
-  if (elements.resultadoDiferenca)
+  if (elements.resultadoDiferenca) {
     elements.resultadoDiferenca.style.display = "none";
+    elements.resultadoDiferenca.textContent = "";
+  }
 
   if (cartao.deletado) {
     elements.btnAddDespesaFromFatura.style.display = "none";
@@ -94,7 +95,7 @@ export function popularModalDetalhesFatura(cartaoId, mesAnoFatura) {
   );
   const minhaParteLiquida = totalMinhasBruto - totalAjustes;
 
-  // 2. Compras de Terceiros (Auditoria)
+  // 2. Compras de Terceiros
   const comprasTerceiros = state.dividasTerceiros.filter(
     (d) =>
       d.categoria === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO &&
@@ -111,10 +112,17 @@ export function popularModalDetalhesFatura(cartaoId, mesAnoFatura) {
   elements.auditMinhasCompras.textContent = formatCurrency(minhaParteLiquida);
   elements.auditTerceiros.textContent = formatCurrency(totalTerceiros);
   elements.auditTotalEsperado.textContent = formatCurrency(totalEsperado);
-  elements.auditTotalEsperado.dataset.valor = totalEsperado; // Guarda para o simulador
 
-  elements.faturaCartaoTotalValor.textContent =
-    formatCurrency(minhaParteLiquida);
+  // ESTA LINHA É A CHAVE DO PROBLEMA: Ela "injeta" o valor para o simulador ler
+  elements.auditTotalEsperado.setAttribute(
+    "data-valor-calculado",
+    totalEsperado.toString(),
+  );
+
+  if (elements.faturaCartaoTotalValor) {
+    elements.faturaCartaoTotalValor.textContent =
+      formatCurrency(minhaParteLiquida);
+  }
 
   let itensParaRenderizar = [
     ...minhasCompras.map((c) => ({ ...c, renderType: "compra" })),
@@ -157,7 +165,6 @@ export function popularModalDetalhesFatura(cartaoId, mesAnoFatura) {
         const skipButton = document.createElement("button");
         skipButton.className = "btn-skip-parcela";
         skipButton.innerHTML = "⏩";
-        skipButton.title = "Adiar esta parcela e as seguintes em um mês";
         skipButton.dataset.id = item.id;
         skipButton.dataset.serieId = item.serieId;
         skipButton.dataset.mesAnoReferencia = item.mesAnoReferencia;

@@ -151,4 +151,5 @@ export const elements = {
   auditTotalEsperado: document.getElementById("auditTotalEsperado"),
   inputValorBanco: document.getElementById("inputValorBanco"),
   resultadoDiferenca: document.getElementById("resultadoDiferenca"),
+  faturaCartaoTotalValor: document.getElementById("faturaCartaoTotalValor"),
 };

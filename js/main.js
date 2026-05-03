@@ -927,75 +927,17 @@ document.addEventListener("DOMContentLoaded", () => {
     localStorage.setItem("finanValuesHidden", state.areValuesHidden);
     ui.renderizarEstadoVisibilidade();
   });
-  // Ouvinte para abrir o gerenciador de pessoas
-  elements.btnAbrirConsultaPessoas.addEventListener("click", () => {
-    ui.fecharModalEspecifico(elements.modalMenuTerceiros);
-    // TIPO ALTERADO PARA "gerenciarPessoas" e callback ajustado
-    ui.abrirModalEspecifico(
-      elements.modalGerenciarPessoas,
-      null,
-      "gerenciarPessoas",
-      {
-        renderizarListaPessoas: third.renderizarListaPessoas,
-      },
-    );
-  });
 
-  // Ouvinte para cadastrar pessoa a partir do gerenciador
-  elements.btnAbrirModalCadastroPessoaDirect.addEventListener("click", () => {
-    ui.fecharModalEspecifico(elements.modalGerenciarPessoas);
-    state.isPessoaEditMode = false;
-    document.querySelector("#modalCadastrarPessoa h2").textContent =
-      "Cadastrar Nova Pessoa";
-    elements.btnSalvarPessoaModal.textContent = "Salvar Pessoa";
-    ui.abrirModalEspecifico(elements.modalCadastrarPessoa);
-  });
-
-  // Ouvinte para a lista de pessoas (Editar/Excluir)
-  elements.listaPessoasCadastradasUl.addEventListener("click", (e) => {
-    const id = e.target.closest("button")?.dataset.id;
-    if (!id) return;
-
-    if (e.target.closest(".btn-edit-pessoa")) {
-      ui.fecharModalEspecifico(elements.modalGerenciarPessoas);
-      state.isPessoaEditMode = true;
-      state.editingPessoaId = id;
-      third.preencherModalEdicaoPessoa(id);
-      ui.abrirModalEspecifico(elements.modalCadastrarPessoa);
-    } else if (e.target.closest(".btn-delete-pessoa")) {
-      third.excluirPessoa(id);
-    }
-  });
-  // NOVO: Ouvinte para confirmar o Soft Delete do Cartão
-  elements.btnConfirmarSoftDeleteCartao.addEventListener("click", async () => {
-    const cartaoId = elements.modalConfirmarExclusaoCartao.dataset.cartaoId;
-    const dataCorte = elements.dataCorteExclusaoCartao.value;
-
-    if (!dataCorte) {
-      alert("Por favor, selecione o mês de corte para a exclusão.");
-      return;
-    }
-
-    if (cartaoId) {
-      // Desabilita o botão para evitar cliques duplos
-      elements.btnConfirmarSoftDeleteCartao.disabled = true;
-      elements.btnConfirmarSoftDeleteCartao.textContent = "Processando...";
-
-      await cards.executarSoftDeleteCartao(
-        cartaoId,
-        dataCorte,
-        ui.fecharModalEspecifico,
-        ui.atualizarResumoFinanceiro,
-      );
-
-      elements.btnConfirmarSoftDeleteCartao.disabled = false;
-      elements.btnConfirmarSoftDeleteCartao.textContent = "Confirmar e Excluir";
-    }
-    // Lógica do Simulador de Diferença na Fatura
+  // Lógica do Simulador de Diferença na Fatura
+  if (elements.inputValorBanco) {
     elements.inputValorBanco.addEventListener("input", () => {
-      const valorBanco = parseFloat(elements.inputValorBanco.value) || 0;
+      const valorDigitado = elements.inputValorBanco.value.replace(",", ".");
+      const valorBanco = parseFloat(valorDigitado) || 0;
+
       const totalEsperado =
-        parseFloat(elements.auditTotalEsperado.dataset.valor) || 0;
+        parseFloat(
+          elements.auditTotalEsperado.getAttribute("data-valor-calculado"),
+        ) || 0;
       const diferenca = valorBanco - totalEsperado;
 
       if (elements.inputValorBanco.value === "") {
@@ -1004,18 +946,21 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       elements.resultadoDiferenca.style.display = "block";
+
       if (Math.abs(diferenca) < 0.01) {
         elements.resultadoDiferenca.textContent =
           "✅ Tudo certo! Os valores coincidem.";
         elements.resultadoDiferenca.style.color = "#27ae60";
       } else {
-        const msg =
-          diferenca > 0
-            ? `⚠️ Faltam cadastrar ${utils.formatCurrency(diferenca)} no Finan.`
-            : `❓ Você cadastrou ${utils.formatCurrency(Math.abs(diferenca))} a mais no Finan.`;
-        elements.resultadoDiferenca.textContent = msg;
-        elements.resultadoDiferenca.style.color = "#e67e22";
+        const valorDiffFormated = utils.formatCurrency(Math.abs(diferenca));
+        if (diferenca > 0) {
+          elements.resultadoDiferenca.textContent = `⚠️ Faltam cadastrar ${valorDiffFormated} no Finan.`;
+          elements.resultadoDiferenca.style.color = "#e67e22";
+        } else {
+          elements.resultadoDiferenca.textContent = `❓ Você cadastrou ${valorDiffFormated} a mais no Finan.`;
+          elements.resultadoDiferenca.style.color = "#3498db";
+        }
       }
     });
-  });
-});
+  } // <--- AQUI ESTAVA O ERRO (ERA }); E AGORA É APENAS })
+}); // Fecha o DOMContentLoaded
