@@ -44,6 +44,16 @@ export function popularModalDetalhesFatura(cartaoId, mesAnoFatura) {
     return;
   }
 
+  // NOVA LÓGICA: Esconde o botão de adicionar (+) se o cartão foi excluído
+  if (cartao.deletado) {
+    elements.btnAddDespesaFromFatura.style.display = "none";
+    // Opcional: também podemos esconder o botão de ajustes (engrenagem) se desejar
+    // elements.btnAjustesFatura.style.display = "none";
+  } else {
+    elements.btnAddDespesaFromFatura.style.display = "inline-block";
+    elements.btnAjustesFatura.style.display = "inline-block";
+  }
+
   elements.btnAddDespesaFromFatura.dataset.cartaoId = cartao.id;
   elements.btnAddDespesaFromFatura.dataset.cartaoNome = cartao.nome;
   elements.btnAjustesFatura.dataset.cartaoId = cartao.id;
@@ -132,13 +142,13 @@ export function popularModalDetalhesFatura(cartaoId, mesAnoFatura) {
       const editButton = document.createElement("button");
       editButton.className = "btn-edit";
       editButton.innerHTML = "✎";
-      editButton.title = "Editar Compra"; // REINSERIDO
+      editButton.title = "Editar Compra";
       editButton.dataset.id = item.id;
       actionsDiv.appendChild(editButton);
       const deleteButton = document.createElement("button");
       deleteButton.className = "btn-delete";
       deleteButton.innerHTML = "✖";
-      deleteButton.title = "Excluir Compra"; // REINSERIDO
+      deleteButton.title = "Excluir Compra";
       deleteButton.dataset.id = item.id;
       actionsDiv.appendChild(deleteButton);
       li.appendChild(detailsDiv);
@@ -154,14 +164,20 @@ export function popularModalDetalhesFatura(cartaoId, mesAnoFatura) {
 export function renderizarListaCartoesCadastrados() {
   if (!elements.listaCartoesCadastradosUl) return;
   elements.listaCartoesCadastradosUl.innerHTML = "";
-  if (state.cartoes.length === 0) {
+
+  // LÓGICA ATUALIZADA: Filtra para mostrar apenas cartões que NÃO foram deletados
+  const cartoesAtivos = state.cartoes.filter((c) => !c.deletado);
+
+  if (cartoesAtivos.length === 0) {
     elements.listaCartoesCadastradosUl.innerHTML =
-      "<li>Nenhum cartão cadastrado.</li>";
+      "<li>Nenhum cartão ativo cadastrado.</li>";
     return;
   }
-  const cartoesOrdenados = [...state.cartoes].sort(
+
+  const cartoesOrdenados = [...cartoesAtivos].sort(
     (a, b) => a.diaVencimentoFatura - b.diaVencimentoFatura,
   );
+
   cartoesOrdenados.forEach((cartao) => {
     const li = document.createElement("li");
     li.innerHTML = `
@@ -261,5 +277,89 @@ export async function atualizarStatusPagoFatura(
     callbackResumo();
   } catch (error) {
     console.error("Erro ao atualizar status da fatura:", error);
+  }
+}
+
+export function prepararSoftDeleteCartao(cartaoId, callbackAbrirModal) {
+  const cartao = state.cartoes.find((c) => c.id === cartaoId);
+  if (!cartao) return;
+
+  // Busca todas as transações deste cartão para achar a última
+  const transacoesDoCartao = state.transacoes.filter(
+    (t) => t.cartaoId === cartaoId,
+  );
+
+  let textoInformativo = "";
+  let dataSugerida = "";
+
+  if (transacoesDoCartao.length > 0) {
+    // Ordena para achar o mês/ano mais distante
+    const ultimaTransacao = transacoesDoCartao.sort((a, b) =>
+      b.mesAnoReferencia.localeCompare(a.mesAnoReferencia),
+    )[0];
+
+    const [ano, mes] = ultimaTransacao.mesAnoReferencia.split("-");
+    const nomeMes = new Date(ano, mes - 1).toLocaleString("pt-BR", {
+      month: "long",
+    });
+
+    textoInformativo = `A última fatura com compras para o cartão "${cartao.nome}" é ${nomeMes} de ${ano}.`;
+
+    // Sugere o mês seguinte à última compra como data de corte padrão
+    let dataCorte = new Date(ano, mes, 1); // mes já é o próximo (0-indexed)
+    dataSugerida = `${dataCorte.getFullYear()}-${(dataCorte.getMonth() + 1).toString().padStart(2, "0")}`;
+  } else {
+    textoInformativo = `O cartão "${cartao.nome}" não possui compras cadastradas.`;
+    const hoje = new Date();
+    dataSugerida = `${hoje.getFullYear()}-${(hoje.getMonth() + 1).toString().padStart(2, "0")}`;
+  }
+
+  elements.infoUltimaCompraCartao.textContent = textoInformativo;
+  elements.dataCorteExclusaoCartao.value = dataSugerida;
+
+  // Salva o ID no modal para uso posterior
+  elements.modalConfirmarExclusaoCartao.dataset.cartaoId = cartaoId;
+
+  callbackAbrirModal(elements.modalConfirmarExclusaoCartao, null, "generic");
+}
+
+export async function executarSoftDeleteCartao(
+  cartaoId,
+  dataCorte,
+  callbackFechar,
+  callbackResumo,
+) {
+  if (!state.currentUser) return;
+
+  try {
+    const batch = db.batch();
+    const userRef = db.collection("users").doc(state.currentUser.uid);
+
+    // 1. Marcar o cartão como deletado e registrar a data de corte
+    const cartaoRef = userRef.collection("cartoes").doc(cartaoId);
+    batch.update(cartaoRef, {
+      deletado: true,
+      dataExclusao: dataCorte,
+    });
+
+    // 2. Localizar e apagar permanentemente transações DESTE CARTÃO do mês de corte em diante
+    const comprasParaApagar = state.transacoes.filter(
+      (t) => t.cartaoId === cartaoId && t.mesAnoReferencia >= dataCorte,
+    );
+
+    comprasParaApagar.forEach((t) => {
+      const tRef = userRef.collection("transacoes").doc(t.id);
+      batch.delete(tRef);
+    });
+
+    await batch.commit();
+    await registrarUltimaAlteracao();
+
+    alert("Cartão excluído com sucesso. O histórico anterior foi preservado.");
+    callbackFechar(elements.modalConfirmarExclusaoCartao);
+    callbackResumo(); // Atualiza o saldo da tela
+  } catch (error) {
+    console.error("Erro ao executar soft delete:", error);
+    alert("Ocorreu um erro ao excluir o cartão.");
   }
 }

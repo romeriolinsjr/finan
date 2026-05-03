@@ -290,7 +290,9 @@ export function carregarFormularioDespesaCartao(
   const orcamentoSelect = clone.querySelector("#orcamentoVinculado");
 
   let opcoesCartoes = '<option value="">-- Selecione --</option>';
-  state.cartoes.forEach((cartao) => {
+  // LÓGICA ATUALIZADA: Só mostra no seletor cartões que NÃO foram deletados
+  const cartoesAtivos = state.cartoes.filter((c) => !c.deletado);
+  cartoesAtivos.forEach((cartao) => {
     opcoesCartoes += `<option value="${cartao.id}">${cartao.nome}</option>`;
   });
   if (!(state.isEditMode && transacao?.cartaoId)) {

@@ -528,12 +528,8 @@ document.addEventListener("DOMContentLoaded", () => {
         },
       );
     } else if (e.target.closest(".btn-delete-cartao")) {
-      if (confirm("Excluir cartão?"))
-        db.collection("users")
-          .doc(state.currentUser.uid)
-          .collection("cartoes")
-          .doc(cartaoId)
-          .delete();
+      // NOVA LÓGICA: Em vez de excluir direto, abre o modal de confirmação planejado
+      cards.prepararSoftDeleteCartao(cartaoId, ui.abrirModalEspecifico);
     }
   });
 
@@ -954,6 +950,32 @@ document.addEventListener("DOMContentLoaded", () => {
       ui.abrirModalEspecifico(elements.modalCadastrarPessoa);
     } else if (e.target.closest(".btn-delete-pessoa")) {
       third.excluirPessoa(id);
+    }
+  });
+  // NOVO: Ouvinte para confirmar o Soft Delete do Cartão
+  elements.btnConfirmarSoftDeleteCartao.addEventListener("click", async () => {
+    const cartaoId = elements.modalConfirmarExclusaoCartao.dataset.cartaoId;
+    const dataCorte = elements.dataCorteExclusaoCartao.value;
+
+    if (!dataCorte) {
+      alert("Por favor, selecione o mês de corte para a exclusão.");
+      return;
+    }
+
+    if (cartaoId) {
+      // Desabilita o botão para evitar cliques duplos
+      elements.btnConfirmarSoftDeleteCartao.disabled = true;
+      elements.btnConfirmarSoftDeleteCartao.textContent = "Processando...";
+
+      await cards.executarSoftDeleteCartao(
+        cartaoId,
+        dataCorte,
+        ui.fecharModalEspecifico,
+        ui.atualizarResumoFinanceiro,
+      );
+
+      elements.btnConfirmarSoftDeleteCartao.disabled = false;
+      elements.btnConfirmarSoftDeleteCartao.textContent = "Confirmar e Excluir";
     }
   });
 });

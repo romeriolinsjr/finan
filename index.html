@@ -493,6 +493,58 @@
         </div>
       </div>
     </div>
+    <!-- NOVO: Modal para Confirmar Exclusão de Cartão (Soft Delete) -->
+    <div id="modalConfirmarExclusaoCartao" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Confirmar Exclusão de Cartão</h2>
+          <span
+            class="close-button"
+            data-modal-id="modalConfirmarExclusaoCartao"
+            >×</span
+          >
+        </div>
+        <div class="modal-body">
+          <p
+            id="infoUltimaCompraCartao"
+            style="
+              margin-bottom: 15px;
+              color: #2c3e50;
+              font-weight: bold;
+              background: #ecf0f1;
+              padding: 10px;
+              border-radius: 5px;
+            "
+          ></p>
+          <p style="font-size: 0.9em; color: #7f8c8d; margin-bottom: 20px">
+            O cartão será removido dos menus de seleção. O histórico de faturas
+            anteriores será preservado. As compras do mês escolhido em diante
+            serão excluídas permanentemente.
+          </p>
+          <div>
+            <label for="dataCorteExclusaoCartao"
+              >Excluir cartão e faturas a partir de:</label
+            >
+            <input type="month" id="dataCorteExclusaoCartao" required />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button
+            class="btn-secondary close-button-footer"
+            data-modal-id="modalConfirmarExclusaoCartao"
+          >
+            Cancelar
+          </button>
+          <button
+            id="btnConfirmarSoftDeleteCartao"
+            class="btn-primary"
+            style="background-color: #e74c3c"
+          >
+            Confirmar e Excluir
+          </button>
+        </div>
+      </div>
+    </div>
     <!-- NOVO: Modal para Relatórios -->
     <div id="modalRelatorios" class="modal">
       <div class="modal-content modal-large">

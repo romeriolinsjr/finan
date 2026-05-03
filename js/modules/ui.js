@@ -277,39 +277,33 @@ export function criarElementoFatura(item, actionsDiv) {
         },
       )
     : "N/D";
-  const btnAjusteHTML = `<button class="btn-vencimento-adjust ${
-    item.vencimentoNoMesSeguinte ? "ativo" : ""
-  }" data-cartao-id="${
-    item.cartaoId
-  }" title="Ajustar mês de vencimento">🗓️</button>`; // REINSERIDO
+
+  // Se o cartão foi excluído, mostramos um selo e não permitimos ajustar o vencimento
+  const seloExcluido = item.isDeletado
+    ? '<span class="status-excluido" style="background: #95a5a6; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.75em; margin-left: 5px;">Excluído</span>'
+    : "";
+
+  const btnAjusteHTML = item.isDeletado
+    ? ""
+    : `<button class="btn-vencimento-adjust ${item.vencimentoNoMesSeguinte ? "ativo" : ""}" data-cartao-id="${item.cartaoId}" title="Ajustar mês de vencimento">🗓️</button>`;
 
   const viewButton = document.createElement("button");
   viewButton.className = "btn-view-fatura";
   viewButton.innerHTML = "🔍";
-  viewButton.title = "Ver Detalhes da Fatura"; // REINSERIDO
+  viewButton.title = "Ver Detalhes da Fatura";
   viewButton.dataset.cartaoId = item.cartaoId;
   viewButton.dataset.mesAnoFatura = item.mesAnoReferencia;
   actionsDiv.appendChild(viewButton);
 
-  return `<label class="transaction-main-info" for="fatura-check-${
-    item.cartaoId
-  }">
-                    <input type="checkbox" id="fatura-check-${
-                      item.cartaoId
-                    }" class="fatura-checkbox" data-cartao-id="${
-                      item.cartaoId
-                    }" data-mes-ano-fatura="${item.mesAnoReferencia}" ${
-                      item.paga ? "checked" : ""
-                    }>
+  return `<label class="transaction-main-info" for="fatura-check-${item.cartaoId}">
+                    <input type="checkbox" id="fatura-check-${item.cartaoId}" class="fatura-checkbox" data-cartao-id="${item.cartaoId}" data-mes-ano-fatura="${item.mesAnoReferencia}" ${item.paga ? "checked" : ""}>
                     <div class="transaction-name-category">
-                        <span class="transaction-name">${item.nome}</span>
+                        <span class="transaction-name">${item.nome}${seloExcluido}</span>
                         <span class="transaction-category">(Fatura do Cartão)</span>
                     </div>
                 </label>
                 <div class="transaction-value-date">
-                    <span class="transaction-value">- ${formatCurrency(
-                      item.valor,
-                    )}</span>
+                    <span class="transaction-value">- ${formatCurrency(item.valor)}</span>
                     <div class="fatura-date-container">
                         <span class="transaction-date">Venc: ${dataFormatada}</span>
                         ${btnAjusteHTML}
@@ -415,6 +409,10 @@ export function renderizarTransacoesDoMes() {
     if (!dc.cartaoId) return;
     if (!faturasAgrupadas[dc.cartaoId]) {
       const cartaoInfo = state.cartoes.find((c) => c.id === dc.cartaoId) || {};
+
+      // LÓGICA ATUALIZADA: Identifica se o cartão está na lista de deletados
+      const isDeletado = cartaoInfo.deletado === true;
+
       faturasAgrupadas[dc.cartaoId] = {
         cartaoId: dc.cartaoId,
         cartaoNome: cartaoInfo.nome || "Cartão Desconhecido",
@@ -422,6 +420,7 @@ export function renderizarTransacoesDoMes() {
         vencimentoNoMesSeguinte: cartaoInfo.vencimentoNoMesSeguinte || false,
         totalValor: 0,
         todasPagas: true,
+        isDeletado: isDeletado, // Passa a informação para o elemento visual
       };
     }
     faturasAgrupadas[dc.cartaoId].totalValor += dc.valor;
@@ -450,6 +449,7 @@ export function renderizarTransacoesDoMes() {
       paga: fatura.todasPagas,
       mesAnoReferencia: mesAnoAtual,
       vencimentoNoMesSeguinte: fatura.vencimentoNoMesSeguinte,
+      isDeletado: fatura.isDeletado, // Registra no item da lista
     });
   });
 

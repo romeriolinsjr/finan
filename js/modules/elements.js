@@ -138,4 +138,12 @@ export const elements = {
   btnAbrirModalCadastroPessoaDirect: document.getElementById(
     "btnAbrirModalCadastroPessoaDirect",
   ),
+  modalConfirmarExclusaoCartao: document.getElementById(
+    "modalConfirmarExclusaoCartao",
+  ),
+  infoUltimaCompraCartao: document.getElementById("infoUltimaCompraCartao"),
+  dataCorteExclusaoCartao: document.getElementById("dataCorteExclusaoCartao"),
+  btnConfirmarSoftDeleteCartao: document.getElementById(
+    "btnConfirmarSoftDeleteCartao",
+  ),
 };
