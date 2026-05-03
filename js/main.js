@@ -633,6 +633,7 @@ document.addEventListener("DOMContentLoaded", () => {
   elements.btnMenuOrcamentos.addEventListener("click", () =>
     ui.abrirModalEspecifico(elements.modalOrcamentos, null, "orcamentos", {
       renderizarListaOrcamentos: budgets.renderizarListaOrcamentos,
+      resetFormOrcamento: budgets.resetFormOrcamento, // ADICIONADO
     }),
   );
   elements.btnSalvarOrcamento.addEventListener("click", async () => {

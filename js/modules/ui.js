@@ -141,6 +141,8 @@ export function abrirModalEspecifico(
       callbacks.renderizarListaCartoesCadastrados();
     // ... (dentro da função abrirModalEspecifico)
   } else if (tipoModal === "orcamentos") {
+    // ADICIONADO: Limpa o formulário para garantir que abra em modo de "Novo"
+    if (callbacks.resetFormOrcamento) callbacks.resetFormOrcamento();
     if (callbacks.renderizarListaOrcamentos)
       callbacks.renderizarListaOrcamentos();
   } else if (tipoModal === "relatorios") {
@@ -180,6 +182,17 @@ export function fecharModalEspecifico(modalElement) {
       break;
     case "modalDetalhesFaturaCartao":
       state.currentFaturaDate = null;
+      break;
+    case "modalOrcamentos":
+      if (elements.orcamentoEditIdInput)
+        elements.orcamentoEditIdInput.value = "";
+      if (elements.nomeOrcamentoInput) elements.nomeOrcamentoInput.value = "";
+      if (elements.valorOrcamentoInput) elements.valorOrcamentoInput.value = "";
+      if (elements.diaOrcamentoInput) elements.diaOrcamentoInput.value = "";
+      if (elements.modalOrcamentoTitulo)
+        elements.modalOrcamentoTitulo.textContent = "Gerenciar Orçamentos";
+      if (elements.btnSalvarOrcamento)
+        elements.btnSalvarOrcamento.textContent = "Salvar";
       break;
   }
 }

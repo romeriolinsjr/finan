@@ -142,3 +142,15 @@ export async function handleFecharAbrirOrcamento(button) {
     console.error("Erro ao alterar estado do orçamento:", error);
   }
 }
+
+export function resetFormOrcamento() {
+  if (!elements.orcamentoEditIdInput) return;
+
+  elements.orcamentoEditIdInput.value = "";
+  elements.nomeOrcamentoInput.value = "";
+  elements.valorOrcamentoInput.value = "";
+  elements.diaOrcamentoInput.value = "";
+
+  elements.modalOrcamentoTitulo.textContent = "Gerenciar Orçamentos";
+  elements.btnSalvarOrcamento.textContent = "Salvar";
+}
