@@ -107,10 +107,15 @@ export function renderizarDividasDoMes() {
   );
 
   listaOrdenada.forEach((grupo) => {
+    // LÓGICA NOVA: Calcula o total específico desta pessoa no mês
+    const totalPessoa = grupo.dividas.reduce((soma, d) => soma + d.valor, 0);
+
     const tituloPessoa = document.createElement("h4");
-    tituloPessoa.textContent = grupo.nomePessoa;
+    // TÍTULO ATUALIZADO: Nome da Pessoa + Total individual
+    tituloPessoa.textContent = `${grupo.nomePessoa} — Subtotal: ${formatCurrency(totalPessoa)}`;
+
     tituloPessoa.style.cssText =
-      "padding: 10px 15px 5px; margin: 15px 0 5px; background-color: #e9ecef; border-radius: 4px;";
+      "padding: 10px 15px 5px; margin: 15px 0 5px; background-color: #e9ecef; border-radius: 4px; display: flex; justify-content: space-between;";
     listaUl.appendChild(tituloPessoa);
 
     grupo.dividas.forEach((divida) => {

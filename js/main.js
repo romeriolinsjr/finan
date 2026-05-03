@@ -962,5 +962,5 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
     });
-  } // <--- AQUI ESTAVA O ERRO (ERA }); E AGORA É APENAS })
-}); // Fecha o DOMContentLoaded
+  }
+});
