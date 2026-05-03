@@ -32,7 +32,10 @@ export function popularModalDetalhesFatura(cartaoId, mesAnoFatura) {
     !elements.faturaCartaoDataVencimento ||
     !elements.listaComprasFaturaCartaoUl ||
     !elements.btnAddDespesaFromFatura ||
-    !elements.btnAjustesFatura
+    !elements.btnAjustesFatura ||
+    !elements.auditMinhasCompras ||
+    !elements.auditTerceiros ||
+    !elements.auditTotalEsperado
   )
     return;
 
@@ -44,11 +47,13 @@ export function popularModalDetalhesFatura(cartaoId, mesAnoFatura) {
     return;
   }
 
-  // NOVA LÓGICA: Esconde o botão de adicionar (+) se o cartão foi excluído
+  // Reset do Simulador ao abrir
+  if (elements.inputValorBanco) elements.inputValorBanco.value = "";
+  if (elements.resultadoDiferenca)
+    elements.resultadoDiferenca.style.display = "none";
+
   if (cartao.deletado) {
     elements.btnAddDespesaFromFatura.style.display = "none";
-    // Opcional: também podemos esconder o botão de ajustes (engrenagem) se desejar
-    // elements.btnAjustesFatura.style.display = "none";
   } else {
     elements.btnAddDespesaFromFatura.style.display = "inline-block";
     elements.btnAjustesFatura.style.display = "inline-block";
@@ -69,32 +74,51 @@ export function popularModalDetalhesFatura(cartaoId, mesAnoFatura) {
     { day: "2-digit", month: "2-digit", year: "numeric" },
   );
 
-  const comprasDaFatura = state.transacoes.filter(
+  // 1. Minhas Compras e Ajustes
+  const minhasCompras = state.transacoes.filter(
     (t) =>
       t.categoria === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO &&
       t.cartaoId === cartaoId &&
       t.mesAnoReferencia === mesAnoFatura,
   );
-
-  const ajustesDaFatura = state.ajustesFatura.filter(
+  const ajustes = state.ajustesFatura.filter(
     (a) => a.cartaoId === cartaoId && a.mesAnoReferencia === mesAnoFatura,
   );
-
-  const totalFaturaBruto = comprasDaFatura.reduce(
+  const totalMinhasBruto = minhasCompras.reduce(
     (total, compra) => total + compra.valor,
     0,
   );
-  const totalAjustes = ajustesDaFatura.reduce(
+  const totalAjustes = ajustes.reduce(
     (total, ajuste) => total + ajuste.valor,
     0,
   );
-  elements.faturaCartaoTotalValor.textContent = formatCurrency(
-    totalFaturaBruto - totalAjustes,
+  const minhaParteLiquida = totalMinhasBruto - totalAjustes;
+
+  // 2. Compras de Terceiros (Auditoria)
+  const comprasTerceiros = state.dividasTerceiros.filter(
+    (d) =>
+      d.categoria === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO &&
+      d.cartaoId === cartaoId &&
+      d.mesAnoReferencia === mesAnoFatura,
+  );
+  const totalTerceiros = comprasTerceiros.reduce(
+    (total, d) => total + d.valor,
+    0,
   );
 
+  // 3. Atualizar Bloco de Conferência
+  const totalEsperado = minhaParteLiquida + totalTerceiros;
+  elements.auditMinhasCompras.textContent = formatCurrency(minhaParteLiquida);
+  elements.auditTerceiros.textContent = formatCurrency(totalTerceiros);
+  elements.auditTotalEsperado.textContent = formatCurrency(totalEsperado);
+  elements.auditTotalEsperado.dataset.valor = totalEsperado; // Guarda para o simulador
+
+  elements.faturaCartaoTotalValor.textContent =
+    formatCurrency(minhaParteLiquida);
+
   let itensParaRenderizar = [
-    ...comprasDaFatura.map((c) => ({ ...c, renderType: "compra" })),
-    ...ajustesDaFatura.map((a) => ({ ...a, renderType: "ajuste" })),
+    ...minhasCompras.map((c) => ({ ...c, renderType: "compra" })),
+    ...ajustes.map((a) => ({ ...a, renderType: "ajuste" })),
   ];
 
   itensParaRenderizar.sort((a, b) => {
@@ -165,30 +189,45 @@ export function renderizarListaCartoesCadastrados() {
   if (!elements.listaCartoesCadastradosUl) return;
   elements.listaCartoesCadastradosUl.innerHTML = "";
 
-  // LÓGICA ATUALIZADA: Filtra para mostrar apenas cartões que NÃO foram deletados
   const cartoesAtivos = state.cartoes.filter((c) => !c.deletado);
-
   if (cartoesAtivos.length === 0) {
     elements.listaCartoesCadastradosUl.innerHTML =
-      "<li>Nenhum cartão ativo cadastrado.</li>";
+      "<li>Nenhum cartão ativo.</li>";
     return;
   }
 
+  const mesAnoAtual = getMesAnoChave(state.currentDate);
   const cartoesOrdenados = [...cartoesAtivos].sort(
     (a, b) => a.diaVencimentoFatura - b.diaVencimentoFatura,
   );
 
   cartoesOrdenados.forEach((cartao) => {
+    // Cálculo do total total (Meu + Terceiros) para o mês atual
+    const minhas = state.transacoes.filter(
+      (t) => t.cartaoId === cartao.id && t.mesAnoReferencia === mesAnoAtual,
+    );
+    const terceiros = state.dividasTerceiros.filter(
+      (d) => d.cartaoId === cartao.id && d.mesAnoReferencia === mesAnoAtual,
+    );
+    const ajustes = state.ajustesFatura.filter(
+      (a) => a.cartaoId === cartao.id && a.mesAnoReferencia === mesAnoAtual,
+    );
+
+    const totalMes =
+      minhas.reduce((s, t) => s + t.valor, 0) +
+      terceiros.reduce((s, t) => s + t.valor, 0) -
+      ajustes.reduce((s, t) => s + t.valor, 0);
+
     const li = document.createElement("li");
     li.innerHTML = `
-                <div class="cartao-info" data-id="${cartao.id}">
-                    <span class="cartao-nome">${cartao.nome}</span>
-                    <span class="cartao-vencimento">Venc. dia: ${cartao.diaVencimentoFatura}</span>
+                <div class="cartao-info" data-id="${cartao.id}" style="cursor:pointer; flex-grow: 1;">
+                    <span class="cartao-nome" style="font-weight:bold;">${cartao.nome}</span>
+                    <span class="cartao-vencimento" style="font-size:0.85em; color:#666;">Venc. dia: ${cartao.diaVencimentoFatura} | Total no Mês: <strong>${formatCurrency(totalMes)}</strong></span>
                 </div>
                 <div class="transaction-actions">
-                    <button class="btn-add-despesa-cartao" data-id="${cartao.id}" data-nome="${cartao.nome}" title="Adicionar Despesa neste Cartão">➕</button>
-                    <button class="btn-edit-cartao" data-id="${cartao.id}" title="Editar Cartão">✎</button>
-                    <button class="btn-delete-cartao" data-id="${cartao.id}" title="Excluir Cartão">✖</button>
+                    <button class="btn-add-despesa-cartao" data-id="${cartao.id}" data-nome="${cartao.nome}" title="Adicionar Despesa">➕</button>
+                    <button class="btn-edit-cartao" data-id="${cartao.id}" title="Editar">✎</button>
+                    <button class="btn-delete-cartao" data-id="${cartao.id}" title="Excluir">✖</button>
                 </div>`;
     elements.listaCartoesCadastradosUl.appendChild(li);
   });

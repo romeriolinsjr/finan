@@ -991,5 +991,31 @@ document.addEventListener("DOMContentLoaded", () => {
       elements.btnConfirmarSoftDeleteCartao.disabled = false;
       elements.btnConfirmarSoftDeleteCartao.textContent = "Confirmar e Excluir";
     }
+    // Lógica do Simulador de Diferença na Fatura
+    elements.inputValorBanco.addEventListener("input", () => {
+      const valorBanco = parseFloat(elements.inputValorBanco.value) || 0;
+      const totalEsperado =
+        parseFloat(elements.auditTotalEsperado.dataset.valor) || 0;
+      const diferenca = valorBanco - totalEsperado;
+
+      if (elements.inputValorBanco.value === "") {
+        elements.resultadoDiferenca.style.display = "none";
+        return;
+      }
+
+      elements.resultadoDiferenca.style.display = "block";
+      if (Math.abs(diferenca) < 0.01) {
+        elements.resultadoDiferenca.textContent =
+          "✅ Tudo certo! Os valores coincidem.";
+        elements.resultadoDiferenca.style.color = "#27ae60";
+      } else {
+        const msg =
+          diferenca > 0
+            ? `⚠️ Faltam cadastrar ${utils.formatCurrency(diferenca)} no Finan.`
+            : `❓ Você cadastrou ${utils.formatCurrency(Math.abs(diferenca))} a mais no Finan.`;
+        elements.resultadoDiferenca.textContent = msg;
+        elements.resultadoDiferenca.style.color = "#e67e22";
+      }
+    });
   });
 });

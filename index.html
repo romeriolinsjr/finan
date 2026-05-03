@@ -404,15 +404,117 @@
           >
         </div>
         <div class="modal-body">
+          <!-- BLOCO DE CONFERÊNCIA (AUDITORIA) -->
+          <div
+            id="blocoConferenciaFatura"
+            style="
+              background: #f1f2f6;
+              padding: 15px;
+              border-radius: 8px;
+              margin-bottom: 20px;
+              border: 1px solid #dfe4ea;
+            "
+          >
+            <h4
+              style="
+                margin-top: 0;
+                color: #2f3542;
+                border-bottom: 1px solid #ced4da;
+                padding-bottom: 5px;
+              "
+            >
+              Conferência com o Banco
+            </h4>
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                font-size: 0.9em;
+                margin-bottom: 5px;
+              "
+            >
+              <span>Minhas Compras:</span>
+              <span id="auditMinhasCompras">R$ 0,00</span>
+            </div>
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                font-size: 0.9em;
+                margin-bottom: 5px;
+              "
+            >
+              <span>Compras de Terceiros:</span>
+              <span id="auditTerceiros">R$ 0,00</span>
+            </div>
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                font-weight: bold;
+                font-size: 1em;
+                color: #2c3e50;
+                margin-top: 5px;
+                padding-top: 5px;
+                border-top: 1px dotted #ccc;
+              "
+            >
+              <span>Total Esperado:</span>
+              <span id="auditTotalEsperado">R$ 0,00</span>
+            </div>
+
+            <!-- SIMULADOR DE DIFERENÇA -->
+            <div
+              style="
+                margin-top: 15px;
+                padding-top: 10px;
+                border-top: 1px solid #ced4da;
+              "
+            >
+              <label
+                for="inputValorBanco"
+                style="
+                  font-size: 0.85em;
+                  display: block;
+                  margin-bottom: 5px;
+                  color: #57606f;
+                "
+                >Valor que aparece no App do Banco:</label
+              >
+              <input
+                type="number"
+                id="inputValorBanco"
+                step="0.01"
+                placeholder="0,00"
+                style="
+                  width: 100%;
+                  padding: 8px;
+                  border: 1px solid #ccc;
+                  border-radius: 4px;
+                "
+              />
+              <p
+                id="resultadoDiferenca"
+                style="
+                  margin: 10px 0 0 0;
+                  font-weight: bold;
+                  font-size: 0.9em;
+                  text-align: center;
+                  display: none;
+                "
+              ></p>
+            </div>
+          </div>
+
           <p>
-            <strong>Total da Fatura:</strong>
+            <strong>Total da minha parte:</strong>
             <span id="faturaCartaoTotalValor">R$ 0,00</span>
           </p>
           <p>
             <strong>Vencimento da Fatura:</strong>
             <span id="faturaCartaoDataVencimento">DD/MM/AAAA</span>
           </p>
-          <h3>Compras da Fatura:</h3>
+          <h3>Lista de Compras:</h3>
           <ul id="listaComprasFaturaCartao"></ul>
         </div>
         <div class="modal-footer">

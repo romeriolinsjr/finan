@@ -142,7 +142,13 @@ export const elements = {
   ),
   infoUltimaCompraCartao: document.getElementById("infoUltimaCompraCartao"),
   dataCorteExclusaoCartao: document.getElementById("dataCorteExclusaoCartao"),
+
   btnConfirmarSoftDeleteCartao: document.getElementById(
     "btnConfirmarSoftDeleteCartao",
   ),
+  auditMinhasCompras: document.getElementById("auditMinhasCompras"),
+  auditTerceiros: document.getElementById("auditTerceiros"),
+  auditTotalEsperado: document.getElementById("auditTotalEsperado"),
+  inputValorBanco: document.getElementById("inputValorBanco"),
+  resultadoDiferenca: document.getElementById("resultadoDiferenca"),
 };
