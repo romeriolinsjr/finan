@@ -791,6 +791,42 @@ document.addEventListener("DOMContentLoaded", () => {
     reports.popularModalRelatorio(state.reportDate);
   });
 
+  // --- NOVO: Gerenciamento de Pessoas ---
+  elements.btnAbrirConsultaPessoas.addEventListener("click", () => {
+    ui.fecharModalEspecifico(elements.modalMenuTerceiros);
+    ui.abrirModalEspecifico(
+      elements.modalGerenciarPessoas,
+      null,
+      "gerenciarPessoas",
+      {
+        renderizarListaPessoas: third.renderizarListaPessoas,
+      },
+    );
+  });
+
+  elements.btnAbrirModalCadastroPessoaDirect.addEventListener("click", () => {
+    ui.fecharModalEspecifico(elements.modalGerenciarPessoas);
+    state.isPessoaEditMode = false;
+    document.querySelector("#modalCadastrarPessoa h2").textContent =
+      "Cadastrar Nova Pessoa";
+    elements.btnSalvarPessoaModal.textContent = "Salvar Pessoa";
+    ui.abrirModalEspecifico(elements.modalCadastrarPessoa);
+  });
+
+  elements.listaPessoasCadastradasUl.addEventListener("click", (e) => {
+    const id = e.target.closest("button")?.dataset.id;
+    if (!id) return;
+    if (e.target.closest(".btn-edit-pessoa")) {
+      ui.fecharModalEspecifico(elements.modalGerenciarPessoas);
+      state.isPessoaEditMode = true;
+      state.editingPessoaId = id;
+      third.preencherModalEdicaoPessoa(id);
+      ui.abrirModalEspecifico(elements.modalCadastrarPessoa);
+    } else if (e.target.closest(".btn-delete-pessoa")) {
+      third.excluirPessoa(id);
+    }
+  });
+
   // Séries e Confirmações
   elements.btnAcaoSerieApenasEsta.addEventListener("click", async () => {
     const { itemId, acao, context } = elements.modalConfirmarAcaoSerie.dataset;
@@ -834,8 +870,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (acao === "excluir") {
       const collectionName =
         context === "dividaTerceiro" ? "dividasTerceiros" : "transacoes";
-
-      // Localiza o item de referência para saber a partir de qual data excluir
       const itemInicial =
         context === "dividaTerceiro"
           ? state.dividasTerceiros.find((d) => d.id === itemId)
@@ -846,12 +880,6 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
       const mesAnoInicioExclusao = itemInicial.mesAnoReferencia;
-
-      console.log(
-        `Excluindo a série ${serieId} a partir de ${mesAnoInicioExclusao}...`,
-      );
-
-      // REINSTITUIDO: Filtro que protege o passado (>= mesAnoInicioExclusao)
       const querySnapshot = await db
         .collection("users")
         .doc(state.currentUser.uid)
@@ -861,29 +889,22 @@ document.addEventListener("DOMContentLoaded", () => {
         .get();
 
       if (querySnapshot.empty) {
-        alert("Nenhum item futuro encontrado para excluir.");
+        alert("Nenhum item futuro encontrado.");
         return;
       }
 
       const batch = db.batch();
-      querySnapshot.docs.forEach((doc) => {
-        batch.delete(doc.ref);
-      });
+      querySnapshot.docs.forEach((doc) => batch.delete(doc.ref));
 
       try {
         await batch.commit();
-        if (context !== "dividaTerceiro") {
+        if (context !== "dividaTerceiro")
           await utils.registrarUltimaAlteracao();
-        }
-        alert(
-          `${querySnapshot.docs.length} item(ns) da série (a partir deste mês) foram excluídos.`,
-        );
+        alert(`${querySnapshot.docs.length} item(ns) excluídos.`);
       } catch (error) {
-        console.error(`Erro ao excluir série:`, error);
-        alert("Ocorreu um erro ao excluir a série.");
+        console.error(`Erro ao excluir:`, error);
       }
     } else {
-      // Lógica de Edição em Série (Mantida)
       if (context === "dividaTerceiro") {
         third.abrirModalEdicaoDivida(
           itemId,
@@ -903,6 +924,28 @@ document.addEventListener("DOMContentLoaded", () => {
           },
         );
       }
+    }
+  });
+
+  // --- NOVO: Ouvinte para confirmar o Soft Delete do Cartão ---
+  elements.btnConfirmarSoftDeleteCartao.addEventListener("click", async () => {
+    const cartaoId = elements.modalConfirmarExclusaoCartao.dataset.cartaoId;
+    const dataCorte = elements.dataCorteExclusaoCartao.value;
+    if (!dataCorte) {
+      alert("Por favor, selecione o mês de corte.");
+      return;
+    }
+    if (cartaoId) {
+      elements.btnConfirmarSoftDeleteCartao.disabled = true;
+      elements.btnConfirmarSoftDeleteCartao.textContent = "Processando...";
+      await cards.executarSoftDeleteCartao(
+        cartaoId,
+        dataCorte,
+        ui.fecharModalEspecifico,
+        ui.atualizarResumoFinanceiro,
+      );
+      elements.btnConfirmarSoftDeleteCartao.disabled = false;
+      elements.btnConfirmarSoftDeleteCartao.textContent = "Confirmar e Excluir";
     }
   });
 
@@ -933,7 +976,6 @@ document.addEventListener("DOMContentLoaded", () => {
     elements.inputValorBanco.addEventListener("input", () => {
       const valorDigitado = elements.inputValorBanco.value.replace(",", ".");
       const valorBanco = parseFloat(valorDigitado) || 0;
-
       const totalEsperado =
         parseFloat(
           elements.auditTotalEsperado.getAttribute("data-valor-calculado"),
@@ -946,7 +988,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       elements.resultadoDiferenca.style.display = "block";
-
       if (Math.abs(diferenca) < 0.01) {
         elements.resultadoDiferenca.textContent =
           "✅ Tudo certo! Os valores coincidem.";
