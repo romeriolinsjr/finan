@@ -49,16 +49,20 @@ export function popularModalRelatorio(date) {
     .filter((t) => t.tipo === CONSTS.TIPO_TRANSACAO.RECEITA)
     .reduce((total, t) => total + t.valor, 0);
 
-  // 1. Despesas Ordinárias Totais (Débito/Pix - Estas nunca entram em orçamentos)
-  const despesasOrdinariasTotais = despesasDoMes
+  // 1. Gastos Reais Totais (Para o cálculo do Saldo Real)
+  const totalGastoRealCartao = despesasDoMes
+    .filter((d) => d.categoria === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO)
+    .reduce((total, t) => total + t.valor, 0);
+
+  const totalGastoRealOrdinario = despesasDoMes
     .filter((d) => d.categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA)
     .reduce((total, t) => total + t.valor, 0);
 
-  // 2. Cálculo dos Orçamentos (Previsto vs Gasto Real)
+  // 2. Cálculo dos Orçamentos (Soma de todos os baldes)
   let totalGastoOrcamentos = 0;
   let totalPrevistoOrcamentos = 0;
+  let somaDespesasProjetadas = 0;
 
-  // Calculamos os totais baseados no que cada orçamento individual está capturando
   state.orcamentos.forEach((orc) => {
     totalPrevistoOrcamentos += orc.valor;
 
@@ -66,7 +70,7 @@ export function popularModalRelatorio(date) {
       .filter((t) => t.orcamentoId === orc.id)
       .reduce((sum, t) => sum + t.valor, 0);
 
-    // Inclui gastos não categorizados se for o orçamento fixo
+    // LÓGICA: Captura cartões sem categoria no orçamento fixo de CARTÃO
     if (orc.isFixed) {
       const extra = despesasDoMes
         .filter(
@@ -78,52 +82,44 @@ export function popularModalRelatorio(date) {
       gastoDesteOrcamento += extra;
     }
 
+    // LÓGICA: Captura todas as ordinárias no orçamento de GASTOS ORDINÁRIOS
+    if (orc.isFixedOrdinary) {
+      const extra = despesasDoMes
+        .filter((t) => t.categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA)
+        .reduce((sum, t) => sum + t.valor, 0);
+      gastoDesteOrcamento += extra;
+    }
+
     totalGastoOrcamentos += gastoDesteOrcamento;
+
+    // Cálculo respeitando os cadeados (Previsão vs Real)
+    if (isOrcamentoFechado(orc.id, mesAno)) {
+      somaDespesasProjetadas += gastoDesteOrcamento;
+    } else {
+      somaDespesasProjetadas += Math.max(orc.valor, gastoDesteOrcamento);
+    }
   });
 
-  // 3. Ajustes de fatura (descontos)
+  // 3. Ajustes de fatura (descontos como cashback)
   const totalAjustesDoMes = state.ajustesFatura
     .filter((a) => a.mesAnoReferencia === mesAno)
     .reduce((total, a) => total + a.valor, 0);
 
-  // 4. Saldo Real: Receitas - (Ordinárias + Gastos Reais em Cartão - Ajustes)
+  // 4. Saldo Real: Receitas - (Gasto Efetivo Total - Ajustes)
   const saldoReal =
     totalReceitas -
-    (despesasOrdinariasTotais + totalGastoOrcamentos - totalAjustesDoMes);
+    (totalGastoRealCartao + totalGastoRealOrdinario - totalAjustesDoMes);
 
-  // 5. Saldo Final (Respeitando Cadeados)
-  let despesasParaSaldoFinal = despesasOrdinariasTotais;
-  state.orcamentos.forEach((orcamento) => {
-    let gastoNeste = despesasDoMes
-      .filter((t) => t.orcamentoId === orcamento.id)
-      .reduce((sum, t) => sum + t.valor, 0);
-
-    if (orcamento.isFixed) {
-      const extra = despesasDoMes
-        .filter(
-          (t) =>
-            t.categoria === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO &&
-            !t.orcamentoId,
-        )
-        .reduce((sum, t) => sum + t.valor, 0);
-      gastoNeste += extra;
-    }
-
-    if (isOrcamentoFechado(orcamento.id, mesAno)) {
-      despesasParaSaldoFinal += gastoNeste;
-    } else {
-      despesasParaSaldoFinal += Math.max(orcamento.valor, gastoNeste);
-    }
-  });
-  despesasParaSaldoFinal -= totalAjustesDoMes;
-  const saldoFinal = totalReceitas - despesasParaSaldoFinal;
+  // 5. Saldo Final: Receitas - (Soma Projetada via Orçamentos - Ajustes)
+  const saldoFinal =
+    totalReceitas - (somaDespesasProjetadas - totalAjustesDoMes);
 
   const resumoHTML = `<section class="relatorio-secao"><h3>Resumo Geral</h3><div class="relatorio-grid">
             <div class="relatorio-item"><span>Receitas Totais</span><strong class="valor-receita">${formatCurrency(
               totalReceitas,
             )}</strong></div>
             <div class="relatorio-item"><span>Despesas Totais</span><strong class="valor-despesa">${formatCurrency(
-              despesasParaSaldoFinal,
+              somaDespesasProjetadas - totalAjustesDoMes,
             )}</strong></div>
             <div class="relatorio-item"><span>Saldo Final</span><strong style="color: ${
               saldoFinal >= 0 ? "#27ae60" : "#e74c3c"
@@ -170,21 +166,28 @@ export function popularModalRelatorio(date) {
 
   let orcamentosHTML = "";
   state.orcamentos.forEach((orc) => {
-    // Busca gastos vinculados diretamente a este ID
     let gastosNoOrcamento = despesasDoMes
       .filter((t) => t.orcamentoId === orc.id)
       .reduce((sum, t) => sum + t.valor, 0);
 
-    // LÓGICA ATUALIZADA: Se for o orçamento fixo, soma também os gastos não categorizados de cartão
+    // LÓGICA: Orçamento fixo de CARTÃO
     if (orc.isFixed) {
-      const gastosCartaoSemVinculo = despesasDoMes
+      const extra = despesasDoMes
         .filter(
           (t) =>
             t.categoria === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO &&
             !t.orcamentoId,
         )
         .reduce((total, t) => total + t.valor, 0);
-      gastosNoOrcamento += gastosCartaoSemVinculo;
+      gastosNoOrcamento += extra;
+    }
+
+    // LÓGICA NOVA: Orçamento fixo de GASTOS ORDINÁRIOS
+    if (orc.isFixedOrdinary) {
+      const extra = despesasDoMes
+        .filter((t) => t.categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA)
+        .reduce((total, t) => total + t.valor, 0);
+      gastosNoOrcamento += extra;
     }
 
     const saldoOrcamento = orc.valor - gastosNoOrcamento;

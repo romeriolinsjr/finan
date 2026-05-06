@@ -22,10 +22,11 @@ export function renderizarListaOrcamentos() {
   orcamentosOrdenados.forEach((orcamento) => {
     const li = document.createElement("li");
 
-    // LÓGICA REINSERIDA: Só mostra o botão de excluir se NÃO for um orçamento fixo
-    const btnDeleteHTML = orcamento.isFixed
-      ? ""
-      : `<button class="btn-delete-orcamento" data-id="${orcamento.id}" title="Excluir Orçamento">✖</button>`;
+    // LÓGICA ATUALIZADA: Só mostra o botão de excluir se NÃO for um dos orçamentos fixos
+    const btnDeleteHTML =
+      orcamento.isFixed || orcamento.isFixedOrdinary
+        ? ""
+        : `<button class="btn-delete-orcamento" data-id="${orcamento.id}" title="Excluir Orçamento">✖</button>`;
 
     li.innerHTML = `
                 <div class="orcamento-info">
@@ -48,18 +49,28 @@ export function abrirModalDetalhesOrcamento(
   const orcamento = state.orcamentos.find((o) => o.id === orcamentoId);
   if (!orcamento) return;
 
-  // LÓGICA ATUALIZADA: Filtra gastos diretos e também os automáticos (se for o fixo)
+  // LÓGICA ATUALIZADA: Filtra gastos diretos e também os capturados automaticamente
   const gastosVinculados = state.transacoes.filter((t) => {
     const mesBate = t.mesAnoReferencia === mesAno;
     const vinculadoDiretamente = t.orcamentoId === orcamentoId;
 
-    // Se for o orçamento fixo, captura também despesas de cartão sem orcamentoId
+    // Captura despesas de cartão sem categoria para o "Outros Gastos"
     const ehGastoDeCartaoSemOrcamento =
       orcamento.isFixed &&
       t.categoria === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO &&
       !t.orcamentoId;
 
-    return mesBate && (vinculadoDiretamente || ehGastoDeCartaoSemOrcamento);
+    // LÓGICA NOVA: Captura TODAS as despesas ordinárias para o "Gastos Ordinários"
+    const ehGastoOrdinarioAutomatico =
+      orcamento.isFixedOrdinary &&
+      t.categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA;
+
+    return (
+      mesBate &&
+      (vinculadoDiretamente ||
+        ehGastoDeCartaoSemOrcamento ||
+        ehGastoOrdinarioAutomatico)
+    );
   });
 
   const prioridade = {

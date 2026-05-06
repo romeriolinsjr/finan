@@ -69,33 +69,72 @@ document.addEventListener("DOMContentLoaded", () => {
     elements.listaTransacoesUl.innerHTML = "<li>Carregando...</li>";
     await carregarDadosIniciais();
 
-    // --- LÓGICA NOVA: Garantir existência do orçamento "Outros Gastos" ---
-    const orcamentoFixo = state.orcamentos.find((o) => o.isFixed === true);
+    // --- LÓGICA: Garantir existência dos orçamentos fixos (Cartão e Ordinários) ---
+    const orcamentoFixoCartao = state.orcamentos.find(
+      (o) => o.isFixed === true,
+    );
+    const orcamentoFixoOrdinario = state.orcamentos.find(
+      (o) => o.isFixedOrdinary === true,
+    );
 
-    if (!orcamentoFixo && state.currentUser) {
+    const promessasCriacao = [];
+
+    // Cria "Outros Gastos" (Cartão) se não existir
+    if (!orcamentoFixoCartao && state.currentUser) {
       console.log("Orçamento 'Outros Gastos' não encontrado. Criando...");
-      const novoOrcamentoFixo = {
-        nome: "Outros Gastos",
-        valor: 0,
-        dia: 1,
-        isFixed: true, // Identificador blindado
-      };
-
-      try {
-        const docRef = await db
+      promessasCriacao.push(
+        db
           .collection("users")
           .doc(state.currentUser.uid)
           .collection("orcamentos")
-          .add(novoOrcamentoFixo);
-
-        // Adiciona ao estado local para renderização imediata
-        state.orcamentos.push({ ...novoOrcamentoFixo, id: docRef.id });
-        console.log("Orçamento fixo criado com sucesso.");
-      } catch (error) {
-        console.error("Erro ao criar orçamento fixo:", error);
-      }
+          .add({
+            nome: "Outros Gastos",
+            valor: 0,
+            dia: 1,
+            isFixed: true,
+          })
+          .then((docRef) => {
+            state.orcamentos.push({
+              nome: "Outros Gastos",
+              valor: 0,
+              dia: 1,
+              isFixed: true,
+              id: docRef.id,
+            });
+          }),
+      );
     }
-    // --- FIM DA LÓGICA NOVA ---
+
+    // Cria "Gastos Ordinários" (PIX/Débito) se não existir
+    if (!orcamentoFixoOrdinario && state.currentUser) {
+      console.log("Orçamento 'Gastos Ordinários' não encontrado. Criando...");
+      promessasCriacao.push(
+        db
+          .collection("users")
+          .doc(state.currentUser.uid)
+          .collection("orcamentos")
+          .add({
+            nome: "Gastos Ordinários",
+            valor: 0,
+            dia: 1,
+            isFixedOrdinary: true, // Identificador para despesas ordinárias
+          })
+          .then((docRef) => {
+            state.orcamentos.push({
+              nome: "Gastos Ordinários",
+              valor: 0,
+              dia: 1,
+              isFixedOrdinary: true,
+              id: docRef.id,
+            });
+          }),
+      );
+    }
+
+    if (promessasCriacao.length > 0) {
+      await Promise.all(promessasCriacao);
+    }
+    // --- FIM DA LÓGICA DE CRIAÇÃO ---
 
     ui.updateMonthDisplay(ui.renderizarTransacoesDoMes);
     carregarDadosDoFirestore();

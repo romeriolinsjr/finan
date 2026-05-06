@@ -51,23 +51,14 @@ export function atualizarResumoFinanceiro() {
     .filter((t) => t.tipo === CONSTS.TIPO_TRANSACAO.RECEITA)
     .reduce((total, t) => total + t.valor, 0);
 
-  // 2. Despesas Ordinárias (Débito/Pix direto da conta)
-  // Como as ordinárias não usam orçamentos, elas são somadas integralmente
-  const despesasOrdinarias = transacoesDoMesReferencia.filter(
-    (t) =>
-      t.tipo === CONSTS.TIPO_TRANSACAO.DESPESA &&
-      t.categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA,
-  );
-  despesasDoMes += despesasOrdinarias.reduce((total, t) => total + t.valor, 0);
-
-  // 3. Lógica de Orçamentos (Previsão vs Real)
+  // 2. Lógica de Orçamentos (Cálculo de Previsão vs Real)
   state.orcamentos.forEach((orcamento) => {
-    // Busca gastos vinculados diretamente a este ID
+    // Busca gastos vinculados diretamente a este ID (geralmente cartões categorizados)
     let gastosNesteOrcamento = transacoesDoMesReferencia
       .filter((t) => t.orcamentoId === orcamento.id)
       .reduce((total, t) => total + t.valor, 0);
 
-    // LÓGICA NOVA: Se for o orçamento fixo, captura também todos os cartões sem orcamentoId
+    // LÓGICA: Se for o orçamento fixo de CARTÃO, captura cartões sem orcamentoId
     if (orcamento.isFixed) {
       const gastosCartaoNaoCategorizados = transacoesDoMesReferencia
         .filter(
@@ -79,16 +70,25 @@ export function atualizarResumoFinanceiro() {
       gastosNesteOrcamento += gastosCartaoNaoCategorizados;
     }
 
+    // LÓGICA NOVA: Se for o orçamento de GASTOS ORDINÁRIOS, captura TUDO o que não é cartão
+    if (orcamento.isFixedOrdinary) {
+      const gastosOrdinariosTotais = transacoesDoMesReferencia
+        .filter((t) => t.categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA)
+        .reduce((total, t) => total + t.valor, 0);
+      gastosNesteOrcamento += gastosOrdinariosTotais;
+    }
+
     if (isOrcamentoFechado(orcamento.id, mesAnoAtual)) {
       // Se estiver fechado (cadeado), usa o valor real gasto
       despesasDoMes += gastosNesteOrcamento;
     } else {
       // Se aberto, usa o que for maior: a previsão (teto) ou o gasto real
+      // Isso garante que o saldo caia se o teto for estourado
       despesasDoMes += Math.max(orcamento.valor, gastosNesteOrcamento);
     }
   });
 
-  // 4. Abate os ajustes de fatura (Cashbacks/Estornos)
+  // 3. Abate os ajustes de fatura (Cashbacks/Estornos)
   const totalAjustesDoMes = state.ajustesFatura
     .filter((a) => a.mesAnoReferencia === mesAnoAtual)
     .reduce((total, a) => total + a.valor, 0);
@@ -470,30 +470,38 @@ export function renderizarTransacoesDoMes() {
     const [ano, mes] = mesAnoAtual.split("-").map(Number);
     const dataOrcamento = new Date(ano, mes - 1, orcamento.dia);
 
-    // Soma gastos vinculados ao ID
     let gastosNoOrcamento = transacoesDoMesVisivel
       .filter((t) => t.orcamentoId === orcamento.id)
       .reduce((total, t) => total + t.valor, 0);
 
-    // LÓGICA NOVA: Se for o orçamento fixo, exibe o "Restante" considerando os cartões sem categoria
     if (orcamento.isFixed) {
-      const gastosCartaoSemVinculo = transacoesDoMesVisivel
+      const extra = transacoesDoMesVisivel
         .filter(
           (t) =>
             t.categoria === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO &&
             !t.orcamentoId,
         )
         .reduce((total, t) => total + t.valor, 0);
-      gastosNoOrcamento += gastosCartaoSemVinculo;
+      gastosNoOrcamento += extra;
     }
 
+    // LÓGICA NOVA: Captura automáticos de Ordinários para exibição na tela inicial
+    if (orcamento.isFixedOrdinary) {
+      const extraOrdinario = transacoesDoMesVisivel
+        .filter((t) => t.categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA)
+        .reduce((total, t) => total + t.valor, 0);
+      gastosNoOrcamento += extraOrdinario;
+    }
+
+    // Cálculo do valor restante (pode ser negativo se estourar)
     const valorRestante = orcamento.valor - gastosNoOrcamento;
+
     itensParaRenderizar.push({
       id: `orcamento-${orcamento.id}`,
       orcamentoId: orcamento.id,
       tipoDisplay: CONSTS.TIPO_RENDERIZACAO.ORCAMENTO,
       nome: orcamento.nome,
-      valor: valorRestante,
+      valor: valorRestante, // Valor negativo será tratado pela função criarElementoOrcamento
       valorTotalOrcamento: orcamento.valor,
       dataOrdenacao: dataOrcamento,
     });
