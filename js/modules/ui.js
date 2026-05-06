@@ -38,44 +38,46 @@ export function atualizarResumoFinanceiro() {
     !elements.saldoMesDisplay
   )
     return;
-
   const mesAnoAtual = getMesAnoChave(state.currentDate);
   const transacoesDoMes = state.transacoes.filter(
     (t) => t.mesAnoReferencia === mesAnoAtual,
   );
-  const activeBudgetIds = state.orcamentos.map((o) => o.id);
 
-  let receitasDoMes = transacoesDoMes
+  let receitasDoMes = 0;
+  let despesasDoMes = 0;
+
+  // 1. Soma das Receitas
+  receitasDoMes = transacoesDoMes
     .filter((t) => t.tipo === CONSTS.TIPO_TRANSACAO.RECEITA)
     .reduce((total, t) => total + t.valor, 0);
 
-  let despesasDoMes = 0;
+  // Mapeia IDs de orçamentos para capturar órfãos
+  const activeBudgetIds = state.orcamentos.map((o) => o.id);
 
+  // 2. Lógica de Orçamentos (Cálculo de Previsão vs Real)
   state.orcamentos.forEach((orcamento) => {
-    // Gastos vinculados diretamente a este orçamento
     let gastosNesteOrcamento = transacoesDoMes
       .filter((t) => t.orcamentoId === orcamento.id)
       .reduce((total, t) => total + t.valor, 0);
 
-    // LÓGICA DE CAPTURA ROBUSTA:
+    // Se for o orçamento fixo de CARTÃO, captura cartões sem orcamentoId ou IDs deletados
     if (orcamento.isFixed) {
-      // "Outros Gastos" captura Cartão sem ID OU com ID de orçamento que não existe mais
-      const órfãosCartao = transacoesDoMes
+      const gastosCartaoOrfaos = transacoesDoMes
         .filter(
           (t) =>
             t.categoria === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO &&
             (!t.orcamentoId || !activeBudgetIds.includes(t.orcamentoId)),
         )
         .reduce((total, t) => total + t.valor, 0);
-      gastosNesteOrcamento += órfãosCartao;
+      gastosNesteOrcamento += gastosCartaoOrfaos;
     }
 
+    // Se for o orçamento de GASTOS ORDINÁRIOS, captura TUDO o que não é cartão
     if (orcamento.isFixedOrdinary) {
-      // "Gastos Ordinários" captura TUDO o que for ordinário
-      const todosOrdinarios = transacoesDoMes
+      const gastosOrdinariosTotais = transacoesDoMes
         .filter((t) => t.categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA)
         .reduce((total, t) => total + t.valor, 0);
-      gastosNesteOrcamento += todosOrdinarios;
+      gastosNesteOrcamento += gastosOrdinariosTotais;
     }
 
     if (isOrcamentoFechado(orcamento.id, mesAnoAtual)) {
@@ -85,21 +87,22 @@ export function atualizarResumoFinanceiro() {
     }
   });
 
-  const totalAjustes = state.ajustesFatura
+  // 3. Abate os ajustes de fatura
+  const totalAjustesDoMes = state.ajustesFatura
     .filter((a) => a.mesAnoReferencia === mesAnoAtual)
     .reduce((total, a) => total + a.valor, 0);
-  despesasDoMes -= totalAjustes;
+  despesasDoMes -= totalAjustesDoMes;
 
+  const saldoDoMes = receitasDoMes - despesasDoMes;
   elements.totalReceitasDisplay.textContent = formatCurrency(receitasDoMes);
   elements.totalDespesasDisplay.textContent = formatCurrency(despesasDoMes);
-  elements.saldoMesDisplay.textContent = formatCurrency(
-    receitasDoMes - despesasDoMes,
-  );
+  elements.saldoMesDisplay.textContent = formatCurrency(saldoDoMes);
 
   if (!state.areValuesHidden) {
-    const saldo = receitasDoMes - despesasDoMes;
     elements.saldoMesDisplay.style.color =
-      saldo > 0 ? "#27ae60" : saldo < 0 ? "#e74c3c" : "#3498db";
+      saldoDoMes > 0 ? "#27ae60" : saldoDoMes < 0 ? "#e74c3c" : "#3498db";
+  } else {
+    elements.saldoMesDisplay.style.color = "";
   }
 }
 
@@ -111,7 +114,6 @@ export function abrirModalEspecifico(
 ) {
   if (!modalElement) return;
 
-  // Gerenciamento de z-index para empilhamento
   modalElement.style.zIndex = 1000 + state.openModals.length * 10;
   if (!state.openModals.includes(modalElement)) {
     state.openModals.push(modalElement);
@@ -120,7 +122,6 @@ export function abrirModalEspecifico(
   if (tipoModal === "transacao") {
     state.isEditMode = !!idParaEditar;
     state.editingTransactionId = idParaEditar;
-    // SÓ CHAMA O RESET SE ELE EXISTIR (Evita o erro de fechar o modal)
     if (callbacks.resetModalNovaTransacao) callbacks.resetModalNovaTransacao();
     if (state.isEditMode && callbacks.preencherModalParaEdicao) {
       callbacks.preencherModalParaEdicao(state.editingTransactionId);
@@ -135,9 +136,7 @@ export function abrirModalEspecifico(
   } else if (tipoModal === "gerenciarCartoes") {
     if (callbacks.renderizarListaCartoesCadastrados)
       callbacks.renderizarListaCartoesCadastrados();
-    // ... (dentro da função abrirModalEspecifico)
   } else if (tipoModal === "orcamentos") {
-    // ADICIONADO: Limpa o formulário para garantir que abra em modo de "Novo"
     if (callbacks.resetFormOrcamento) callbacks.resetFormOrcamento();
     if (callbacks.renderizarListaOrcamentos)
       callbacks.renderizarListaOrcamentos();
@@ -146,7 +145,6 @@ export function abrirModalEspecifico(
     if (callbacks.popularModalRelatorio)
       callbacks.popularModalRelatorio(state.reportDate);
   } else if (tipoModal === "gerenciarPessoas") {
-    // NOVO CASO ADICIONADO
     if (callbacks.renderizarListaPessoas) callbacks.renderizarListaPessoas();
   }
 
@@ -204,14 +202,14 @@ export function criarElementoReceita(item, actionsDiv) {
   const editButton = document.createElement("button");
   editButton.className = "btn-edit";
   editButton.innerHTML = "✎";
-  editButton.title = "Editar"; // REINSERIDO
+  editButton.title = "Editar";
   editButton.dataset.id = item.id;
   actionsDiv.appendChild(editButton);
 
   const deleteButton = document.createElement("button");
   deleteButton.className = "btn-delete";
   deleteButton.innerHTML = "✖";
-  deleteButton.title = "Excluir"; // REINSERIDO
+  deleteButton.title = "Excluir";
   deleteButton.dataset.id = item.id;
   actionsDiv.appendChild(deleteButton);
 
@@ -244,14 +242,14 @@ export function criarElementoDespesa(item, actionsDiv) {
   const editButton = document.createElement("button");
   editButton.className = "btn-edit";
   editButton.innerHTML = "✎";
-  editButton.title = "Editar"; // REINSERIDO
+  editButton.title = "Editar";
   editButton.dataset.id = item.id;
   actionsDiv.appendChild(editButton);
 
   const deleteButton = document.createElement("button");
   deleteButton.className = "btn-delete";
   deleteButton.innerHTML = "✖";
-  deleteButton.title = "Excluir"; // REINSERIDO
+  deleteButton.title = "Excluir";
   deleteButton.dataset.id = item.id;
   actionsDiv.appendChild(deleteButton);
 
@@ -287,7 +285,6 @@ export function criarElementoFatura(item, actionsDiv) {
       )
     : "N/D";
 
-  // Se o cartão foi excluído, mostramos um selo e não permitimos ajustar o vencimento
   const seloExcluido = item.isDeletado
     ? '<span class="status-excluido" style="background: #95a5a6; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.75em; margin-left: 5px;">Excluído</span>'
     : "";
@@ -329,11 +326,11 @@ export function criarElementoOrcamento(item, actionsDiv) {
   if (fechado) {
     actionButton.className = "btn-abrir-orcamento";
     actionButton.innerHTML = "🔒";
-    actionButton.title = "Reabrir orçamento do mês"; // REINSERIDO
+    actionButton.title = "Reabrir orçamento do mês";
   } else {
     actionButton.className = "btn-fechar-orcamento";
     actionButton.innerHTML = "🔓";
-    actionButton.title = "Fechar orçamento do mês"; // REINSERIDO
+    actionButton.title = "Fechar orçamento do mês";
   }
   actionButton.dataset.orcamentoId = item.orcamentoId;
   actionButton.dataset.mesAno = mesAnoAtual;
@@ -384,6 +381,7 @@ export function renderizarTransacoesDoMes() {
   );
   let itensParaRenderizar = [];
 
+  // Receitas
   const receitasDoMes = transacoesDoMesVisivel.filter(
     (t) => t.tipo === CONSTS.TIPO_TRANSACAO.RECEITA,
   );
@@ -395,6 +393,21 @@ export function renderizarTransacoesDoMes() {
     }),
   );
 
+  // Despesas Ordinárias Individuais (RESTAURADO)
+  const despesasOrdinariasDoMes = transacoesDoMesVisivel.filter(
+    (t) =>
+      t.tipo === CONSTS.TIPO_TRANSACAO.DESPESA &&
+      t.categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA,
+  );
+  despesasOrdinariasDoMes.forEach((d) =>
+    itensParaRenderizar.push({
+      ...d,
+      tipoDisplay: CONSTS.TIPO_RENDERIZACAO.DESPESA,
+      dataOrdenacao: parseDateString(d.dataVencimento),
+    }),
+  );
+
+  // Faturas de Cartão
   const despesasCartaoDoMes = transacoesDoMesVisivel.filter(
     (t) =>
       t.tipo === CONSTS.TIPO_TRANSACAO.DESPESA &&
@@ -405,10 +418,6 @@ export function renderizarTransacoesDoMes() {
     if (!dc.cartaoId) return;
     if (!faturasAgrupadas[dc.cartaoId]) {
       const cartaoInfo = state.cartoes.find((c) => c.id === dc.cartaoId) || {};
-
-      // LÓGICA ATUALIZADA: Identifica se o cartão está na lista de deletados
-      const isDeletado = cartaoInfo.deletado === true;
-
       faturasAgrupadas[dc.cartaoId] = {
         cartaoId: dc.cartaoId,
         cartaoNome: cartaoInfo.nome || "Cartão Desconhecido",
@@ -416,7 +425,7 @@ export function renderizarTransacoesDoMes() {
         vencimentoNoMesSeguinte: cartaoInfo.vencimentoNoMesSeguinte || false,
         totalValor: 0,
         todasPagas: true,
-        isDeletado: isDeletado, // Passa a informação para o elemento visual
+        isDeletado: cartaoInfo.deletado === true,
       };
     }
     faturasAgrupadas[dc.cartaoId].totalValor += dc.valor;
@@ -432,43 +441,41 @@ export function renderizarTransacoesDoMes() {
       fatura.diaVencimentoFatura,
     );
     const totalAjustes = calcularTotalAjustes(fatura.cartaoId, mesAnoAtual);
-    const valorFinalFatura = fatura.totalValor - totalAjustes;
-
     itensParaRenderizar.push({
       id: fatura.cartaoId,
       tipoDisplay: CONSTS.TIPO_RENDERIZACAO.FATURA,
       cartaoId: fatura.cartaoId,
       nome: `Fatura ${fatura.cartaoNome}`,
-      valor: valorFinalFatura,
+      valor: fatura.totalValor - totalAjustes,
       dataOrdenacao: dataVencimentoFatura,
       dataVencimentoDisplay: dataVencimentoFatura.toISOString().split("T")[0],
       paga: fatura.todasPagas,
       mesAnoReferencia: mesAnoAtual,
       vencimentoNoMesSeguinte: fatura.vencimentoNoMesSeguinte,
-      isDeletado: fatura.isDeletado, // Registra no item da lista
+      isDeletado: fatura.isDeletado,
     });
   });
 
+  // Orçamentos
   state.orcamentos.forEach((orcamento) => {
     const [ano, mes] = mesAnoAtual.split("-").map(Number);
     const dataOrcamento = new Date(ano, mes - 1, orcamento.dia);
-
     let gastosNoOrcamento = transacoesDoMesVisivel
       .filter((t) => t.orcamentoId === orcamento.id)
       .reduce((total, t) => total + t.valor, 0);
 
     if (orcamento.isFixed) {
+      const activeBudgetIds = state.orcamentos.map((o) => o.id);
       const extra = transacoesDoMesVisivel
         .filter(
           (t) =>
             t.categoria === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO &&
-            !t.orcamentoId,
+            (!t.orcamentoId || !activeBudgetIds.includes(t.orcamentoId)),
         )
         .reduce((total, t) => total + t.valor, 0);
       gastosNoOrcamento += extra;
     }
 
-    // LÓGICA NOVA: Captura automáticos de Ordinários para exibição na tela inicial
     if (orcamento.isFixedOrdinary) {
       const extraOrdinario = transacoesDoMesVisivel
         .filter((t) => t.categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA)
@@ -476,15 +483,12 @@ export function renderizarTransacoesDoMes() {
       gastosNoOrcamento += extraOrdinario;
     }
 
-    // Cálculo do valor restante (pode ser negativo se estourar)
-    const valorRestante = orcamento.valor - gastosNoOrcamento;
-
     itensParaRenderizar.push({
       id: `orcamento-${orcamento.id}`,
       orcamentoId: orcamento.id,
       tipoDisplay: CONSTS.TIPO_RENDERIZACAO.ORCAMENTO,
       nome: orcamento.nome,
-      valor: valorRestante, // Valor negativo será tratado pela função criarElementoOrcamento
+      valor: orcamento.valor - gastosNoOrcamento,
       valorTotalOrcamento: orcamento.valor,
       dataOrdenacao: dataOrcamento,
     });
@@ -499,37 +503,31 @@ export function renderizarTransacoesDoMes() {
   itensParaRenderizar.sort((a, b) => {
     const prioridadeA = tipoPrioridade[a.tipoDisplay];
     const prioridadeB = tipoPrioridade[b.tipoDisplay];
-    if (prioridadeA !== prioridadeB) {
-      return prioridadeA - prioridadeB;
-    }
+    if (prioridadeA !== prioridadeB) return prioridadeA - prioridadeB;
     const dateA =
       a.dataOrdenacao instanceof Date ? a.dataOrdenacao : new Date(0);
     const dateB =
       b.dataOrdenacao instanceof Date ? b.dataOrdenacao : new Date(0);
-    const dateComparison = dateA - dateB;
-    if (dateComparison !== 0) return dateComparison;
-    const valorA = a.valorTotalOrcamento || a.valor || 0;
-    const valorB = b.valorTotalOrcamento || b.valor || 0;
-    return valorB - valorA;
+    return (
+      dateA - dateB ||
+      (b.valorTotalOrcamento || b.valor || 0) -
+        (a.valorTotalOrcamento || a.valor || 0)
+    );
   });
 
   atualizarResumoFinanceiro();
 
   if (itensParaRenderizar.length === 0) {
-    const liEmpty = document.createElement("li");
-    liEmpty.textContent = "Nenhuma transação para este mês.";
-    liEmpty.style.textAlign = "center";
-    liEmpty.style.padding = "20px";
-    liEmpty.style.color = "#777";
-    elements.listaTransacoesUl.appendChild(liEmpty);
+    elements.listaTransacoesUl.innerHTML =
+      '<li style="text-align:center;padding:20px;color:#777;">Nenhuma transação.</li>';
     return;
   }
 
   itensParaRenderizar.forEach((item) => {
     const li = document.createElement("li");
     li.classList.add("transaction-item");
-    const transactionDetailsDiv = document.createElement("div");
-    transactionDetailsDiv.classList.add("transaction-details");
+    const detailsDiv = document.createElement("div");
+    detailsDiv.classList.add("transaction-details");
     const actionsDiv = document.createElement("div");
     actionsDiv.classList.add("transaction-actions");
 
@@ -537,39 +535,30 @@ export function renderizarTransacoesDoMes() {
       case CONSTS.TIPO_RENDERIZACAO.RECEITA:
         li.classList.add("receita");
         li.dataset.transactionId = item.id;
-        transactionDetailsDiv.innerHTML = criarElementoReceita(
-          item,
-          actionsDiv,
-        );
+        detailsDiv.innerHTML = criarElementoReceita(item, actionsDiv);
         break;
       case CONSTS.TIPO_RENDERIZACAO.DESPESA:
         li.classList.add("despesa");
         if (item.paga) li.classList.add("paga");
         li.dataset.transactionId = item.id;
-        transactionDetailsDiv.innerHTML = criarElementoDespesa(
-          item,
-          actionsDiv,
-        );
+        detailsDiv.innerHTML = criarElementoDespesa(item, actionsDiv);
         break;
       case CONSTS.TIPO_RENDERIZACAO.FATURA:
         li.classList.add("despesa", "fatura-cartao");
         if (item.paga) li.classList.add("paga");
         li.dataset.cartaoId = item.cartaoId;
         li.dataset.mesAnoFatura = item.mesAnoReferencia;
-        transactionDetailsDiv.innerHTML = criarElementoFatura(item, actionsDiv);
+        detailsDiv.innerHTML = criarElementoFatura(item, actionsDiv);
         break;
       case CONSTS.TIPO_RENDERIZACAO.ORCAMENTO:
         li.classList.add("orcamento");
         if (isOrcamentoFechado(item.orcamentoId, mesAnoAtual))
           li.classList.add("fechado");
-        li.dataset.orcamentoId = item.id; // REINSERIDO: Linha vital para o clique funcionar
-        transactionDetailsDiv.innerHTML = criarElementoOrcamento(
-          item,
-          actionsDiv,
-        );
+        li.dataset.orcamentoId = item.id;
+        detailsDiv.innerHTML = criarElementoOrcamento(item, actionsDiv);
         break;
     }
-    li.appendChild(transactionDetailsDiv);
+    li.appendChild(detailsDiv);
     li.appendChild(actionsDiv);
     elements.listaTransacoesUl.appendChild(li);
   });
@@ -580,22 +569,17 @@ export function abrirModalDetalhesSerie(serieId, callbackAbrir) {
     .filter((t) => t.serieId === serieId)
     .sort((a, b) => a.parcelaAtual - b.parcelaAtual);
   if (transacoesDaSerie.length === 0) return;
-
   const primeiraTransacao = transacoesDaSerie[0];
   const nomeBase = primeiraTransacao.nome.replace(/\s\(\d+\/\d+\)$/, "");
   elements.modalDetalhesSerieTitulo.textContent = `Detalhes: ${nomeBase}`;
-
   elements.listaDetalhesSerieUl.innerHTML = "";
   transacoesDaSerie.forEach((t) => {
     const li = document.createElement("li");
     const [ano, mes] = t.mesAnoReferencia.split("-");
-    const dataParcela = new Date(ano, mes - 1);
-    const nomeMes = dataParcela.toLocaleString("pt-BR", { month: "long" });
-    const contextoData = `${nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1)}/${ano}`;
-    li.innerHTML = `
-                <span class="parcela-nome">${t.nome} <small style="color: #777; margin-left: 5px;">- ${contextoData}</small></span>
-                <span class="parcela-valor">${formatCurrency(t.valor)}</span>
-            `;
+    const nomeMes = new Date(ano, mes - 1).toLocaleString("pt-BR", {
+      month: "long",
+    });
+    li.innerHTML = `<span class="parcela-nome">${t.nome} <small style="color:#777;">- ${nomeMes}/${ano}</small></span><span class="parcela-valor">${formatCurrency(t.valor)}</span>`;
     elements.listaDetalhesSerieUl.appendChild(li);
   });
   callbackAbrir(elements.modalDetalhesSerie);
@@ -604,14 +588,12 @@ export function abrirModalDetalhesSerie(serieId, callbackAbrir) {
 export function renderizarEstadoVisibilidade() {
   if (state.areValuesHidden) {
     elements.bodyEl.classList.add("values-hidden");
-    if (elements.btnToggleVisibility) {
+    if (elements.btnToggleVisibility)
       elements.btnToggleVisibility.style.opacity = "0.5";
-    }
   } else {
     elements.bodyEl.classList.remove("values-hidden");
-    if (elements.btnToggleVisibility) {
+    if (elements.btnToggleVisibility)
       elements.btnToggleVisibility.style.opacity = "1";
-    }
   }
 }
 
@@ -627,26 +609,20 @@ export function abrirModalConfirmarAcaoSerie(
   context,
   callbackAbrir,
 ) {
-  let item;
-  if (context === "dividaTerceiro") {
-    item = state.dividasTerceiros.find((d) => d.id === itemId);
-  } else {
-    item = state.transacoes.find((t) => t.id === itemId);
-  }
+  let item =
+    context === "dividaTerceiro"
+      ? state.dividasTerceiros.find((d) => d.id === itemId)
+      : state.transacoes.find((t) => t.id === itemId);
   if (!item) return;
-
   elements.modalConfirmarAcaoSerie.dataset.itemId = itemId;
   elements.modalConfirmarAcaoSerie.dataset.serieId = item.serieId;
   elements.modalConfirmarAcaoSerie.dataset.acao = acao;
   elements.modalConfirmarAcaoSerie.dataset.context = context;
-
-  if (acao === CONSTS.ACAO_SERIE.EXCLUIR) {
-    elements.modalConfirmarAcaoSerieTitulo.textContent = `Excluir Item em Série`;
-    elements.modalConfirmarAcaoSerieTexto.textContent = `Deseja excluir apenas este item ou toda a série?`;
-  } else {
-    elements.modalConfirmarAcaoSerieTitulo.textContent = "Editar em Série";
-    elements.modalConfirmarAcaoSerieTexto.textContent = `Deseja editar apenas este item ou toda a série?`;
-  }
+  elements.modalConfirmarAcaoSerieTitulo.textContent =
+    acao === CONSTS.ACAO_SERIE.EXCLUIR
+      ? `Excluir Item em Série`
+      : "Editar em Série";
+  elements.modalConfirmarAcaoSerieTexto.textContent = `Deseja aplicar esta ação apenas a este item ou toda a série?`;
   callbackAbrir(elements.modalConfirmarAcaoSerie, null, "confirmarAcao");
 }
 
@@ -654,7 +630,6 @@ export async function handleTransactionListClick(event, callbacks = {}) {
   const target = event.target;
   const button = target.closest("button");
   const listItem = target.closest("li.transaction-item");
-
   if (!listItem) return;
 
   if (
@@ -733,7 +708,6 @@ export async function handleTransactionListClick(event, callbacks = {}) {
         callbacks.abrirModal,
       );
     } else {
-      // CORRIGIDO: Passando os callbacks de reset e preenchimento para o abrirModal
       callbacks.abrirModal(
         elements.modalNovaTransacao,
         transacaoId,

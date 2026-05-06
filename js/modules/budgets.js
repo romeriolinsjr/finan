@@ -21,13 +21,10 @@ export function renderizarListaOrcamentos() {
   );
   orcamentosOrdenados.forEach((orcamento) => {
     const li = document.createElement("li");
-
-    // LÓGICA ATUALIZADA: Só mostra o botão de excluir se NÃO for um dos orçamentos fixos
     const btnDeleteHTML =
       orcamento.isFixed || orcamento.isFixedOrdinary
         ? ""
         : `<button class="btn-delete-orcamento" data-id="${orcamento.id}" title="Excluir Orçamento">✖</button>`;
-
     li.innerHTML = `
                 <div class="orcamento-info">
                     <span class="orcamento-nome">${orcamento.nome}</span>
@@ -48,25 +45,17 @@ export function abrirModalDetalhesOrcamento(
 ) {
   const orcamento = state.orcamentos.find((o) => o.id === orcamentoId);
   if (!orcamento) return;
-
-  // LÓGICA ATUALIZADA: Mapeia IDs ativos para capturar despesas órfãs (IDs de orçamentos deletados)
   const activeBudgetIds = state.orcamentos.map((o) => o.id);
-
   const gastosVinculados = state.transacoes.filter((t) => {
     const mesBate = t.mesAnoReferencia === mesAno;
     const vinculadoDiretamente = t.orcamentoId === orcamentoId;
-
-    // Se for o orçamento fixo de CARTÃO, captura cartões sem ID OU com ID de um orçamento excluído
     const ehOrfaoCartao =
       orcamento.isFixed &&
       t.categoria === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO &&
       (!t.orcamentoId || !activeBudgetIds.includes(t.orcamentoId));
-
-    // Se for o orçamento de GASTOS ORDINÁRIOS, captura tudo o que é Débito/Pix/Dinheiro
     const ehGastoOrdinario =
       orcamento.isFixedOrdinary &&
       t.categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA;
-
     return (
       mesBate && (vinculadoDiretamente || ehOrfaoCartao || ehGastoOrdinario)
     );
@@ -77,36 +66,32 @@ export function abrirModalDetalhesOrcamento(
     [CONSTS.FREQUENCIA.PARCELADA]: 2,
     [CONSTS.FREQUENCIA.UNICA]: 3,
   };
-
-  gastosVinculados.sort((a, b) => {
-    const prioridadeA = prioridade[a.frequencia] || 4;
-    const prioridadeB = prioridade[b.frequencia] || 4;
-    if (prioridadeA !== prioridadeB) return prioridadeA - prioridadeB;
-    return b.valor - a.valor;
-  });
+  gastosVinculados.sort(
+    (a, b) =>
+      (prioridade[a.frequencia] || 4) - (prioridade[b.frequencia] || 4) ||
+      b.valor - a.valor,
+  );
 
   const totalGasto = gastosVinculados.reduce(
     (total, gasto) => total + gasto.valor,
     0,
   );
-  const valorRestante = orcamento.valor - totalGasto;
-
   elements.orcamentoDetalhesTitulo.textContent = `Detalhes: ${orcamento.nome}`;
   elements.orcamentoDetalhesTotal.textContent = formatCurrency(orcamento.valor);
   elements.orcamentoDetalhesGasto.textContent = formatCurrency(totalGasto);
-  elements.orcamentoDetalhesRestante.textContent =
-    formatCurrency(valorRestante);
+  elements.orcamentoDetalhesRestante.textContent = formatCurrency(
+    orcamento.valor - totalGasto,
+  );
   elements.orcamentoDetalhesRestante.style.color =
-    valorRestante >= 0 ? "#27ae60" : "#c0392b";
-
+    orcamento.valor - totalGasto >= 0 ? "#27ae60" : "#c0392b";
   elements.listaGastosOrcamento.innerHTML = "";
   if (gastosVinculados.length === 0) {
     elements.listaGastosOrcamento.innerHTML =
-      "<li>Nenhum gasto vinculado neste mês.</li>";
+      "<li>Nenhum gasto vinculado.</li>";
   } else {
     gastosVinculados.forEach((gasto) => {
       const li = document.createElement("li");
-      li.innerHTML = `<span class="gasto-nome">${gasto.nome}</span><span class="gasto-valor">${formatCurrency(gasto.valor)}</span>`;
+      li.innerHTML = `<span>${gasto.nome}</span><span>${formatCurrency(gasto.valor)}</span>`;
       elements.listaGastosOrcamento.appendChild(li);
     });
   }
@@ -137,30 +122,23 @@ export async function handleFecharAbrirOrcamento(button) {
     .collection("users")
     .doc(state.currentUser.uid)
     .collection("orcamentosFechados");
-
   try {
     const docId = `${orcamentoId}_${mesAno}`;
-    if (deveFechar) {
-      await orcamentosFechadosRef
-        .doc(docId)
-        .set({ orcamentoId: orcamentoId, mesAno: mesAno });
-    } else {
-      await orcamentosFechadosRef.doc(docId).delete();
-    }
+    if (deveFechar)
+      await orcamentosFechadosRef.doc(docId).set({ orcamentoId, mesAno });
+    else await orcamentosFechadosRef.doc(docId).delete();
     await registrarUltimaAlteracao();
   } catch (error) {
-    console.error("Erro ao alterar estado do orçamento:", error);
+    console.error("Erro cadeado:", error);
   }
 }
 
 export function resetFormOrcamento() {
   if (!elements.orcamentoEditIdInput) return;
-
   elements.orcamentoEditIdInput.value = "";
   elements.nomeOrcamentoInput.value = "";
   elements.valorOrcamentoInput.value = "";
   elements.diaOrcamentoInput.value = "";
-
   elements.modalOrcamentoTitulo.textContent = "Gerenciar Orçamentos";
   elements.btnSalvarOrcamento.textContent = "Salvar";
 }
