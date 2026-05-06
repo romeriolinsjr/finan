@@ -49,27 +49,26 @@ export function abrirModalDetalhesOrcamento(
   const orcamento = state.orcamentos.find((o) => o.id === orcamentoId);
   if (!orcamento) return;
 
-  // LÓGICA ATUALIZADA: Filtra gastos diretos e também os capturados automaticamente
+  // LÓGICA ATUALIZADA: Mapeia IDs ativos para capturar despesas órfãs (IDs de orçamentos deletados)
+  const activeBudgetIds = state.orcamentos.map((o) => o.id);
+
   const gastosVinculados = state.transacoes.filter((t) => {
     const mesBate = t.mesAnoReferencia === mesAno;
     const vinculadoDiretamente = t.orcamentoId === orcamentoId;
 
-    // Captura despesas de cartão sem categoria para o "Outros Gastos"
-    const ehGastoDeCartaoSemOrcamento =
+    // Se for o orçamento fixo de CARTÃO, captura cartões sem ID OU com ID de um orçamento excluído
+    const ehOrfaoCartao =
       orcamento.isFixed &&
       t.categoria === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO &&
-      !t.orcamentoId;
+      (!t.orcamentoId || !activeBudgetIds.includes(t.orcamentoId));
 
-    // LÓGICA NOVA: Captura TODAS as despesas ordinárias para o "Gastos Ordinários"
-    const ehGastoOrdinarioAutomatico =
+    // Se for o orçamento de GASTOS ORDINÁRIOS, captura tudo o que é Débito/Pix/Dinheiro
+    const ehGastoOrdinario =
       orcamento.isFixedOrdinary &&
       t.categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA;
 
     return (
-      mesBate &&
-      (vinculadoDiretamente ||
-        ehGastoDeCartaoSemOrcamento ||
-        ehGastoOrdinarioAutomatico)
+      mesBate && (vinculadoDiretamente || ehOrfaoCartao || ehGastoOrdinario)
     );
   });
 

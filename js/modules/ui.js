@@ -38,72 +38,68 @@ export function atualizarResumoFinanceiro() {
     !elements.saldoMesDisplay
   )
     return;
+
   const mesAnoAtual = getMesAnoChave(state.currentDate);
-  const transacoesDoMesReferencia = state.transacoes.filter(
+  const transacoesDoMes = state.transacoes.filter(
     (t) => t.mesAnoReferencia === mesAnoAtual,
   );
+  const activeBudgetIds = state.orcamentos.map((o) => o.id);
 
-  let receitasDoMes = 0;
-  let despesasDoMes = 0;
-
-  // 1. Soma das Receitas
-  receitasDoMes = transacoesDoMesReferencia
+  let receitasDoMes = transacoesDoMes
     .filter((t) => t.tipo === CONSTS.TIPO_TRANSACAO.RECEITA)
     .reduce((total, t) => total + t.valor, 0);
 
-  // 2. Lógica de Orçamentos (Cálculo de Previsão vs Real)
+  let despesasDoMes = 0;
+
   state.orcamentos.forEach((orcamento) => {
-    // Busca gastos vinculados diretamente a este ID (geralmente cartões categorizados)
-    let gastosNesteOrcamento = transacoesDoMesReferencia
+    // Gastos vinculados diretamente a este orçamento
+    let gastosNesteOrcamento = transacoesDoMes
       .filter((t) => t.orcamentoId === orcamento.id)
       .reduce((total, t) => total + t.valor, 0);
 
-    // LÓGICA: Se for o orçamento fixo de CARTÃO, captura cartões sem orcamentoId
+    // LÓGICA DE CAPTURA ROBUSTA:
     if (orcamento.isFixed) {
-      const gastosCartaoNaoCategorizados = transacoesDoMesReferencia
+      // "Outros Gastos" captura Cartão sem ID OU com ID de orçamento que não existe mais
+      const órfãosCartao = transacoesDoMes
         .filter(
           (t) =>
             t.categoria === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO &&
-            !t.orcamentoId,
+            (!t.orcamentoId || !activeBudgetIds.includes(t.orcamentoId)),
         )
         .reduce((total, t) => total + t.valor, 0);
-      gastosNesteOrcamento += gastosCartaoNaoCategorizados;
+      gastosNesteOrcamento += órfãosCartao;
     }
 
-    // LÓGICA NOVA: Se for o orçamento de GASTOS ORDINÁRIOS, captura TUDO o que não é cartão
     if (orcamento.isFixedOrdinary) {
-      const gastosOrdinariosTotais = transacoesDoMesReferencia
+      // "Gastos Ordinários" captura TUDO o que for ordinário
+      const todosOrdinarios = transacoesDoMes
         .filter((t) => t.categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA)
         .reduce((total, t) => total + t.valor, 0);
-      gastosNesteOrcamento += gastosOrdinariosTotais;
+      gastosNesteOrcamento += todosOrdinarios;
     }
 
     if (isOrcamentoFechado(orcamento.id, mesAnoAtual)) {
-      // Se estiver fechado (cadeado), usa o valor real gasto
       despesasDoMes += gastosNesteOrcamento;
     } else {
-      // Se aberto, usa o que for maior: a previsão (teto) ou o gasto real
-      // Isso garante que o saldo caia se o teto for estourado
       despesasDoMes += Math.max(orcamento.valor, gastosNesteOrcamento);
     }
   });
 
-  // 3. Abate os ajustes de fatura (Cashbacks/Estornos)
-  const totalAjustesDoMes = state.ajustesFatura
+  const totalAjustes = state.ajustesFatura
     .filter((a) => a.mesAnoReferencia === mesAnoAtual)
     .reduce((total, a) => total + a.valor, 0);
-  despesasDoMes -= totalAjustesDoMes;
+  despesasDoMes -= totalAjustes;
 
-  const saldoDoMes = receitasDoMes - despesasDoMes;
   elements.totalReceitasDisplay.textContent = formatCurrency(receitasDoMes);
   elements.totalDespesasDisplay.textContent = formatCurrency(despesasDoMes);
-  elements.saldoMesDisplay.textContent = formatCurrency(saldoDoMes);
+  elements.saldoMesDisplay.textContent = formatCurrency(
+    receitasDoMes - despesasDoMes,
+  );
 
   if (!state.areValuesHidden) {
+    const saldo = receitasDoMes - despesasDoMes;
     elements.saldoMesDisplay.style.color =
-      saldoDoMes > 0 ? "#27ae60" : saldoDoMes < 0 ? "#e74c3c" : "#3498db";
-  } else {
-    elements.saldoMesDisplay.style.color = "";
+      saldo > 0 ? "#27ae60" : saldo < 0 ? "#e74c3c" : "#3498db";
   }
 }
 
@@ -396,19 +392,6 @@ export function renderizarTransacoesDoMes() {
       ...r,
       tipoDisplay: CONSTS.TIPO_RENDERIZACAO.RECEITA,
       dataOrdenacao: parseDateString(r.dataEntrada),
-    }),
-  );
-
-  const despesasOrdinariasDoMes = transacoesDoMesVisivel.filter(
-    (t) =>
-      t.tipo === CONSTS.TIPO_TRANSACAO.DESPESA &&
-      t.categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA,
-  );
-  despesasOrdinariasDoMes.forEach((d) =>
-    itensParaRenderizar.push({
-      ...d,
-      tipoDisplay: CONSTS.TIPO_RENDERIZACAO.DESPESA,
-      dataOrdenacao: parseDateString(d.dataVencimento),
     }),
   );
 
