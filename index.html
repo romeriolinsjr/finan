@@ -76,8 +76,20 @@
           </div>
           <div class="month-navigation">
             <button id="prevMonthBtn" title="Mês anterior"><</button>
-            <span id="currentMonthDisplay">Carregando...</span>
+            <div class="month-picker-container">
+              <input type="month" id="monthPicker" />
+              <span id="currentMonthDisplay" style="display: none"
+                >Carregando...</span
+              >
+            </div>
             <button id="nextMonthBtn" title="Próximo mês">></button>
+            <button
+              id="btnGoToToday"
+              title="Voltar para Hoje"
+              class="btn-today"
+            >
+              Hoje
+            </button>
           </div>
         </header>
 
@@ -97,6 +109,13 @@
               title="Limpar busca"
             >
               ×
+            </button>
+            <button
+              id="btnDeepSearch"
+              class="btn-deep-search"
+              style="display: none"
+            >
+              🔍 Pesquisar em todo o histórico
             </button>
           </div>
 

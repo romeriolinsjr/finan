@@ -12,14 +12,11 @@ import {
 } from "./utils.js";
 
 export function updateMonthDisplay(callbackRender) {
-  if (!elements.currentMonthDisplay) return;
-  const monthName = state.currentDate.toLocaleString("pt-BR", {
-    month: "long",
-  });
-  const year = state.currentDate.getFullYear();
-  elements.currentMonthDisplay.textContent = `${
-    monthName.charAt(0).toUpperCase() + monthName.slice(1)
-  }/${year}`;
+  if (!elements.monthPicker) return;
+
+  const ano = state.currentDate.getFullYear();
+  const mes = String(state.currentDate.getMonth() + 1).padStart(2, "0");
+  elements.monthPicker.value = `${ano}-${mes}`;
 
   const limitDate = new Date();
   limitDate.setMonth(limitDate.getMonth() + 24);

@@ -53,14 +53,24 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     } else {
       console.log("Sessão encerrada.");
+
+      // NOVO: Desliga todas as escutas ativas do Firebase para evitar erros de permissão
+      if (state.activeUnsubscribers) {
+        state.activeUnsubscribers.forEach((unsub) => unsub());
+        state.activeUnsubscribers = [];
+      }
+
       state.currentUser = null;
       state.isRegisterMode = false;
       if (appContainer) appContainer.style.display = "none";
       authMod.resetAuthModalUI();
       utils.hideSpinner();
+
+      // Limpa dados sensíveis da memória
       state.transacoes = [];
       state.cartoes = [];
       state.orcamentos = [];
+      state.mesesCarregados = [];
     }
   });
 
@@ -144,10 +154,22 @@ document.addEventListener("DOMContentLoaded", () => {
   async function carregarDadosIniciais() {
     if (!state.currentUser) return;
     const userCollections = db.collection("users").doc(state.currentUser.uid);
+
+    // Define os 3 meses iniciais (Anterior, Atual, Próximo)
+    const dataAtual = new Date();
+    const mesesParaBaixar = [];
+    for (let i = -1; i <= 1; i++) {
+      const d = new Date(dataAtual.getFullYear(), dataAtual.getMonth() + i, 1);
+      mesesParaBaixar.push(utils.getMesAnoChave(d));
+    }
+
     try {
       const [tSnap, cSnap, oSnap, ofSnap, aSnap, dSnap, pSnap] =
         await Promise.all([
-          userCollections.collection("transacoes").get(),
+          userCollections
+            .collection("transacoes")
+            .where("mesAnoReferencia", "in", mesesParaBaixar)
+            .get(),
           userCollections.collection("cartoes").get(),
           userCollections.collection("orcamentos").get(),
           userCollections.collection("orcamentosFechados").get(),
@@ -155,6 +177,7 @@ document.addEventListener("DOMContentLoaded", () => {
           userCollections.collection("dividasTerceiros").get(),
           userCollections.collection("pessoas").get(),
         ]);
+
       state.transacoes = tSnap.docs.map((doc) => ({
         ...doc.data(),
         id: doc.id,
@@ -178,14 +201,55 @@ document.addEventListener("DOMContentLoaded", () => {
       }));
       state.pessoas = pSnap.docs.map((doc) => ({ ...doc.data(), id: doc.id }));
       state.pessoas.sort((a, b) => a.nome.localeCompare(b.nome));
+
+      // Marca esses meses como carregados no cache
+      state.mesesCarregados = [...mesesParaBaixar];
     } catch (error) {
       console.error("Erro dados iniciais:", error);
+    }
+  }
+
+  // NOVA FUNÇÃO: Carrega um mês específico se ele não estiver no cache
+  async function garantirDadosDoMes(mesAno) {
+    if (state.mesesCarregados.includes(mesAno)) return; // Já está no cache
+
+    console.log(`Carregando dados sob demanda para: ${mesAno}`);
+    // Exibe o spinner diretamente pelo elemento
+    if (elements.loadingSpinnerOverlay)
+      elements.loadingSpinnerOverlay.style.display = "flex";
+
+    try {
+      const userCollections = db.collection("users").doc(state.currentUser.uid);
+      const snapshot = await userCollections
+        .collection("transacoes")
+        .where("mesAnoReferencia", "==", mesAno)
+        .get();
+
+      const novasTransacoes = snapshot.docs.map((doc) => ({
+        ...doc.data(),
+        id: doc.id,
+      }));
+
+      // Adiciona as novas transações ao estado sem apagar as que já existem
+      state.transacoes = [...state.transacoes, ...novasTransacoes];
+      state.mesesCarregados.push(mesAno);
+    } catch (error) {
+      console.error(`Erro ao carregar mês ${mesAno}:`, error);
+    } finally {
+      // Oculta o spinner diretamente pelo elemento
+      if (elements.loadingSpinnerOverlay)
+        elements.loadingSpinnerOverlay.style.display = "none";
     }
   }
 
   function carregarDadosDoFirestore() {
     if (!state.currentUser) return;
     const userRef = db.collection("users").doc(state.currentUser.uid);
+
+    // Limpa unsubscribers antigos se houver
+    state.activeUnsubscribers.forEach((unsub) => unsub());
+    state.activeUnsubscribers = [];
+
     const update = () => {
       if (elements.searchInput.value.trim() === "")
         ui.renderizarTransacoesDoMes();
@@ -197,39 +261,57 @@ document.addEventListener("DOMContentLoaded", () => {
       if (elements.modalConsultarTerceiros.style.display === "flex")
         third.renderizarDividasDoMes();
     };
-    userRef.collection("transacoes").onSnapshot((s) => {
-      state.transacoes = s.docs.map((d) => ({ ...d.data(), id: d.id }));
-      update();
-    });
-    userRef.collection("cartoes").onSnapshot((s) => {
-      state.cartoes = s.docs.map((d) => ({ ...d.data(), id: d.id }));
-      update();
-    });
-    userRef.collection("orcamentos").onSnapshot((s) => {
-      state.orcamentos = s.docs.map((d) => ({ ...d.data(), id: d.id }));
-      update();
-    });
-    userRef.collection("orcamentosFechados").onSnapshot((s) => {
-      state.orcamentosFechados = s.docs.map((d) => ({ ...d.data(), id: d.id }));
-      update();
-    });
-    userRef.collection("ajustesFatura").onSnapshot((s) => {
-      state.ajustesFatura = s.docs.map((d) => ({ ...d.data(), id: d.id }));
-      update();
-    });
-    userRef.collection("dividasTerceiros").onSnapshot((s) => {
-      state.dividasTerceiros = s.docs.map((d) => ({ ...d.data(), id: d.id }));
-      update();
-    });
-    userRef.collection("pessoas").onSnapshot((s) => {
-      state.pessoas = s.docs.map((d) => ({ ...d.data(), id: d.id }));
-      state.pessoas.sort((a, b) => a.nome.localeCompare(b.nome));
 
-      // NOVO: Se o modal de gerenciar pessoas estiver aberto, atualiza a lista na hora
-      if (elements.modalGerenciarPessoas.style.display === "flex") {
-        third.renderizarListaPessoas();
-      }
-    });
+    // Armazenamos o retorno de cada onSnapshot (a função de desligar)
+    // userRef.collection("transacoes").onSnapshot... (REMOVIDO PARA ECONOMIA)
+
+    state.activeUnsubscribers.push(
+      userRef.collection("cartoes").onSnapshot((s) => {
+        state.cartoes = s.docs.map((d) => ({ ...d.data(), id: d.id }));
+        update();
+      }),
+    );
+
+    state.activeUnsubscribers.push(
+      userRef.collection("orcamentos").onSnapshot((s) => {
+        state.orcamentos = s.docs.map((d) => ({ ...d.data(), id: d.id }));
+        update();
+      }),
+    );
+
+    state.activeUnsubscribers.push(
+      userRef.collection("orcamentosFechados").onSnapshot((s) => {
+        state.orcamentosFechados = s.docs.map((d) => ({
+          ...d.data(),
+          id: d.id,
+        }));
+        update();
+      }),
+    );
+
+    state.activeUnsubscribers.push(
+      userRef.collection("ajustesFatura").onSnapshot((s) => {
+        state.ajustesFatura = s.docs.map((d) => ({ ...d.data(), id: d.id }));
+        update();
+      }),
+    );
+
+    state.activeUnsubscribers.push(
+      userRef.collection("dividasTerceiros").onSnapshot((s) => {
+        state.dividasTerceiros = s.docs.map((d) => ({ ...d.data(), id: d.id }));
+        update();
+      }),
+    );
+
+    state.activeUnsubscribers.push(
+      userRef.collection("pessoas").onSnapshot((s) => {
+        state.pessoas = s.docs.map((d) => ({ ...d.data(), id: d.id }));
+        state.pessoas.sort((a, b) => a.nome.localeCompare(b.nome));
+        if (elements.modalGerenciarPessoas.style.display === "flex") {
+          third.renderizarListaPessoas();
+        }
+      }),
+    );
   }
 
   // --- GATILHOS DE INTERFACE (VITAIS) ---
@@ -259,35 +341,71 @@ document.addEventListener("DOMContentLoaded", () => {
       elements.bodyEl.classList.remove("sidebar-visible");
   });
 
-  // Navegação de Mês
-  elements.prevMonthBtn.addEventListener("click", () => {
+  // Navegação de Mês (OTIMIZADA)
+  elements.prevMonthBtn.addEventListener("click", async () => {
     if (elements.searchInput.value) {
       elements.searchInput.value = "";
       elements.clearSearchBtn.classList.remove("visible");
     }
     state.currentDate.setMonth(state.currentDate.getMonth() - 1);
+    const mesAno = utils.getMesAnoChave(state.currentDate);
+    await garantirDadosDoMes(mesAno);
     ui.updateMonthDisplay(ui.renderizarTransacoesDoMes);
   });
-  elements.nextMonthBtn.addEventListener("click", () => {
+
+  elements.nextMonthBtn.addEventListener("click", async () => {
     if (elements.searchInput.value) {
       elements.searchInput.value = "";
       elements.clearSearchBtn.classList.remove("visible");
     }
     state.currentDate.setMonth(state.currentDate.getMonth() + 1);
+    const mesAno = utils.getMesAnoChave(state.currentDate);
+    await garantirDadosDoMes(mesAno);
+    ui.updateMonthDisplay(ui.renderizarTransacoesDoMes);
+  });
+
+  // Novo: Seletor de mês direto (Calendário OTIMIZADO)
+  elements.monthPicker.addEventListener("change", async (e) => {
+    if (!e.target.value) return;
+    const [ano, mes] = e.target.value.split("-");
+    state.currentDate = new Date(ano, mes - 1, 1);
+    const mesAno = e.target.value; // O input month já retorna YYYY-MM
+    await garantirDadosDoMes(mesAno);
+    ui.updateMonthDisplay(ui.renderizarTransacoesDoMes);
+  });
+
+  // Novo: Botão voltar para o mês atual (OTIMIZADO)
+  elements.btnGoToToday.addEventListener("click", async () => {
+    state.currentDate = new Date();
+    const mesAno = utils.getMesAnoChave(state.currentDate);
+    await garantirDadosDoMes(mesAno);
     ui.updateMonthDisplay(ui.renderizarTransacoesDoMes);
   });
 
   // Busca
-  elements.searchInput.addEventListener("input", () =>
-    search.executarBuscaGlobal(
-      elements.searchInput.value,
-      ui.renderizarTransacoesDoMes,
-    ),
-  );
+  elements.searchInput.addEventListener("input", () => {
+    const termo = elements.searchInput.value.trim();
+    if (termo.length > 0) {
+      elements.btnDeepSearch.style.display = "block";
+    } else {
+      elements.btnDeepSearch.style.display = "none";
+    }
+
+    search.executarBuscaGlobal(termo, ui.renderizarTransacoesDoMes);
+  });
   elements.clearSearchBtn.addEventListener("click", () => {
     elements.searchInput.value = "";
+    elements.btnDeepSearch.style.display = "none"; // Oculta o botão de busca profunda
     search.executarBuscaGlobal("", ui.renderizarTransacoesDoMes);
     elements.searchInput.focus();
+  });
+
+  // Novo: Ouvinte para o botão de busca profunda
+  elements.btnDeepSearch.addEventListener("click", () => {
+    const termo = elements.searchInput.value.trim();
+    if (termo) {
+      search.executarBuscaProfunda(termo, db, state.currentUser);
+    }
   });
 
   // Autenticação
@@ -411,9 +529,30 @@ document.addEventListener("DOMContentLoaded", () => {
       ? await trans.atualizarTransacaoExistente(d)
       : await trans.adicionarNovasTransacoes(d);
     if (s) {
-      if (state.isQuickAddMode && !state.isEditMode)
+      // 1. Identifica qual mês estamos vendo agora na tela
+      const mesVisualizado = utils.getMesAnoChave(state.currentDate);
+
+      // 2. Remove da memória local apenas as transações deste mês específico
+      state.transacoes = state.transacoes.filter(
+        (t) => t.mesAnoReferencia !== mesVisualizado,
+      );
+
+      // 3. Remove este mês da lista de "meses carregados" para que a função aceite baixar de novo
+      state.mesesCarregados = state.mesesCarregados.filter(
+        (m) => m !== mesVisualizado,
+      );
+
+      // 4. Busca os dados atualizados do Firebase para o mês que está na tela
+      await garantirDadosDoMes(mesVisualizado);
+
+      if (state.isQuickAddMode && !state.isEditMode) {
         trans.resetFormParaNovaDespesaCartao();
-      else ui.fecharModalEspecifico(elements.modalNovaTransacao);
+      } else {
+        ui.fecharModalEspecifico(elements.modalNovaTransacao);
+      }
+
+      // 5. Atualiza a interface
+      ui.renderizarTransacoesDoMes();
     }
   });
 
@@ -457,10 +596,25 @@ document.addEventListener("DOMContentLoaded", () => {
 
     ui.handleTransactionListClick(e, {
       handleFecharAbrirOrcamento: budgets.handleFecharAbrirOrcamento,
-      atualizarStatusPagoFatura: (id, m, s) =>
-        cards.atualizarStatusPagoFatura(id, m, s, ui.atualizarResumoFinanceiro),
-      atualizarStatusPago: (id, s) =>
-        trans.atualizarStatusPago(id, s, ui.atualizarResumoFinanceiro),
+      atualizarStatusPagoFatura: (id, m, s) => {
+        // 1. Primeiro atualiza na memória local (Efeito Visual Instantâneo)
+        state.transacoes
+          .filter((t) => t.cartaoId === id && t.mesAnoReferencia === m)
+          .forEach((t) => (t.paga = s));
+        ui.renderizarTransacoesDoMes();
+
+        // 2. Depois faz a atualização no banco de dados em segundo plano
+        cards.atualizarStatusPagoFatura(id, m, s, ui.atualizarResumoFinanceiro);
+      },
+      atualizarStatusPago: (id, s) => {
+        // 1. Primeiro atualiza na memória local (Efeito Visual Instantâneo)
+        const t = state.transacoes.find((trans) => trans.id === id);
+        if (t) t.paga = s;
+        ui.renderizarTransacoesDoMes();
+
+        // 2. Depois faz a atualização no banco de dados em segundo plano
+        trans.atualizarStatusPago(id, s, ui.atualizarResumoFinanceiro);
+      },
       abrirModalDetalhesOrcamento: (id, m) =>
         budgets.abrirModalDetalhesOrcamento(id, m, ui.abrirModalEspecifico),
       abrirModalDetalhesFatura: (id, m) =>

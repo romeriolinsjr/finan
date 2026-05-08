@@ -26,4 +26,6 @@ export const state = {
   // NOVAS VARIÁVEIS:
   isPessoaEditMode: false,
   editingPessoaId: null,
+  mesesCarregados: [], // Armazena chaves como "2024-05" para controle de cache
+  activeUnsubscribers: [], // Armazena as funções de limpeza das escutas do Firebase
 };

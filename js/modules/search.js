@@ -132,3 +132,73 @@ export function renderizarResultadosBusca(resultados, termoBusca) {
     elements.listaTransacoesUl.appendChild(li);
   });
 }
+export async function executarBuscaProfunda(termo, db, currentUser) {
+  const termoBusca = termo.trim().toLowerCase();
+  if (!termoBusca || !currentUser) return;
+
+  // Exibe o spinner de carregamento
+  if (elements.loadingSpinnerOverlay)
+    elements.loadingSpinnerOverlay.style.display = "flex";
+
+  try {
+    // Busca TODAS as transações no banco para este usuário (Carga profunda)
+    const snapshot = await db
+      .collection("users")
+      .doc(currentUser.uid)
+      .collection("transacoes")
+      .get();
+
+    const todasAsTransacoes = snapshot.docs.map((doc) => ({
+      ...doc.data(),
+      id: doc.id,
+    }));
+
+    // Filtra localmente os resultados do banco pelo termo buscado
+    const resultadosFiltrados = todasAsTransacoes.filter((t) =>
+      t.nome.toLowerCase().includes(termoBusca),
+    );
+
+    const resultadosAgrupados = [];
+    const seriesProcessadas = new Set();
+
+    resultadosFiltrados.forEach((t) => {
+      if (t.serieId) {
+        if (seriesProcessadas.has(t.serieId)) return;
+        const todasDaSerie = todasAsTransacoes.filter(
+          (item) => item.serieId === t.serieId,
+        );
+        const nomeBase = t.nome
+          .replace(/\s\(\d+\/\d+\)$/, "")
+          .replace(/\s\(Recorrente\)$/, "");
+
+        resultadosAgrupados.push({
+          isGroup: true,
+          serieId: t.serieId,
+          nome: nomeBase,
+          frequencia: t.frequencia,
+          tipo: t.tipo,
+          ocorrencias: todasDaSerie.length,
+          valor: t.valor,
+          primeiraOcorrencia: todasDaSerie.sort((a, b) =>
+            a.mesAnoReferencia.localeCompare(b.mesAnoReferencia),
+          )[0],
+        });
+        seriesProcessadas.add(t.serieId);
+      } else {
+        resultadosAgrupados.push({ ...t, isGroup: false });
+      }
+    });
+
+    renderizarResultadosBusca(resultadosAgrupados, termoBusca);
+
+    // Oculta o botão de busca profunda após o uso bem-sucedido
+    if (elements.btnDeepSearch) elements.btnDeepSearch.style.display = "none";
+  } catch (error) {
+    console.error("Erro na busca profunda:", error);
+    alert("Erro ao pesquisar em todo o histórico.");
+  } finally {
+    // Oculta o spinner
+    if (elements.loadingSpinnerOverlay)
+      elements.loadingSpinnerOverlay.style.display = "none";
+  }
+}
