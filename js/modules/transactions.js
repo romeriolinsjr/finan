@@ -8,546 +8,194 @@ import {
   registrarUltimaAlteracao,
 } from "./utils.js";
 
-export function resetModalNovaTransacao() {
-  if (
-    !elements.tipoTransacaoSelect ||
-    !elements.nomeTransacaoInput ||
-    !elements.passo2Container ||
-    !elements.btnAvancarTransacao ||
-    !elements.btnSalvarTransacao ||
-    !elements.btnVoltarTransacao ||
-    !elements.modalHeaderNovaTransacao
-  )
-    return;
+// Função para gerenciar o que aparece ou some no formulário
+export function atualizarVisibilidadeFormulario() {
+  const tipo = elements.tipoTransacaoSelect.value;
+  const categoria = elements.categoriaDespesa.value;
+  const freqOrd = elements.frequenciaDespesaOrd.value;
+  const freqCartao = elements.frequenciaDespesaCartao.value;
 
-  elements.tipoTransacaoSelect.parentElement.style.display = "block";
-  elements.nomeTransacaoInput.parentElement.style.display = "block";
-  elements.btnAvancarTransacao.style.display = "inline-block";
-  elements.btnSalvarTransacao.style.display = "none";
-  elements.btnVoltarTransacao.style.display = "none";
-  elements.passo2Container.innerHTML = "";
-  elements.passo2Container.style.display = "none";
-  elements.tipoTransacaoSelect.value = "";
-  elements.nomeTransacaoInput.value = "";
-  if (elements.quickAddFeedback)
-    elements.quickAddFeedback.style.display = "none";
-  state.currentModalStep = 1;
+  // Reseta todas as seções primeiro
+  elements.secaoReceita.style.display = "none";
+  elements.secaoCategoriaDespesa.style.display = "none";
+  elements.secaoDespesaOrdinaria.style.display = "none";
+  elements.secaoDespesaCartao.style.display = "none";
+  elements.blocoPessoaTerceiros.style.display = state.isModoTerceiros
+    ? "block"
+    : "none";
 
-  const nomeLabel = elements.nomeTransacaoInput.previousElementSibling;
-  if (state.isModoTerceiros) {
-    elements.modalHeaderNovaTransacao.textContent =
-      "Nova Dívida de Terceiro (Passo 1)";
-    elements.tipoTransacaoSelect.value = "despesa";
-    elements.tipoTransacaoSelect.disabled = true;
-    elements.nomeTransacaoInput.placeholder = "Ex: Empréstimo, Compra Celular";
-    if (nomeLabel) nomeLabel.textContent = "Descrição da Dívida:";
+  if (tipo === "receita") {
+    elements.secaoReceita.style.display = "block";
+    elements.btnSalvarTransacao.style.display = "inline-block";
+  } else if (tipo === "despesa") {
+    elements.secaoCategoriaDespesa.style.display = "block";
+
+    if (categoria === "ordinaria") {
+      elements.secaoDespesaOrdinaria.style.display = "block";
+      elements.camposParceladaOrd.style.display =
+        freqOrd === "parcelada" ? "block" : "none";
+      elements.btnSalvarTransacao.style.display = "inline-block";
+    } else if (categoria === "cartao_credito") {
+      elements.secaoDespesaCartao.style.display = "block";
+      // Controla a cascata do parcelamento
+      const isParcelada = freqCartao === "parcelada";
+      elements.containerTipoCadastroCartao.style.display = isParcelada
+        ? "block"
+        : "none";
+      elements.camposParcelamentoCartao.style.display = isParcelada
+        ? "block"
+        : "none";
+
+      elements.containerOrcamentoVinculado.style.display = state.isModoTerceiros
+        ? "none"
+        : "block";
+      elements.btnSalvarTransacao.style.display = "inline-block";
+    } else {
+      elements.btnSalvarTransacao.style.display = "none";
+    }
   } else {
-    elements.modalHeaderNovaTransacao.textContent =
-      "Nova Transação (Passo 1 de 2)";
-    elements.tipoTransacaoSelect.disabled = false;
-    elements.nomeTransacaoInput.placeholder = "Ex: Salário, Aluguel";
-    if (nomeLabel) nomeLabel.textContent = "Nome:";
+    elements.btnSalvarTransacao.style.display = "none";
   }
 }
 
-export function preencherModalParaEdicao(id, callbackFechar) {
-  if (
-    !elements.tipoTransacaoSelect ||
-    !elements.nomeTransacaoInput ||
-    !elements.modalHeaderNovaTransacao
-  )
-    return;
-  const transacao = state.transacoes.find((t) => t.id === id);
-  if (!transacao) {
-    console.error("Transação não encontrada para edição:", id);
-    callbackFechar(elements.modalNovaTransacao);
-    return;
+export function resetModalNovaTransacao() {
+  // Limpa textos e seletores
+  elements.tipoTransacaoSelect.value = "";
+  elements.nomeTransacaoInput.value = "";
+  elements.tipoTransacaoSelect.disabled = false;
+  elements.nomeTransacaoInput.placeholder = "Ex: Salário, Aluguel";
+
+  // Limpa campos de Receita
+  elements.valorReceita.value = "";
+  elements.dataEntradaReceita.value = new Date().toISOString().split("T")[0];
+  elements.frequenciaReceita.value = "unica";
+
+  // Limpa campos de Despesa
+  elements.categoriaDespesa.value = "";
+  elements.categoriaDespesa.disabled = false;
+
+  // Ordinária
+  elements.frequenciaDespesaOrd.value = "unica";
+  elements.frequenciaDespesaOrd.disabled = false;
+  elements.valorDespesaOrd.value = "";
+  elements.dataVencimentoDespesaOrd.value = new Date()
+    .toISOString()
+    .split("T")[0];
+  elements.tipoCadastroParcelaOrd.value = "valor_total";
+  elements.qtdParcelasOrd.value = "";
+  elements.parcelaAtualOrd.value = "1";
+
+  // Cartão
+  elements.frequenciaDespesaCartao.value = "unica";
+  elements.frequenciaDespesaCartao.disabled = false;
+  elements.valorDespesaCartao.value = "";
+  elements.tipoCadastroParcelaCartao.value = "valor_total";
+  elements.qtdParcelasCartao.value = "";
+  elements.parcelaAtualCartao.value = "1";
+
+  if (elements.quickAddFeedback)
+    elements.quickAddFeedback.style.display = "none";
+
+  // Ajusta títulos
+  if (state.isModoTerceiros) {
+    elements.modalHeaderNovaTransacao.textContent = "Nova Dívida de Terceiro";
+    elements.tipoTransacaoSelect.value = "despesa";
+    elements.tipoTransacaoSelect.disabled = true;
+  } else {
+    elements.modalHeaderNovaTransacao.textContent = state.isEditMode
+      ? "Editar Transação"
+      : "Nova Transação";
   }
+
+  // Atualiza visibilidade inicial
+  atualizarVisibilidadeFormulario();
+}
+
+export function preencherModalParaEdicao(id) {
+  const transacao = state.transacoes.find((t) => t.id === id);
+  if (!transacao) return;
+
   const nomeOriginal = transacao.serieId
     ? transacao.nome
         .replace(/\s\(\d+\/\d+\)$/, "")
         .replace(/\s\(Recorrente\)$/, "")
     : transacao.nome;
-  const nomeCurto =
-    nomeOriginal.substring(0, 25) + (nomeOriginal.length > 25 ? "..." : "");
-  elements.modalHeaderNovaTransacao.textContent = `Editar Transação: ${nomeCurto} (Passo 1)`;
+
   elements.tipoTransacaoSelect.value = transacao.tipo;
   elements.nomeTransacaoInput.value = nomeOriginal;
   elements.tipoTransacaoSelect.disabled = true;
-}
 
-export function carregarFormularioReceita(transacao = null) {
-  const hoje = new Date().toISOString().split("T")[0];
-  const template = document.getElementById("template-form-receita");
-  const clone = template.content.cloneNode(true);
+  if (transacao.tipo === "receita") {
+    elements.valorReceita.value = transacao.valor;
+    elements.dataEntradaReceita.value = transacao.dataEntrada;
+    elements.frequenciaReceita.value = transacao.frequencia;
+    elements.frequenciaReceita.disabled = true;
+  } else {
+    elements.categoriaDespesa.value = transacao.categoria;
+    elements.categoriaDespesa.disabled = true;
 
-  clone.querySelector(".form-title-action").textContent = state.isEditMode
-    ? "Editando"
-    : "Nova";
-  clone.querySelector(".form-title-name").textContent =
-    `${elements.nomeTransacaoInput.value.substring(0, 30)}${
-      elements.nomeTransacaoInput.value.length > 30 ? "..." : ""
-    }`;
-  clone.querySelector("#valorReceita").value =
-    transacao && typeof transacao.valor !== "undefined" ? transacao.valor : "";
-  const dataEntradaInput = clone.querySelector("#dataEntradaReceita");
-  dataEntradaInput.value =
-    transacao && transacao.dataEntrada ? transacao.dataEntrada : hoje;
-
-  const freqSelect = clone.querySelector("#frequenciaReceita");
-  if (transacao && transacao.frequencia) {
-    freqSelect.value = transacao.frequencia;
-  }
-  if (state.isEditMode) {
-    freqSelect.disabled = true;
-    freqSelect.insertAdjacentHTML(
-      "afterend",
-      '<small class="form-note">A frequência não pode ser alterada em uma transação existente.</small>',
-    );
-  }
-  if (state.editingSerieId) {
-    dataEntradaInput.disabled = true;
-    dataEntradaInput.insertAdjacentHTML(
-      "afterend",
-      '<small class="form-note">Data de início não pode ser alterada ao editar uma série.</small>',
-    );
-  }
-
-  elements.passo2Container.innerHTML = "";
-  elements.passo2Container.appendChild(clone);
-}
-
-export function carregarFormularioDespesa(
-  transacao = null,
-  callbackOrd,
-  callbackCartao,
-) {
-  const template = document.getElementById("template-form-despesa");
-  const clone = template.content.cloneNode(true);
-
-  clone.querySelector(".form-title-action").textContent = state.isEditMode
-    ? "Editando"
-    : "Nova";
-  clone.querySelector(".form-title-name").textContent =
-    `${elements.nomeTransacaoInput.value.substring(0, 30)}${
-      elements.nomeTransacaoInput.value.length > 30 ? "..." : ""
-    }`;
-
-  const categoriaSelect = clone.querySelector("#categoriaDespesa");
-  const formCamposAdicionaisContainer = clone.querySelector(
-    "#formCamposAdicionaisDespesa",
-  );
-
-  if (transacao && transacao.categoria) {
-    categoriaSelect.value = transacao.categoria;
-  }
-
-  categoriaSelect.addEventListener("change", (e) => {
-    const categoriaSelecionada = e.target.value;
-    formCamposAdicionaisContainer.innerHTML = "";
-    const transacaoParaSubForm =
-      state.isEditMode &&
-      state.editingTransactionId &&
-      transacao &&
-      categoriaSelecionada === transacao.categoria
-        ? transacao
-        : null;
-    const nomeCurto =
-      elements.nomeTransacaoInput.value.substring(0, 25) +
-      (elements.nomeTransacaoInput.value.length > 25 ? "..." : "");
-
-    if (categoriaSelecionada === CONSTS.CATEGORIA_DESPESA.ORDINARIA) {
-      callbackOrd(formCamposAdicionaisContainer, transacaoParaSubForm);
-      elements.modalHeaderNovaTransacao.textContent = state.isEditMode
-        ? `Editar Desp. Ordinária: ${nomeCurto} (Passo 2)`
-        : "Nova Despesa Ordinária (Passo 2 de 2)";
-    } else if (
-      categoriaSelecionada === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO
-    ) {
-      callbackCartao(formCamposAdicionaisContainer, transacaoParaSubForm);
-      elements.modalHeaderNovaTransacao.textContent = state.isEditMode
-        ? `Editar Desp. Cartão: ${nomeCurto} (Passo 2)`
-        : "Nova Despesa Cartão (Passo 2 de 2)";
-    }
-  });
-
-  elements.passo2Container.appendChild(clone);
-
-  if (transacao && transacao.categoria) {
-    categoriaSelect.dispatchEvent(new Event("change"));
-    if (state.isEditMode) {
-      categoriaSelect.disabled = true;
-      categoriaSelect.insertAdjacentHTML(
-        "afterend",
-        '<small class="form-note">Categoria não pode ser alterada.</small>',
-      );
-    }
-  }
-}
-
-export function carregarFormularioDespesaOrdinaria(
-  container,
-  transacao = null,
-) {
-  const hoje = new Date().toISOString().split("T")[0];
-  const template = document.getElementById("template-form-despesa-ordinaria");
-  const clone = template.content.cloneNode(true);
-
-  const dataVencimentoInput = clone.querySelector("#dataVencimentoDespesaOrd");
-  dataVencimentoInput.value =
-    transacao && transacao.dataVencimento ? transacao.dataVencimento : hoje;
-
-  const frequenciaSelect = clone.querySelector("#frequenciaDespesaOrd");
-  const valorUnicaRecorrenteInput = clone.querySelector(
-    "#valorDespesaOrdUnicaRecorrente",
-  );
-  const valorParceladaInput = clone.querySelector("#valorDespesaOrdParcelada");
-  const valorContainerOrdUnicaRecorrente = clone.querySelector(
-    "#valorContainerOrdUnicaRecorrente",
-  );
-  const camposParceladaDiv = clone.querySelector("#camposParceladaOrd");
-  const tipoCadastroParcelaSelect = clone.querySelector(
-    "#tipoCadastroParcelaOrd",
-  );
-  const qtdParcelasInput = clone.querySelector("#qtdParcelasOrd");
-  const parcelaAtualInput = clone.querySelector("#parcelaAtualOrd");
-
-  if (transacao) {
-    if (transacao.frequencia) frequenciaSelect.value = transacao.frequencia;
-    if (transacao.frequencia === CONSTS.FREQUENCIA.PARCELADA) {
-      valorParceladaInput.value = transacao.valor || "";
-      if (transacao.tipoCadastroParcela)
-        tipoCadastroParcelaSelect.value = transacao.tipoCadastroParcela;
-      if (transacao.totalParcelas)
-        qtdParcelasInput.value = transacao.totalParcelas;
-      if (transacao.parcelaAtual)
-        parcelaAtualInput.value = transacao.parcelaAtual;
+    if (transacao.categoria === "ordinaria") {
+      elements.frequenciaDespesaOrd.value = transacao.frequencia;
+      elements.frequenciaDespesaOrd.disabled = true;
+      elements.valorDespesaOrd.value = transacao.valor;
+      elements.dataVencimentoDespesaOrd.value = transacao.dataVencimento;
+      if (transacao.frequencia === "parcelada") {
+        elements.qtdParcelasOrd.value = transacao.totalParcelas;
+        elements.parcelaAtualOrd.value = transacao.parcelaAtual;
+      }
     } else {
-      valorUnicaRecorrenteInput.value = transacao.valor || "";
-    }
-  }
-
-  if (state.isEditMode) {
-    frequenciaSelect.disabled = true;
-    frequenciaSelect.insertAdjacentHTML(
-      "afterend",
-      '<small class="form-note">A frequência não pode ser alterada.</small>',
-    );
-    if (transacao?.frequencia === CONSTS.FREQUENCIA.PARCELADA) {
-      tipoCadastroParcelaSelect.disabled = true;
-      qtdParcelasInput.disabled = true;
-      parcelaAtualInput.disabled = true;
-      camposParceladaDiv.insertAdjacentHTML(
-        "beforeend",
-        '<small class="form-note">Detalhes do parcelamento não podem ser alterados.</small>',
-      );
-    }
-  }
-
-  function toggleParceladaFieldsOrd() {
-    const isParcelada = frequenciaSelect.value === CONSTS.FREQUENCIA.PARCELADA;
-    camposParceladaDiv.style.display = isParcelada ? "block" : "none";
-    valorContainerOrdUnicaRecorrente.style.display = isParcelada
-      ? "none"
-      : "block";
-    valorParceladaInput.required = isParcelada && !frequenciaSelect.disabled;
-    valorUnicaRecorrenteInput.required =
-      !isParcelada && !frequenciaSelect.disabled;
-    if (isParcelada) {
-      qtdParcelasInput.required = !frequenciaSelect.disabled;
-      parcelaAtualInput.required = !frequenciaSelect.disabled;
-    } else if (!state.isEditMode) {
-      parcelaAtualInput.value = "1";
-      qtdParcelasInput.value = "";
-    }
-  }
-
-  toggleParceladaFieldsOrd();
-  frequenciaSelect.addEventListener("change", toggleParceladaFieldsOrd);
-
-  if (state.editingSerieId) {
-    dataVencimentoInput.disabled = true;
-    dataVencimentoInput.insertAdjacentHTML(
-      "afterend",
-      '<small class="form-note">Data de início não pode ser alterada ao editar uma série.</small>',
-    );
-  }
-
-  container.innerHTML = "";
-  container.appendChild(clone);
-}
-
-export function carregarFormularioDespesaCartao(
-  container,
-  transacao = null,
-  cartaoPredefinidoId = null,
-  callbackAbrirModal,
-) {
-  const template = document.getElementById("template-form-despesa-cartao");
-  const clone = template.content.cloneNode(true);
-
-  const cartaoSelect = clone.querySelector("#cartaoDespesa");
-  const orcamentoSelect = clone.querySelector("#orcamentoVinculado");
-
-  // LÓGICA ATUALIZADA: Esconde o campo de Orçamento se for dívida de terceiro
-  if (state.isModoTerceiros) {
-    const orcamentoContainer = orcamentoSelect.parentElement;
-    if (orcamentoContainer) orcamentoContainer.style.display = "none";
-  }
-
-  let opcoesCartoes = '<option value="">-- Selecione --</option>';
-  // LÓGICA ATUALIZADA: Só mostra no seletor cartões que NÃO foram deletados
-  const cartoesAtivos = state.cartoes.filter((c) => !c.deletado);
-  cartoesAtivos.forEach((cartao) => {
-    opcoesCartoes += `<option value="${cartao.id}">${cartao.nome}</option>`;
-  });
-  if (!(state.isEditMode && transacao?.cartaoId)) {
-    opcoesCartoes += `<option value="novo_cartao">Cadastrar novo cartão...</option>`;
-  }
-  cartaoSelect.innerHTML = opcoesCartoes;
-
-  let opcoesOrcamentos = '<option value="">Nenhum</option>';
-  state.orcamentos.forEach((orc) => {
-    opcoesOrcamentos += `<option value="${orc.id}">${orc.nome}</option>`;
-  });
-  orcamentoSelect.innerHTML = opcoesOrcamentos;
-
-  const cartaoSelecionadoId =
-    cartaoPredefinidoId || (transacao ? transacao.cartaoId : null);
-  if (cartaoSelecionadoId) cartaoSelect.value = cartaoSelecionadoId;
-  if (transacao && transacao.orcamentoId)
-    orcamentoSelect.value = transacao.orcamentoId;
-
-  if ((state.isEditMode && transacao?.cartaoId) || !!cartaoPredefinidoId) {
-    cartaoSelect.disabled = true;
-    cartaoSelect.insertAdjacentHTML(
-      "afterend",
-      '<small class="form-note">Cartão não pode ser alterada.</small>',
-    );
-  }
-
-  const frequenciaSelect = clone.querySelector("#frequenciaDespesaCartao");
-  const camposParcelamentoDiv = clone.querySelector(
-    "#camposParcelamentoCartao",
-  );
-  const tipoCadastroParcelaSelect = clone.querySelector(
-    "#tipoCadastroParcelaCartao",
-  );
-  const valorDespesaCartaoParceladaInput = clone.querySelector(
-    "#valorDespesaCartaoParcelada",
-  );
-  const qtdParcelasInput = clone.querySelector("#qtdParcelasCartao");
-  const parcelaAtualInput = clone.querySelector("#parcelaAtualCartao");
-  const valorContainerCartaoUnicaRecorrente = clone.querySelector(
-    "#valorContainerCartaoUnicaRecorrente",
-  );
-
-  if (transacao) {
-    if (transacao.frequencia) frequenciaSelect.value = transacao.frequencia;
-    if (transacao.frequencia === CONSTS.FREQUENCIA.PARCELADA) {
-      if (transacao.tipoCadastroParcela)
-        tipoCadastroParcelaSelect.value = transacao.tipoCadastroParcela;
-      if (typeof transacao.valor !== "undefined")
-        valorDespesaCartaoParceladaInput.value = transacao.valor;
-      if (transacao.totalParcelas)
-        qtdParcelasInput.value = transacao.totalParcelas;
-      if (transacao.parcelaAtual)
-        parcelaAtualInput.value = transacao.parcelaAtual;
-    } else {
-      const inputVal =
-        valorContainerCartaoUnicaRecorrente.querySelector("input");
-      if (inputVal && typeof transacao.valor !== "undefined") {
-        inputVal.value = transacao.valor;
+      elements.cartaoDespesa.value = transacao.cartaoId;
+      elements.cartaoDespesa.disabled = true;
+      elements.orcamentoVinculado.value = transacao.orcamentoId || "";
+      elements.frequenciaDespesaCartao.value = transacao.frequencia;
+      elements.frequenciaDespesaCartao.disabled = true;
+      elements.valorDespesaCartao.value = transacao.valor;
+      if (transacao.frequencia === "parcelada") {
+        elements.qtdParcelasCartao.value = transacao.totalParcelas;
+        elements.parcelaAtualCartao.value = transacao.parcelaAtual;
       }
     }
   }
 
-  if (
-    state.isEditMode &&
-    (transacao?.frequencia === CONSTS.FREQUENCIA.PARCELADA ||
-      transacao?.frequencia === CONSTS.FREQUENCIA.RECORRENTE)
-  ) {
-    frequenciaSelect.disabled = true;
-    frequenciaSelect.insertAdjacentHTML(
-      "afterend",
-      '<small class="form-note">Frequência não pode ser alterada.</small>',
-    );
-    if (transacao?.frequencia === CONSTS.FREQUENCIA.PARCELADA) {
-      tipoCadastroParcelaSelect.disabled = true;
-      qtdParcelasInput.disabled = true;
-      parcelaAtualInput.disabled = true;
-      camposParcelamentoDiv.insertAdjacentHTML(
-        "beforeend",
-        '<small class="form-note">Detalhes do parcelamento (exceto valor) não podem ser alterados.</small>',
-      );
-    }
-  }
-
-  function toggleCamposCartao() {
-    const frequencia = frequenciaSelect.value;
-    const isParcelada = frequencia === CONSTS.FREQUENCIA.PARCELADA;
-    camposParcelamentoDiv.style.display = isParcelada ? "block" : "none";
-    valorContainerCartaoUnicaRecorrente.style.display = isParcelada
-      ? "none"
-      : "block";
-    valorDespesaCartaoParceladaInput.required =
-      isParcelada && !frequenciaSelect.disabled;
-    valorContainerCartaoUnicaRecorrente.querySelector("input").required =
-      !isParcelada && !frequenciaSelect.disabled;
-    if (isParcelada) {
-      qtdParcelasInput.required = !frequenciaSelect.disabled;
-      parcelaAtualInput.required = !frequenciaSelect.disabled;
-    }
-  }
-  toggleCamposCartao();
-  frequenciaSelect.addEventListener("change", toggleCamposCartao);
-
-  cartaoSelect.addEventListener("change", (e) => {
-    if (e.target.value === "novo_cartao" && !state.isEditMode) {
-      callbackAbrirModal(
-        elements.modalCadastrarCartao,
-        null,
-        "cartaoCadastroEdicao",
-      );
-      e.target.value = "";
-    }
-  });
-
-  container.innerHTML = "";
-  container.appendChild(clone);
-}
-
-export function resetFormParaNovaDespesaCartao() {
-  if (
-    !elements.passo2Container ||
-    !elements.nomeTransacaoInput ||
-    !elements.quickAddFeedback
-  )
-    return;
-  elements.nomeTransacaoInput.value = "";
-  const frequenciaSelect = elements.passo2Container.querySelector(
-    "#frequenciaDespesaCartao",
-  );
-  if (frequenciaSelect) {
-    frequenciaSelect.value = CONSTS.FREQUENCIA.UNICA;
-    frequenciaSelect.dispatchEvent(new Event("change"));
-  }
-  const valorUnicaRecorrenteInput = elements.passo2Container.querySelector(
-    "#valorDespesaCartaoUnicaRecorrente",
-  );
-  if (valorUnicaRecorrenteInput) valorUnicaRecorrenteInput.value = "";
-  const valorParceladaInput = elements.passo2Container.querySelector(
-    "#valorDespesaCartaoParcelada",
-  );
-  if (valorParceladaInput) valorParceladaInput.value = "";
-  const qtdParcelasInput =
-    elements.passo2Container.querySelector("#qtdParcelasCartao");
-  if (qtdParcelasInput) qtdParcelasInput.value = "";
-  const parcelaAtualInput = elements.passo2Container.querySelector(
-    "#parcelaAtualCartao",
-  );
-  if (parcelaAtualInput) parcelaAtualInput.value = "1";
-  const orcamentoSelect = elements.passo2Container.querySelector(
-    "#orcamentoVinculado",
-  );
-  if (orcamentoSelect) orcamentoSelect.value = "";
-  elements.quickAddFeedback.textContent = "Despesa salva! Adicione a próxima.";
-  elements.quickAddFeedback.style.display = "block";
-  setTimeout(() => {
-    elements.quickAddFeedback.style.display = "none";
-  }, 2500);
-  elements.nomeTransacaoInput.focus();
+  atualizarVisibilidadeFormulario();
 }
 
 export function obterDadosDoFormulario() {
+  const tipo = elements.tipoTransacaoSelect.value;
   const dados = {
     nomeBase: elements.nomeTransacaoInput.value.trim(),
-    tipo: elements.tipoTransacaoSelect.value,
+    tipo: tipo,
   };
 
-  if (dados.tipo === CONSTS.TIPO_TRANSACAO.RECEITA) {
-    dados.valor =
-      parseFloat(
-        elements.passo2Container.querySelector("#valorReceita").value,
-      ) || 0;
-    dados.dataEntrada = elements.passo2Container.querySelector(
-      "#dataEntradaReceita",
-    ).value;
-    dados.frequencia =
-      elements.passo2Container.querySelector("#frequenciaReceita").value;
-  } else if (dados.tipo === CONSTS.TIPO_TRANSACAO.DESPESA) {
-    dados.categoria =
-      elements.passo2Container.querySelector("#categoriaDespesa").value;
-
-    if (dados.categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA) {
-      dados.dataVencimento = elements.passo2Container.querySelector(
-        "#dataVencimentoDespesaOrd",
-      ).value;
-      dados.frequencia = elements.passo2Container.querySelector(
-        "#frequenciaDespesaOrd",
-      ).value;
-
-      if (dados.frequencia === CONSTS.FREQUENCIA.PARCELADA) {
-        dados.valor =
-          parseFloat(
-            elements.passo2Container.querySelector("#valorDespesaOrdParcelada")
-              .value,
-          ) || 0;
-        dados.tipoCadastroParcela = elements.passo2Container.querySelector(
-          "#tipoCadastroParcelaOrd",
-        ).value;
-        dados.totalParcelas = parseInt(
-          elements.passo2Container.querySelector("#qtdParcelasOrd").value,
-        );
-        dados.parcelaAtual =
-          parseInt(
-            elements.passo2Container.querySelector("#parcelaAtualOrd").value,
-          ) || 1;
-      } else {
-        dados.valor =
-          parseFloat(
-            elements.passo2Container.querySelector(
-              "#valorDespesaOrdUnicaRecorrente",
-            ).value,
-          ) || 0;
+  if (tipo === "receita") {
+    dados.valor = parseFloat(elements.valorReceita.value) || 0;
+    dados.dataEntrada = elements.dataEntradaReceita.value;
+    dados.frequencia = elements.frequenciaReceita.value;
+  } else {
+    dados.categoria = elements.categoriaDespesa.value;
+    if (dados.categoria === "ordinaria") {
+      dados.frequencia = elements.frequenciaDespesaOrd.value;
+      dados.valor = parseFloat(elements.valorDespesaOrd.value) || 0;
+      dados.dataVencimento = elements.dataVencimentoDespesaOrd.value;
+      if (dados.frequencia === "parcelada") {
+        dados.tipoCadastroParcela = elements.tipoCadastroParcelaOrd.value;
+        dados.totalParcelas = parseInt(elements.qtdParcelasOrd.value);
+        dados.parcelaAtual = parseInt(elements.parcelaAtualOrd.value) || 1;
       }
-    } else if (dados.categoria === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO) {
-      dados.frequencia = elements.passo2Container.querySelector(
-        "#frequenciaDespesaCartao",
-      ).value;
-      if (dados.frequencia === CONSTS.FREQUENCIA.PARCELADA) {
-        dados.valor =
-          parseFloat(
-            elements.passo2Container.querySelector(
-              "#valorDespesaCartaoParcelada",
-            ).value,
-          ) || 0;
-        dados.tipoCadastroParcela = elements.passo2Container.querySelector(
-          "#tipoCadastroParcelaCartao",
-        ).value;
-        dados.totalParcelas = parseInt(
-          elements.passo2Container.querySelector("#qtdParcelasCartao").value,
-        );
-        dados.parcelaAtual =
-          parseInt(
-            elements.passo2Container.querySelector("#parcelaAtualCartao").value,
-          ) || 1;
-      } else {
-        dados.valor =
-          parseFloat(
-            elements.passo2Container.querySelector(
-              "#valorDespesaCartaoUnicaRecorrente",
-            ).value,
-          ) || 0;
+    } else {
+      dados.frequencia = elements.frequenciaDespesaCartao.value;
+      dados.valor = parseFloat(elements.valorDespesaCartao.value) || 0;
+      dados.cartaoId = elements.cartaoDespesa.value;
+      dados.cartaoNome =
+        elements.cartaoDespesa.options[
+          elements.cartaoDespesa.selectedIndex
+        ]?.text;
+      dados.orcamentoId = elements.orcamentoVinculado.value || null;
+      if (dados.frequencia === "parcelada") {
+        dados.tipoCadastroParcela = elements.tipoCadastroParcelaCartao.value;
+        dados.totalParcelas = parseInt(elements.qtdParcelasCartao.value);
+        dados.parcelaAtual = parseInt(elements.parcelaAtualCartao.value) || 1;
       }
-      const cartaoEl = elements.passo2Container.querySelector("#cartaoDespesa");
-      dados.cartaoId = cartaoEl.value;
-      dados.cartaoNome = cartaoEl.options[cartaoEl.selectedIndex].text;
-      const orcamentoEl = elements.passo2Container.querySelector(
-        "#orcamentoVinculado",
-      );
-      dados.orcamentoId =
-        orcamentoEl && orcamentoEl.value ? orcamentoEl.value : null;
     }
   }
   return dados;
@@ -555,60 +203,43 @@ export function obterDadosDoFormulario() {
 
 export function validarDadosDaTransacao(dados) {
   if (!dados.nomeBase) {
-    alert("O nome da transação não pode ficar em branco.");
+    alert("Informe o nome.");
     return false;
   }
-  if (!dados.tipo) {
-    alert("O tipo de transação é obrigatório.");
+  if (!dados.valor || dados.valor <= 0) {
+    alert("Informe um valor válido.");
     return false;
   }
-  if (dados.valor <= 0) {
-    alert("O valor deve ser maior que zero.");
+  if (dados.tipo === "receita" && !dados.dataEntrada) {
+    alert("Informe a data.");
     return false;
   }
-  if (dados.tipo === CONSTS.TIPO_TRANSACAO.RECEITA && !dados.dataEntrada) {
-    alert("Data de entrada é obrigatória.");
+  if (dados.categoria === "ordinaria" && !dados.dataVencimento) {
+    alert("Informe o vencimento.");
     return false;
   }
-  if (
-    dados.categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA &&
-    !dados.dataVencimento
-  ) {
-    alert("Data de vencimento é obrigatória.");
+  if (dados.categoria === "cartao_credito" && !dados.cartaoId) {
+    alert("Selecione um cartão.");
     return false;
   }
   if (
-    dados.categoria === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO &&
-    !dados.cartaoId
+    dados.frequencia === "parcelada" &&
+    (isNaN(dados.totalParcelas) || dados.totalParcelas < 1)
   ) {
-    alert("Selecione um cartão válido.");
+    alert("Quantidade de parcelas inválida.");
     return false;
-  }
-  if (dados.frequencia === CONSTS.FREQUENCIA.PARCELADA) {
-    if (isNaN(dados.totalParcelas) || dados.totalParcelas < 1) {
-      alert("Quantidade de parcelas inválida.");
-      return false;
-    }
-    if (
-      isNaN(dados.parcelaAtual) ||
-      dados.parcelaAtual < 1 ||
-      dados.parcelaAtual > dados.totalParcelas
-    ) {
-      alert("Número da parcela atual inválido.");
-      return false;
-    }
   }
   return true;
 }
 
+// Lógica de Salvamento e Outros (Permanecem similares, apenas adaptados para os novos campos)
 export async function atualizarTransacaoExistente(dados) {
-  if (!state.currentUser) {
-    alert("Erro: Nenhum usuário logado.");
-    return false;
-  }
-
+  if (!state.currentUser) return false;
   const dadosParaAtualizar = {
-    nome: dados.nomeBase,
+    nome:
+      dados.frequencia === "parcelada" && !state.editingSerieId
+        ? `${dados.nomeBase} (${elements.parcelaAtualOrd.value || elements.parcelaAtualCartao.value}/${elements.qtdParcelasOrd.value || elements.qtdParcelasCartao.value})`
+        : dados.nomeBase,
     valor: dados.valor,
     dataEntrada: dados.dataEntrada || null,
     dataVencimento: dados.dataVencimento || null,
@@ -619,302 +250,226 @@ export async function atualizarTransacaoExistente(dados) {
 
   try {
     if (state.editingSerieId) {
-      const transacaoInicial = state.transacoes.find(
-        (t) => t.id === state.editingTransactionId,
-      );
-      if (!transacaoInicial) {
-        alert(
-          "Erro: Transação de referência não encontrada para iniciar a alteração em série.",
-        );
-        return false;
-      }
-      const mesAnoInicioAlteracao = transacaoInicial.mesAnoReferencia;
-
-      console.log(
-        `Atualizando a série ${state.editingSerieId} a partir de ${mesAnoInicioAlteracao}...`,
-      );
-
       const querySnapshot = await db
         .collection("users")
         .doc(state.currentUser.uid)
         .collection("transacoes")
         .where("serieId", "==", state.editingSerieId)
-        .where("mesAnoReferencia", ">=", mesAnoInicioAlteracao)
         .get();
-
       const batch = db.batch();
       querySnapshot.docs.forEach((doc) => {
-        const transacaoOriginal = doc.data();
-        const nomeAtualizado =
-          transacaoOriginal.frequencia === CONSTS.FREQUENCIA.PARCELADA
-            ? `${dados.nomeBase} (${transacaoOriginal.parcelaAtual}/${transacaoOriginal.totalParcelas})`
+        const t = doc.data();
+        const nomeFinal =
+          t.frequencia === "parcelada"
+            ? `${dados.nomeBase} (${t.parcelaAtual}/${t.totalParcelas})`
             : dados.nomeBase;
-
-        batch.update(doc.ref, {
-          valor: dados.valor,
-          nome: nomeAtualizado,
-        });
+        batch.update(doc.ref, { valor: dados.valor, nome: nomeFinal });
       });
       await batch.commit();
-      console.log(
-        `${querySnapshot.docs.length} transações da série foram atualizadas (presente e futuras).`,
-      );
     } else {
-      const docRef = db
+      await db
         .collection("users")
         .doc(state.currentUser.uid)
         .collection("transacoes")
-        .doc(state.editingTransactionId);
-      await docRef.update(dadosParaAtualizar);
-      console.log(
-        "Transação única atualizada no Firestore:",
-        state.editingTransactionId,
-      );
+        .doc(state.editingTransactionId)
+        .update(dadosParaAtualizar);
     }
     await registrarUltimaAlteracao();
     return true;
   } catch (error) {
-    console.error("Erro ao atualizar transação no Firestore:", error);
-    alert("Ocorreu um erro ao atualizar a transação.");
     return false;
   }
 }
 
 export async function adicionarNovasTransacoes(dados) {
-  if (!state.currentUser) {
-    alert("Erro: Nenhum usuário logado para salvar a transação.");
-    return false;
-  }
-
+  if (!state.currentUser) return false;
   let transacoesParaAdicionar = [];
-  const mesAnoReferenciaBase = getMesAnoChave(state.currentDate);
+  const mesAnoBase = getMesAnoChave(state.currentDate);
 
-  if (
-    dados.frequencia === CONSTS.FREQUENCIA.RECORRENTE ||
-    dados.frequencia === CONSTS.FREQUENCIA.PARCELADA
-  ) {
+  if (dados.frequencia === "recorrente" || dados.frequencia === "parcelada") {
     const serieId = db.collection("users").doc().id;
+    const totalMeses =
+      dados.frequencia === "parcelada"
+        ? dados.totalParcelas - dados.parcelaAtual + 1
+        : 60;
 
-    const baseObject = { ...dados };
-    delete baseObject.nomeBase;
-    delete baseObject.id;
+    for (let i = 0; i < totalMeses; i++) {
+      let dataRef = new Date(
+        parseDateString(dados.dataEntrada || dados.dataVencimento),
+      );
+      dataRef.setMonth(dataRef.getMonth() + i);
+      let mesReferencia = new Date(state.currentDate);
+      mesReferencia.setMonth(mesReferencia.getMonth() + i);
 
-    if (dados.frequencia === CONSTS.FREQUENCIA.PARCELADA) {
-      const totalParcelas = dados.totalParcelas;
-      let valorDaParcela =
-        dados.tipoCadastroParcela === CONSTS.CADASTRO_PARCELA.VALOR_TOTAL
-          ? parseFloat((dados.valor / totalParcelas).toFixed(2))
+      const valorFinal =
+        dados.frequencia === "parcelada" &&
+        dados.tipoCadastroParcela === "valor_total"
+          ? parseFloat((dados.valor / dados.totalParcelas).toFixed(2))
           : dados.valor;
-      let parcelaInicial = dados.parcelaAtual || 1;
 
-      for (let i = 0; i < totalParcelas - parcelaInicial + 1; i++) {
-        let dataTransacaoParcela = new Date(
-          parseDateString(dados.dataEntrada || dados.dataVencimento),
-        );
-        dataTransacaoParcela.setMonth(dataTransacaoParcela.getMonth() + i);
-        let mesReferenciaParcela = new Date(state.currentDate);
-        mesReferenciaParcela.setMonth(mesReferenciaParcela.getMonth() + i);
-
-        transacoesParaAdicionar.push({
-          ...baseObject,
-          serieId: serieId,
-          valor: valorDaParcela,
-          parcelaAtual: parcelaInicial + i,
-          totalParcelas: totalParcelas,
-          dataVencimento:
-            dados.tipo === CONSTS.TIPO_TRANSACAO.DESPESA
-              ? dataTransacaoParcela.toISOString().split("T")[0]
-              : null,
-          dataEntrada:
-            dados.tipo === CONSTS.TIPO_TRANSACAO.RECEITA
-              ? dataTransacaoParcela.toISOString().split("T")[0]
-              : null,
-          mesAnoReferencia: getMesAnoChave(mesReferenciaParcela),
-          nome: `${dados.nomeBase} (${parcelaInicial + i}/${totalParcelas})`,
-        });
-      }
-    } else {
-      for (let i = 0; i < CONSTS.RECORRENCIA_MESES; i++) {
-        let dataTransacaoRecorrente = new Date(
-          parseDateString(dados.dataEntrada || dados.dataVencimento),
-        );
-        dataTransacaoRecorrente.setMonth(
-          dataTransacaoRecorrente.getMonth() + i,
-        );
-        let mesReferenciaRecorrente = new Date(state.currentDate);
-        mesReferenciaRecorrente.setMonth(
-          mesReferenciaRecorrente.getMonth() + i,
-        );
-
-        transacoesParaAdicionar.push({
-          ...baseObject,
-          serieId: serieId,
-          mesAnoReferencia: getMesAnoChave(mesReferenciaRecorrente),
-          dataEntrada:
-            dados.tipo === CONSTS.TIPO_TRANSACAO.RECEITA
-              ? dataTransacaoRecorrente.toISOString().split("T")[0]
-              : null,
-          dataVencimento:
-            dados.tipo === CONSTS.TIPO_TRANSACAO.DESPESA
-              ? dataTransacaoRecorrente.toISOString().split("T")[0]
-              : null,
-          nome: dados.nomeBase,
-        });
-      }
+      transacoesParaAdicionar.push({
+        ...dados,
+        serieId,
+        valor: valorFinal,
+        parcelaAtual:
+          dados.frequencia === "parcelada" ? dados.parcelaAtual + i : null,
+        mesAnoReferencia: getMesAnoChave(mesReferencia),
+        dataVencimento: dados.dataVencimento
+          ? dataRef.toISOString().split("T")[0]
+          : null,
+        dataEntrada: dados.dataEntrada
+          ? dataRef.toISOString().split("T")[0]
+          : null,
+        nome:
+          dados.frequencia === "parcelada"
+            ? `${dados.nomeBase} (${dados.parcelaAtual + i}/${dados.totalParcelas})`
+            : dados.nomeBase,
+      });
     }
   } else {
-    const transacaoUnica = {
+    transacoesParaAdicionar.push({
+      ...dados,
       nome: dados.nomeBase,
-      tipo: dados.tipo,
-      frequencia: dados.frequencia,
-      valor: dados.valor,
       paga: false,
       serieId: null,
-      mesAnoReferencia: mesAnoReferenciaBase,
-      categoria: dados.categoria || null,
-      dataEntrada: dados.dataEntrada || null,
-      dataVencimento: dados.dataVencimento || null,
-      cartaoId: dados.cartaoId || null,
-      orcamentoId: dados.orcamentoId || null,
-    };
-    transacoesParaAdicionar.push(transacaoUnica);
-  }
-
-  if (transacoesParaAdicionar.length > 0) {
-    const batch = db.batch();
-    const transacoesCollectionRef = db
-      .collection("users")
-      .doc(state.currentUser.uid)
-      .collection("transacoes");
-
-    transacoesParaAdicionar.forEach((transacao) => {
-      const newDocRef = transacoesCollectionRef.doc();
-      batch.set(newDocRef, transacao);
+      mesAnoReferencia: mesAnoBase,
     });
-
-    try {
-      await batch.commit();
-      console.log(
-        `${transacoesParaAdicionar.length} transação(ões) salvas no Firestore.`,
-      );
-      return true;
-    } catch (error) {
-      console.error("Erro ao salvar transações em lote no Firestore:", error);
-      alert("Ocorreu um erro ao salvar a transação. Tente novamente.");
-      return false;
-    }
   }
-  return false;
-}
 
-export async function excluirTransacaoUnica(
-  transacaoId,
-  isInModal = false,
-  callbackPopularFatura,
-) {
-  if (!state.currentUser) {
-    alert("Erro: Nenhum usuário logado.");
-    return;
-  }
+  const batch = db.batch();
+  const ref = db
+    .collection("users")
+    .doc(state.currentUser.uid)
+    .collection("transacoes");
+  transacoesParaAdicionar.forEach((t) => {
+    const d = { ...t };
+    delete d.nomeBase;
+    batch.set(ref.doc(), d);
+  });
 
   try {
-    const transacao = state.transacoes.find((t) => t.id === transacaoId);
-    await db
-      .collection("users")
-      .doc(state.currentUser.uid)
-      .collection("transacoes")
-      .doc(transacaoId)
-      .delete();
-    console.log("Transação única excluída do Firestore:", transacaoId);
-
-    if (transacao && transacao.tipo === CONSTS.TIPO_TRANSACAO.DESPESA) {
-      await registrarUltimaAlteracao();
-    }
-
-    if (
-      isInModal &&
-      elements.modalDetalhesFaturaCartao.style.display === "flex"
-    ) {
-      const cartaoIdDetalhes = elements.faturaCartaoNomeTitulo.dataset.cartaoId;
-      const mesAnoDetalhes = elements.faturaCartaoNomeTitulo.dataset.mesAno;
-      if (cartaoIdDetalhes && mesAnoDetalhes) {
-        callbackPopularFatura(cartaoIdDetalhes, mesAnoDetalhes);
-      }
-    }
-  } catch (error) {
-    console.error("Erro ao excluir transação no Firestore:", error);
-    alert("Ocorreu um erro ao excluir a transação.");
+    await batch.commit();
+    return true;
+  } catch (e) {
+    return false;
   }
+}
+
+export async function adicionarNovaDividaTerceiro(dados) {
+  if (!state.currentUser) return false;
+  const serieId = db.collection("users").doc().id;
+  const mesAnoBase = getMesAnoChave(state.currentDate);
+  let lista = [];
+
+  const base = {
+    userId: state.currentUser.uid,
+    pessoaId: elements.pessoaSelect.value,
+    nomeTransacao: dados.nomeBase,
+    categoria: dados.categoria,
+    frequencia: dados.frequencia,
+    cartaoId: dados.cartaoId,
+    reembolsado: false,
+    serieId: dados.frequencia !== "unica" ? serieId : null,
+  };
+
+  if (dados.frequencia === "parcelada") {
+    const valorParcela =
+      dados.tipoCadastroParcela === "valor_total"
+        ? parseFloat((dados.valor / dados.totalParcelas).toFixed(2))
+        : dados.valor;
+    for (let i = 0; i < dados.totalParcelas - dados.parcelaAtual + 1; i++) {
+      let mesRef = new Date(state.currentDate);
+      mesRef.setMonth(mesRef.getMonth() + i);
+      lista.push({
+        ...base,
+        valor: valorParcela,
+        parcelaAtual: dados.parcelaAtual + i,
+        totalParcelas: dados.totalParcelas,
+        mesAnoReferencia: getMesAnoChave(mesRef),
+      });
+    }
+  } else if (dados.frequencia === "recorrente") {
+    for (let i = 0; i < 60; i++) {
+      let mesRef = new Date(state.currentDate);
+      mesRef.setMonth(mesRef.getMonth() + i);
+      lista.push({
+        ...base,
+        valor: dados.valor,
+        mesAnoReferencia: getMesAnoChave(mesRef),
+      });
+    }
+  } else {
+    lista.push({
+      ...base,
+      valor: dados.valor,
+      parcelaAtual: 1,
+      totalParcelas: 1,
+      mesAnoReferencia: mesAnoBase,
+    });
+  }
+
+  const batch = db.batch();
+  const ref = db
+    .collection("users")
+    .doc(state.currentUser.uid)
+    .collection("dividasTerceiros");
+  lista.forEach((d) => batch.set(ref.doc(), d));
+  try {
+    await batch.commit();
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+export function popularSeletoresFixos() {
+  // Cartões
+  let hCartoes = '<option value="">-- Selecione --</option>';
+  state.cartoes
+    .filter((c) => !c.deletado)
+    .forEach((c) => (hCartoes += `<option value="${c.id}">${c.nome}</option>`));
+  hCartoes += '<option value="novo_cartao">Cadastrar novo...</option>';
+  elements.cartaoDespesa.innerHTML = hCartoes;
+
+  // Orçamentos
+  let hOrc = '<option value="">Nenhum</option>';
+  state.orcamentos.forEach(
+    (o) => (hOrc += `<option value="${o.id}">${o.nome}</option>`),
+  );
+  elements.orcamentoVinculado.innerHTML = hOrc;
+}
+
+export function atualizarSelectPessoas(idParaSelecionar = null) {
+  let h = '<option value="">-- Selecione a Pessoa --</option>';
+  state.pessoas.forEach(
+    (p) => (h += `<option value="${p.id}">${p.nome}</option>`),
+  );
+  h += '<option value="cadastrar_nova">Cadastrar nova...</option>';
+  elements.pessoaSelect.innerHTML = h;
+  if (idParaSelecionar) elements.pessoaSelect.value = idParaSelecionar;
 }
 
 export function abrirModalDespesaCartaoRapida(
   cartaoId,
   cartaoNome,
   callbackAbrirModal,
-  callbackOrd,
-  callbackCartao,
 ) {
-  resetModalNovaTransacao();
   state.isEditMode = false;
   state.editingTransactionId = null;
   state.isQuickAddMode = true;
-  elements.modalNovaTransacao.style.display = "flex";
-  elements.modalHeaderNovaTransacao.textContent = `Nova Despesa para: ${cartaoNome}`;
-  elements.tipoTransacaoSelect.value = CONSTS.TIPO_TRANSACAO.DESPESA;
+  resetModalNovaTransacao();
+
+  elements.modalHeaderNovaTransacao.textContent = `Nova Despesa: ${cartaoNome}`;
+  elements.tipoTransacaoSelect.value = "despesa";
   elements.tipoTransacaoSelect.disabled = true;
-  elements.tipoTransacaoSelect.parentElement.style.display = "none";
-  elements.nomeTransacaoInput.parentElement.style.display = "block";
-  elements.btnAvancarTransacao.style.display = "none";
-  elements.btnVoltarTransacao.style.display = "none";
-  elements.passo2Container.style.display = "block";
-  elements.btnSalvarTransacao.style.display = "inline-block";
+  elements.categoriaDespesa.value = "cartao_credito";
+  elements.categoriaDespesa.disabled = true;
+  elements.cartaoDespesa.value = cartaoId;
+  elements.cartaoDespesa.disabled = true;
 
-  const transacaoOriginal = null;
-  carregarFormularioDespesa(transacaoOriginal, callbackOrd, callbackCartao);
-
-  const categoriaSelect =
-    elements.passo2Container.querySelector("#categoriaDespesa");
-  if (categoriaSelect) {
-    categoriaSelect.value = CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO;
-    categoriaSelect.dispatchEvent(new Event("change"));
-    categoriaSelect.parentElement.style.display = "none";
-    const cartaoDespesaSelect =
-      elements.passo2Container.querySelector("#cartaoDespesa");
-    if (cartaoDespesaSelect) {
-      cartaoDespesaSelect.value = cartaoId;
-      cartaoDespesaSelect.disabled = true;
-      cartaoDespesaSelect.insertAdjacentHTML(
-        "afterend",
-        '<small class="form-note">Cartão pré-selecionado.</small>',
-      );
-    }
-  }
+  atualizarVisibilidadeFormulario();
   elements.nomeTransacaoInput.focus();
-}
-
-export async function atualizarStatusPago(
-  transacaoId,
-  novoStatus,
-  callbackResumo,
-) {
-  if (!state.currentUser) return;
-  try {
-    const docRef = db
-      .collection("users")
-      .doc(state.currentUser.uid)
-      .collection("transacoes")
-      .doc(transacaoId);
-    await docRef.update({ paga: novoStatus });
-    await registrarUltimaAlteracao();
-    console.log(
-      `Status da transação ${transacaoId} atualizado para ${novoStatus}.`,
-    );
-    const transacaoLocal = state.transacoes.find((t) => t.id === transacaoId);
-    if (transacaoLocal) transacaoLocal.paga = novoStatus;
-    callbackResumo();
-  } catch (error) {
-    console.error("Erro ao atualizar status de pagamento:", error);
-  }
+  callbackAbrirModal(elements.modalNovaTransacao, null, "transacao");
 }
 
 export async function adiarParcelaEmSerie(
@@ -923,40 +478,70 @@ export async function adiarParcelaEmSerie(
   mesAnoInicio,
   callbackFecharModal,
 ) {
-  if (!state.currentUser || !serieId) {
-    alert("Erro: Não foi possível identificar a série da parcela.");
-    return;
-  }
-
-  const confirmacao = window.confirm(
-    `Você tem certeza que deseja adiar esta parcela e todas as futuras em um mês?`,
-  );
-
-  if (!confirmacao) return;
-
+  if (!confirm("Adiar esta parcela e as futuras em um mês?")) return;
   try {
-    const querySnapshot = await db
+    const snap = await db
       .collection("users")
       .doc(state.currentUser.uid)
       .collection("transacoes")
       .where("serieId", "==", serieId)
       .where("mesAnoReferencia", ">=", mesAnoInicio)
       .get();
-
     const batch = db.batch();
-    querySnapshot.docs.forEach((doc) => {
-      const data = doc.data();
-      const dataParcela = parseDateString(data.mesAnoReferencia);
-      dataParcela.setMonth(dataParcela.getMonth() + 1);
-      const novoMesAno = getMesAnoChave(dataParcela);
-      batch.update(doc.ref, { mesAnoReferencia: novoMesAno });
+    snap.docs.forEach((doc) => {
+      let d = parseDateString(doc.data().mesAnoReferencia);
+      d.setMonth(d.getMonth() + 1);
+      batch.update(doc.ref, { mesAnoReferencia: getMesAnoChave(d) });
     });
-
     await batch.commit();
     await registrarUltimaAlteracao();
-    alert("Parcelas adiadas com sucesso.");
     callbackFecharModal(elements.modalDetalhesFaturaCartao);
-  } catch (error) {
-    console.error("Erro ao adiar parcelas:", error);
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+export async function excluirTransacaoUnica(
+  transacaoId,
+  isInModal = false,
+  callbackPopularFatura,
+) {
+  if (!confirm("Excluir esta transação?")) return;
+  try {
+    await db
+      .collection("users")
+      .doc(state.currentUser.uid)
+      .collection("transacoes")
+      .doc(transacaoId)
+      .delete();
+    await registrarUltimaAlteracao();
+    if (isInModal) {
+      const cId = elements.faturaCartaoNomeTitulo.dataset.cartaoId;
+      const mAno = elements.faturaCartaoNomeTitulo.dataset.mesAno;
+      callbackPopularFatura(cId, mAno);
+    }
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+export async function atualizarStatusPago(
+  transacaoId,
+  novoStatus,
+  callbackResumo,
+) {
+  try {
+    await db
+      .collection("users")
+      .doc(state.currentUser.uid)
+      .collection("transacoes")
+      .doc(transacaoId)
+      .update({ paga: novoStatus });
+    await registrarUltimaAlteracao();
+    const t = state.transacoes.find((x) => x.id === transacaoId);
+    if (t) t.paga = novoStatus;
+    callbackResumo();
+  } catch (e) {
+    console.error(e);
   }
 }

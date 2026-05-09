@@ -450,68 +450,12 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // Transações
-  elements.btnAbrirModalNovaTransacao.addEventListener("click", () =>
+  elements.btnAbrirModalNovaTransacao.addEventListener("click", () => {
+    trans.popularSeletoresFixos();
     ui.abrirModalEspecifico(elements.modalNovaTransacao, null, "transacao", {
       resetModalNovaTransacao: trans.resetModalNovaTransacao,
       preencherModalParaEdicao: trans.preencherModalParaEdicao,
-    }),
-  );
-
-  elements.btnAvancarTransacao.addEventListener("click", () => {
-    const tipo = elements.tipoTransacaoSelect.value;
-    const nome = elements.nomeTransacaoInput.value.trim();
-    if (!tipo || !nome) {
-      alert("Preencha tipo e nome.");
-      return;
-    }
-    elements.tipoTransacaoSelect.parentElement.style.display = "none";
-    elements.nomeTransacaoInput.parentElement.style.display = "none";
-    elements.passo2Container.style.display = "block";
-    elements.btnAvancarTransacao.style.display = "none";
-    elements.btnVoltarTransacao.style.display = "inline-block";
-    elements.btnSalvarTransacao.style.display = "inline-block";
-    state.currentModalStep = 2;
-    const transacaoOriginal = state.isEditMode
-      ? state.transacoes.find((t) => t.id === state.editingTransactionId)
-      : null;
-    const nomeCurto = nome.substring(0, 25) + (nome.length > 25 ? "..." : "");
-
-    if (tipo === "receita") {
-      elements.modalHeaderNovaTransacao.textContent = state.isEditMode
-        ? `Editar Receita: ${nomeCurto} (Passo 2)`
-        : "Nova Receita (Passo 2 de 2)";
-      trans.carregarFormularioReceita(transacaoOriginal);
-    } else {
-      const tituloAcao = state.isModoTerceiros
-        ? "Nova Dívida"
-        : state.isEditMode
-          ? "Editar Despesa"
-          : "Nova Despesa";
-      elements.modalHeaderNovaTransacao.textContent = `${tituloAcao}: ${nomeCurto} (Passo 2)`;
-      trans.carregarFormularioDespesa(
-        transacaoOriginal,
-        trans.carregarFormularioDespesaOrdinaria,
-        (cont, t) =>
-          trans.carregarFormularioDespesaCartao(
-            cont,
-            t,
-            null,
-            ui.abrirModalEspecifico,
-          ),
-      );
-    }
-    if (state.isModoTerceiros) {
-      elements.passo2Container.insertAdjacentHTML(
-        "afterbegin",
-        '<div style="order:-1;"><label>Pessoa:</label><select id="pessoaSelect"></select></div>',
-      );
-      third.atualizarSelectPessoas();
-      const pSel = elements.passo2Container.querySelector("#pessoaSelect");
-      pSel.addEventListener("change", () => {
-        if (pSel.value === "cadastrar_nova")
-          ui.abrirModalEspecifico(elements.modalCadastrarPessoa);
-      });
-    }
+    });
   });
 
   elements.btnSalvarTransacao.addEventListener("click", async () => {
@@ -555,11 +499,6 @@ document.addEventListener("DOMContentLoaded", () => {
       ui.renderizarTransacoesDoMes();
     }
   });
-
-  elements.btnVoltarTransacao.addEventListener(
-    "click",
-    trans.resetModalNovaTransacao,
-  );
 
   // Listas Principais e Detalhes
   elements.listaTransacoesUl.addEventListener("click", async (e) => {
@@ -1201,4 +1140,44 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   }
+  // --- Ouvintes para o Formulário em Cascata ---
+  elements.tipoTransacaoSelect.addEventListener("change", () => {
+    trans.atualizarVisibilidadeFormulario();
+  });
+
+  elements.categoriaDespesa.addEventListener("change", () => {
+    trans.atualizarVisibilidadeFormulario();
+  });
+
+  elements.frequenciaDespesaOrd.addEventListener("change", () => {
+    trans.atualizarVisibilidadeFormulario();
+  });
+
+  elements.frequenciaDespesaCartao.addEventListener("change", () => {
+    trans.atualizarVisibilidadeFormulario();
+  });
+
+  elements.cartaoDespesa.addEventListener("change", (e) => {
+    if (e.target.value === "novo_cartao") {
+      ui.abrirModalEspecifico(
+        elements.modalCadastrarCartao,
+        null,
+        "cartaoCadastroEdicao",
+        {
+          resetModalCartao: () => {
+            elements.nomeCartaoInputModal.value = "";
+            elements.diaVencimentoFaturaInputModal.value = "";
+          },
+        },
+      );
+      e.target.value = "";
+    }
+  });
+
+  elements.pessoaSelect.addEventListener("change", () => {
+    if (elements.pessoaSelect.value === "cadastrar_nova") {
+      ui.abrirModalEspecifico(elements.modalCadastrarPessoa);
+      elements.pessoaSelect.value = "";
+    }
+  });
 });

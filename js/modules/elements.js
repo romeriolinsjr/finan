@@ -49,11 +49,51 @@ export const elements = {
   btnAbrirModalNovaTransacao: document.getElementById("btnNovaTransacao"),
   tipoTransacaoSelect: document.getElementById("tipoTransacao"),
   nomeTransacaoInput: document.getElementById("nomeTransacao"),
-  passo2Container: document.getElementById("passo2Container"),
-  btnAvancarTransacao: document.getElementById("btnAvancarTransacao"),
-  btnVoltarTransacao: document.getElementById("btnVoltarTransacao"),
   btnSalvarTransacao: document.getElementById("btnSalvarTransacao"),
   modalHeaderNovaTransacao: document.getElementById("modalNovaTransacaoTitulo"),
+
+  // Containers de Seção (Cascata)
+  blocoPessoaTerceiros: document.getElementById("blocoPessoaTerceiros"),
+  pessoaSelect: document.getElementById("pessoaSelect"),
+  secaoReceita: document.getElementById("secaoReceita"),
+  secaoCategoriaDespesa: document.getElementById("secaoCategoriaDespesa"),
+  secaoDespesaOrdinaria: document.getElementById("secaoDespesaOrdinaria"),
+  secaoDespesaCartao: document.getElementById("secaoDespesaCartao"),
+
+  // Campos de Receita
+  valorReceita: document.getElementById("valorReceita"),
+  dataEntradaReceita: document.getElementById("dataEntradaReceita"),
+  frequenciaReceita: document.getElementById("frequenciaReceita"),
+
+  // Campos de Despesa Comuns
+  categoriaDespesa: document.getElementById("categoriaDespesa"),
+
+  // Campos de Despesa Ordinária
+  frequenciaDespesaOrd: document.getElementById("frequenciaDespesaOrd"),
+  valorDespesaOrd: document.getElementById("valorDespesaOrd"),
+  dataVencimentoDespesaOrd: document.getElementById("dataVencimentoDespesaOrd"),
+  camposParceladaOrd: document.getElementById("camposParceladaOrd"),
+  tipoCadastroParcelaOrd: document.getElementById("tipoCadastroParcelaOrd"),
+  qtdParcelasOrd: document.getElementById("qtdParcelasOrd"),
+  parcelaAtualOrd: document.getElementById("parcelaAtualOrd"),
+
+  // Campos de Despesa Cartão
+  cartaoDespesa: document.getElementById("cartaoDespesa"),
+  orcamentoVinculado: document.getElementById("orcamentoVinculado"),
+  containerOrcamentoVinculado: document.getElementById(
+    "containerOrcamentoVinculado",
+  ),
+  frequenciaDespesaCartao: document.getElementById("frequenciaDespesaCartao"),
+  containerTipoCadastroCartao: document.getElementById(
+    "containerTipoCadastroCartao",
+  ),
+  valorDespesaCartao: document.getElementById("valorDespesaCartao"),
+  camposParcelamentoCartao: document.getElementById("camposParcelamentoCartao"),
+  tipoCadastroParcelaCartao: document.getElementById(
+    "tipoCadastroParcelaCartao",
+  ),
+  qtdParcelasCartao: document.getElementById("qtdParcelasCartao"),
+  parcelaAtualCartao: document.getElementById("parcelaAtualCartao"),
   btnGerenciarCartoes: document.getElementById("btnGerenciarCartoes"),
   modalGerenciarCartoes: document.getElementById("modalGerenciarCartoes"),
   btnAbrirModalCadastroCartao: document.getElementById(
