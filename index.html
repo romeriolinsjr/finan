@@ -81,7 +81,6 @@
           <div class="header-title-container">
             <img src="favicon.png" alt="Logo Finan" class="header-logo" />
             <h1>Finan</h1>
-            <!-- NOVO: Botão para alternar a visibilidade dos valores -->
             <button id="btnToggleVisibility" title="Mostrar/Ocultar valores">
               👁️
             </button>
@@ -95,13 +94,24 @@
               >
             </div>
             <button id="nextMonthBtn" title="Próximo mês">></button>
-            <button
-              id="btnGoToToday"
-              title="Voltar para Hoje"
-              class="btn-today"
-            >
-              Hoje
-            </button>
+
+            <!-- Botões Hoje e PDF agora ficam aqui -->
+            <div class="nav-extra-group">
+              <button
+                id="btnGoToToday"
+                title="Voltar para Hoje"
+                class="btn-today"
+              >
+                Hoje
+              </button>
+              <button
+                id="btnDownloadPDF"
+                title="Baixar Extrato Mensal (PDF)"
+                class="btn-pdf"
+              >
+                📥
+              </button>
+            </div>
           </div>
         </header>
 
@@ -1055,6 +1065,10 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
     <!-- NOVO: Biblioteca de Gráficos (Chart.js) -->
+
+    <!-- Motores de Geração de PDF (Padrão Cloudflare) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
 
     <!-- Chamada do script principal como módulo -->
     <script type="module" src="js/main.js"></script>

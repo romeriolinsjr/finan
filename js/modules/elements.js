@@ -7,6 +7,7 @@ export const elements = {
   nextMonthBtn: document.getElementById("nextMonthBtn"),
   monthPicker: document.getElementById("monthPicker"),
   btnGoToToday: document.getElementById("btnGoToToday"),
+  btnDownloadPDF: document.getElementById("btnDownloadPDF"),
   btnFecharTodosOrcamentos: document.getElementById("btnFecharTodosOrcamentos"),
   currentMonthDisplay: document.getElementById("currentMonthDisplay"),
   totalReceitasDisplay: document.getElementById("totalReceitas"),

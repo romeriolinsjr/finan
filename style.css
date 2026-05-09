@@ -1624,17 +1624,66 @@ body.modal-aberto {
   cursor: pointer;
 }
 
+/* Garante que o container de navegação aceite todos os botões na mesma linha */
+.month-navigation {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 10px !important;
+  margin-top: 15px !important;
+  flex-wrap: wrap !important;
+}
+
+/* Container dos botões Hoje e PDF */
+.nav-extra-group {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  margin-left: 5px !important;
+}
+
+/* Estilo unificado para os botões do topo */
+.btn-today,
+.btn-pdf {
+  border: none !important;
+  border-radius: 4px !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 36px !important;
+  padding: 0 15px !important;
+  font-weight: bold !important;
+  color: white !important;
+  transition: background 0.3s !important;
+}
+
 .btn-today {
-  background-color: #3498db;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 5px 10px;
-  margin-left: 10px;
-  cursor: pointer;
-  font-size: 0.85em;
+  background-color: #3498db !important;
+  font-size: 12px !important;
+}
+
+.btn-pdf {
+  background-color: #27ae60 !important;
+  font-size: 18px !important;
 }
 
 .btn-today:hover {
-  background-color: #2980b9;
+  background-color: #2980b9 !important;
+}
+.btn-pdf:hover {
+  background-color: #219150 !important;
+}
+
+/* Ajuste específico para Celulares */
+@media (max-width: 600px) {
+  .nav-extra-group {
+    width: 100% !important;
+    justify-content: center !important;
+    margin-left: 0 !important;
+    margin-top: 10px !important;
+  }
+  .header-title-container {
+    justify-content: center !important;
+  }
 }

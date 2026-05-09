@@ -12,6 +12,7 @@ import * as budgets from "./modules/budgets.js";
 import * as third from "./modules/third-party.js";
 import * as search from "./modules/search.js";
 import * as reports from "./modules/reports.js";
+import * as exportMod from "./modules/export.js";
 
 document.addEventListener("DOMContentLoaded", () => {
   console.log("Finan Modularizado - JS Carregado");
@@ -813,6 +814,16 @@ document.addEventListener("DOMContentLoaded", () => {
   elements.btnFecharTodosOrcamentos.addEventListener("click", () => {
     budgets.alternarTodosOrcamentosDoMes();
   });
+
+  if (elements.btnDownloadPDF) {
+    console.log("Botão de PDF encontrado no sistema!");
+    elements.btnDownloadPDF.addEventListener("click", () => {
+      console.log("Iniciando geração de PDF...");
+      exportMod.gerarExtratoMensalPDF();
+    });
+  } else {
+    console.error("ERRO: O sistema não encontrou o botão de PDF no HTML.");
+  }
 
   // Terceiros
   elements.btnDespesasTerceiros.addEventListener("click", () =>
