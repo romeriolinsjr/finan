@@ -165,6 +165,7 @@ export function popularModalDetalhesFatura(cartaoId, mesAnoFatura) {
         const skipButton = document.createElement("button");
         skipButton.className = "btn-skip-parcela";
         skipButton.innerHTML = "⏩";
+        skipButton.title = "Adiar esta parcela e as seguintes em um mês";
         skipButton.dataset.id = item.id;
         skipButton.dataset.serieId = item.serieId;
         skipButton.dataset.mesAnoReferencia = item.mesAnoReferencia;

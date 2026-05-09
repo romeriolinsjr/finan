@@ -871,6 +871,10 @@ document.addEventListener("DOMContentLoaded", () => {
         .delete();
   });
 
+  elements.btnFecharTodosOrcamentos.addEventListener("click", () => {
+    budgets.alternarTodosOrcamentosDoMes();
+  });
+
   // Terceiros
   elements.btnDespesasTerceiros.addEventListener("click", () =>
     ui.abrirModalEspecifico(elements.modalMenuTerceiros),

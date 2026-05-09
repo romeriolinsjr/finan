@@ -101,6 +101,22 @@ export function atualizarResumoFinanceiro() {
   } else {
     elements.saldoMesDisplay.style.color = "";
   }
+
+  // Atualiza visual do botão "Fechar/Abrir Todos Orçamentos"
+  if (elements.btnFecharTodosOrcamentos) {
+    const mesAno = getMesAnoChave(state.currentDate);
+    const algumAberto = state.orcamentos.some(
+      (orc) => !isOrcamentoFechado(orc.id, mesAno),
+    );
+
+    if (algumAberto) {
+      elements.btnFecharTodosOrcamentos.innerHTML =
+        "🔓 Fechar todos os orçamentos";
+    } else {
+      elements.btnFecharTodosOrcamentos.innerHTML =
+        "🔒 Abrir todos os orçamentos";
+    }
+  }
 }
 
 export function abrirModalEspecifico(

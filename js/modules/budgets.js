@@ -4,6 +4,7 @@ import { elements } from "./elements.js";
 import { db } from "./firebase-config.js";
 import {
   formatCurrency,
+  getMesAnoChave,
   isOrcamentoFechado,
   registrarUltimaAlteracao,
 } from "./utils.js";
@@ -141,4 +142,41 @@ export function resetFormOrcamento() {
   elements.diaOrcamentoInput.value = "";
   elements.modalOrcamentoTitulo.textContent = "Gerenciar Orçamentos";
   elements.btnSalvarOrcamento.textContent = "Salvar";
+}
+
+export async function alternarTodosOrcamentosDoMes() {
+  if (!state.currentUser || state.orcamentos.length === 0) return;
+
+  const mesAno = getMesAnoChave(state.currentDate);
+  const orcamentosAbertos = state.orcamentos.filter(
+    (orc) => !isOrcamentoFechado(orc.id, mesAno),
+  );
+
+  const batch = db.batch();
+  const ref = db
+    .collection("users")
+    .doc(state.currentUser.uid)
+    .collection("orcamentosFechados");
+
+  if (orcamentosAbertos.length > 0) {
+    // FECHAR TODOS os que estão abertos
+    orcamentosAbertos.forEach((orc) => {
+      const docId = `${orc.id}_${mesAno}`;
+      batch.set(ref.doc(docId), { orcamentoId: orc.id, mesAno: mesAno });
+    });
+  } else {
+    // REABRIR TODOS (pois todos já estavam fechados)
+    state.orcamentos.forEach((orc) => {
+      const docId = `${orc.id}_${mesAno}`;
+      batch.delete(ref.doc(docId));
+    });
+  }
+
+  try {
+    // Executa silenciosamente sem alertas
+    await batch.commit();
+    await registrarUltimaAlteracao();
+  } catch (error) {
+    console.error("Erro ao alternar orçamentos em lote:", error);
+  }
 }
