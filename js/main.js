@@ -816,13 +816,9 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   if (elements.btnDownloadPDF) {
-    console.log("Botão de PDF encontrado no sistema!");
     elements.btnDownloadPDF.addEventListener("click", () => {
-      console.log("Iniciando geração de PDF...");
       exportMod.gerarExtratoMensalPDF();
     });
-  } else {
-    console.error("ERRO: O sistema não encontrou o botão de PDF no HTML.");
   }
 
   // Terceiros
