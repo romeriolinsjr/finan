@@ -83,6 +83,47 @@ export function popularModalRelatorio(date) {
   const saldoFinal =
     totalReceitas - (somaDespesasProjetadas - totalAjustesDoMes);
 
+  // --- RESTAURANDO SEÇÃO ORIGINAL: Análise de Despesas ---
+  const calcularSubtotais = (categoria) => {
+    const despesasFiltradas = despesasDoMes.filter(
+      (d) => d.categoria === categoria,
+    );
+    return {
+      unica: despesasFiltradas
+        .filter((d) => d.frequencia === CONSTS.FREQUENCIA.UNICA)
+        .reduce((sum, d) => sum + d.valor, 0),
+      recorrente: despesasFiltradas
+        .filter((d) => d.frequencia === CONSTS.FREQUENCIA.RECORRENTE)
+        .reduce((sum, d) => sum + d.valor, 0),
+      parcelada: despesasFiltradas
+        .filter((d) => d.frequencia === CONSTS.FREQUENCIA.PARCELADA)
+        .reduce((sum, d) => sum + d.valor, 0),
+    };
+  };
+
+  const subtotaisOrd = calcularSubtotais(CONSTS.CATEGORIA_DESPESA.ORDINARIA);
+  const subtotaisCartao = calcularSubtotais(
+    CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO,
+  );
+
+  const analiseDespesasHTML = `<section class="relatorio-secao"><h3>Análise de Despesas</h3><div class="relatorio-grid-analise"><div class="relatorio-sub-secao"><h4>Gastos Ordinários</h4><div class="relatorio-item-analise"><span>Únicas</span> <strong>${formatCurrency(
+    subtotaisOrd.unica,
+  )}</strong></div><div class="relatorio-item-analise"><span>Recorrentes</span> <strong>${formatCurrency(
+    subtotaisOrd.recorrente,
+  )}</strong></div><div class="relatorio-item-analise"><span>Parceladas</span> <strong>${formatCurrency(
+    subtotaisOrd.parcelada,
+  )}</strong></div></div><div class="relatorio-sub-secao"><h4>Gastos com Cartão de Crédito</h4><div class="relatorio-item-analise"><span>Únicas</span> <strong>${formatCurrency(
+    subtotaisCartao.unica,
+  )}</strong></div><div class="relatorio-item-analise"><span>Recorrentes</span> <strong>${formatCurrency(
+    subtotaisCartao.recorrente,
+  )}</strong></div><div class="relatorio-item-analise"><span>Parceladas</span> <strong>${formatCurrency(
+    subtotaisCartao.parcelada,
+  )}</strong></div></div></div></section>`;
+
+  document.getElementById("relatorio-secao-analise-despesas").innerHTML =
+    analiseDespesasHTML;
+  // --- FIM DA RESTAURAÇÃO ---
+
   document.getElementById("relatorio-secao-resumo").innerHTML =
     `<section class="relatorio-secao"><h3>Resumo Geral</h3><div class="relatorio-grid">
     <div class="relatorio-item"><span>Receitas Totais</span><strong class="valor-receita">${formatCurrency(totalReceitas)}</strong></div>
