@@ -74,8 +74,9 @@ export function resetModalNovaTransacao() {
   elements.categoriaDespesa.value = "";
   elements.categoriaDespesa.disabled = false;
 
-  // NOVO: Garante que o seletor de cartão e frequência sejam destravados
+  // NOVO: Garante que seletores de cartão, orçamento e frequências sejam destravados
   elements.cartaoDespesa.disabled = false;
+  elements.orcamentoVinculado.disabled = false;
   elements.frequenciaReceita.disabled = false;
   elements.frequenciaDespesaOrd.disabled = false;
   elements.frequenciaDespesaCartao.disabled = false;
@@ -155,6 +156,9 @@ export function preencherModalParaEdicao(id) {
   const transacao = state.transacoes.find((t) => t.id === id);
   if (!transacao) return;
 
+  // NOVO: Popula os seletores (Cartões/Orçamentos) ANTES de tentar definir os valores
+  popularSeletoresFixos();
+
   const nomeOriginal = transacao.serieId
     ? transacao.nome
         .replace(/\s\(\d+\/\d+\)$/, "")
@@ -184,12 +188,18 @@ export function preencherModalParaEdicao(id) {
         elements.parcelaAtualOrd.value = transacao.parcelaAtual;
       }
     } else {
+      // Configuração para Cartão de Crédito
       elements.cartaoDespesa.value = transacao.cartaoId;
       elements.cartaoDespesa.disabled = true;
+
+      // O Orçamento deve ser preenchido mas permanecer editável para correções
       elements.orcamentoVinculado.value = transacao.orcamentoId || "";
+      elements.orcamentoVinculado.disabled = false;
+
       elements.frequenciaDespesaCartao.value = transacao.frequencia;
       elements.frequenciaDespesaCartao.disabled = true;
       elements.valorDespesaCartao.value = transacao.valor;
+
       if (transacao.frequencia === "parcelada") {
         elements.qtdParcelasCartao.value = transacao.totalParcelas;
         elements.parcelaAtualCartao.value = transacao.parcelaAtual;
@@ -275,11 +285,18 @@ export function validarDadosDaTransacao(dados) {
 // Lógica de Salvamento e Outros (Permanecem similares, apenas adaptados para os novos campos)
 export async function atualizarTransacaoExistente(dados) {
   if (!state.currentUser) return false;
+
+  // Define o nome correto preservando a numeração da parcela se for uma edição individual
+  let nomeFinal = dados.nomeBase;
+  if (
+    dados.frequencia === CONSTS.FREQUENCIA.PARCELADA &&
+    !state.editingSerieId
+  ) {
+    nomeFinal = `${dados.nomeBase} (${dados.parcelaAtual}/${dados.totalParcelas})`;
+  }
+
   const dadosParaAtualizar = {
-    nome:
-      dados.frequencia === "parcelada" && !state.editingSerieId
-        ? `${dados.nomeBase} (${elements.parcelaAtualOrd.value || elements.parcelaAtualCartao.value}/${elements.qtdParcelasOrd.value || elements.qtdParcelasCartao.value})`
-        : dados.nomeBase,
+    nome: nomeFinal,
     valor: dados.valor,
     dataEntrada: dados.dataEntrada || null,
     dataVencimento: dados.dataVencimento || null,
