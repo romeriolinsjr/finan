@@ -600,11 +600,19 @@ export async function excluirTransacaoUnica(
       .collection("transacoes")
       .doc(transacaoId)
       .delete();
+
+    // NOVO: Remove o item da memória local IMEDIATAMENTE
+    state.transacoes = state.transacoes.filter((t) => t.id !== transacaoId);
+
     await registrarUltimaAlteracao();
+
+    // Se estivermos dentro de um modal (como o da fatura), manda atualizar a lista do modal
     if (isInModal) {
       const cId = elements.faturaCartaoNomeTitulo.dataset.cartaoId;
       const mAno = elements.faturaCartaoNomeTitulo.dataset.mesAno;
-      callbackPopularFatura(cId, mAno);
+      if (cId && mAno) {
+        callbackPopularFatura(cId, mAno);
+      }
     }
   } catch (e) {
     console.error(e);
