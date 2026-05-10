@@ -452,6 +452,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Transações
   elements.btnAbrirModalNovaTransacao.addEventListener("click", () => {
+    // Garante que o estado de "Modo Terceiros" seja limpo ao entrar pelo menu geral
+    state.isModoTerceiros = false;
+    state.isQuickAddMode = false;
+
     trans.popularSeletoresFixos();
     ui.abrirModalEspecifico(elements.modalNovaTransacao, null, "transacao", {
       resetModalNovaTransacao: trans.resetModalNovaTransacao,
@@ -463,8 +467,12 @@ document.addEventListener("DOMContentLoaded", () => {
     if (state.isModoTerceiros) {
       const d = third.obterDadosFormularioTerceiros();
       if (await third.adicionarNovaDividaTerceiro(d)) {
-        alert("Dívida cadastrada!");
+        alert("Dívida cadastrada com sucesso!");
         ui.fecharModalEspecifico(elements.modalNovaTransacao);
+        // NOVO: Se o modal de consulta estiver aberto, atualiza a lista dele
+        if (elements.modalConsultarTerceiros.style.display === "flex") {
+          third.renderizarDividasDoMes();
+        }
       }
       return;
     }
@@ -474,29 +482,28 @@ document.addEventListener("DOMContentLoaded", () => {
       ? await trans.atualizarTransacaoExistente(d)
       : await trans.adicionarNovasTransacoes(d);
     if (s) {
-      // 1. Identifica qual mês estamos vendo agora na tela
       const mesVisualizado = utils.getMesAnoChave(state.currentDate);
 
-      // 2. Remove da memória local apenas as transações deste mês específico
+      // Limpa cache local e baixa os dados novos para garantir que o saldo atualize
       state.transacoes = state.transacoes.filter(
         (t) => t.mesAnoReferencia !== mesVisualizado,
       );
-
-      // 3. Remove este mês da lista de "meses carregados" para que a função aceite baixar de novo
       state.mesesCarregados = state.mesesCarregados.filter(
         (m) => m !== mesVisualizado,
       );
-
-      // 4. Busca os dados atualizados do Firebase para o mês que está na tela
       await garantirDadosDoMes(mesVisualizado);
 
-      if (state.isQuickAddMode && !state.isEditMode) {
-        trans.resetFormParaNovaDespesaCartao();
-      } else {
-        ui.fecharModalEspecifico(elements.modalNovaTransacao);
+      // PADRONIZAÇÃO: Sempre fecha o modal após salvar
+      ui.fecharModalEspecifico(elements.modalNovaTransacao);
+
+      // Se o modal de detalhes da fatura estiver aberto ao fundo, atualiza ele
+      if (elements.modalDetalhesFaturaCartao.style.display === "flex") {
+        const cId = elements.faturaCartaoNomeTitulo.dataset.cartaoId;
+        const mAno = elements.faturaCartaoNomeTitulo.dataset.mesAno;
+        cards.popularModalDetalhesFatura(cId, mAno);
       }
 
-      // 5. Atualiza a interface
+      // Força a atualização da lista na tela inicial e do resumo financeiro
       ui.renderizarTransacoesDoMes();
     }
   });

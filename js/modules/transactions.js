@@ -74,6 +74,18 @@ export function resetModalNovaTransacao() {
   elements.categoriaDespesa.value = "";
   elements.categoriaDespesa.disabled = false;
 
+  // NOVO: Garante que o seletor de cartão e frequência sejam destravados
+  elements.cartaoDespesa.disabled = false;
+  elements.frequenciaReceita.disabled = false;
+  elements.frequenciaDespesaOrd.disabled = false;
+  elements.frequenciaDespesaCartao.disabled = false;
+
+  // Limpa avisos de campos travados (se houver)
+  const notes = elements.modalNovaTransacao.querySelectorAll(
+    ".form-note-injected",
+  );
+  notes.forEach((n) => n.remove());
+
   // Ordinária
   elements.frequenciaDespesaOrd.value = "unica";
   elements.frequenciaDespesaOrd.disabled = false;
@@ -82,7 +94,7 @@ export function resetModalNovaTransacao() {
     .toISOString()
     .split("T")[0];
   elements.tipoCadastroParcelaOrd.value = "valor_total";
-  elements.qtdParcelasOrd.value = "";
+  elements.qtdParcelasOrd.value = "1"; // Valor padrão para evitar divisão por zero
   elements.parcelaAtualOrd.value = "1";
 
   // Cartão
@@ -90,7 +102,7 @@ export function resetModalNovaTransacao() {
   elements.frequenciaDespesaCartao.disabled = false;
   elements.valorDespesaCartao.value = "";
   elements.tipoCadastroParcelaCartao.value = "valor_total";
-  elements.qtdParcelasCartao.value = "";
+  elements.qtdParcelasCartao.value = "1"; // Valor padrão para evitar divisão por zero
   elements.parcelaAtualCartao.value = "1";
 
   if (elements.quickAddFeedback)
@@ -109,6 +121,34 @@ export function resetModalNovaTransacao() {
 
   // Atualiza visibilidade inicial
   atualizarVisibilidadeFormulario();
+}
+
+// Função para limpar apenas os valores durante a adição rápida (dentro da fatura)
+export function resetFormParaNovaDespesaCartao() {
+  if (!elements.nomeTransacaoInput || !elements.quickAddFeedback) return;
+
+  // Limpa apenas os campos de preenchimento, mantendo o cartão travado
+  elements.nomeTransacaoInput.value = "";
+  elements.valorDespesaCartao.value = "";
+  elements.frequenciaDespesaCartao.value = "unica";
+  elements.qtdParcelasCartao.value = "";
+  elements.parcelaAtualCartao.value = "1";
+  elements.orcamentoVinculado.value = "";
+
+  // Mantém a cascata visível
+  atualizarVisibilidadeFormulario();
+
+  // Feedback visual de sucesso
+  elements.quickAddFeedback.textContent = "✅ Operação salva com sucesso!";
+  elements.quickAddFeedback.style.display = "block";
+  elements.quickAddFeedback.style.color = "#27ae60";
+
+  setTimeout(() => {
+    if (elements.quickAddFeedback)
+      elements.quickAddFeedback.style.display = "none";
+  }, 3000);
+
+  elements.nomeTransacaoInput.focus();
 }
 
 export function preencherModalParaEdicao(id) {
@@ -357,19 +397,29 @@ export async function adicionarNovasTransacoes(dados) {
 
 export async function adicionarNovaDividaTerceiro(dados) {
   if (!state.currentUser) return false;
+
+  // Validação extra de segurança
+  if (
+    dados.frequencia === CONSTS.FREQUENCIA.PARCELADA &&
+    (!dados.totalParcelas || dados.totalParcelas < 1)
+  ) {
+    alert("Por favor, informe o número de parcelas.");
+    return false;
+  }
+
   const serieId = db.collection("users").doc().id;
   const mesAnoBase = getMesAnoChave(state.currentDate);
   let lista = [];
 
   const base = {
     userId: state.currentUser.uid,
-    pessoaId: elements.pessoaSelect.value,
+    pessoaId: dados.pessoaId, // Corrigido para usar o dado validado
     nomeTransacao: dados.nomeBase,
     categoria: dados.categoria,
     frequencia: dados.frequencia,
     cartaoId: dados.cartaoId,
     reembolsado: false,
-    serieId: dados.frequencia !== "unica" ? serieId : null,
+    serieId: dados.frequencia !== CONSTS.FREQUENCIA.UNICA ? serieId : null,
   };
 
   if (dados.frequencia === "parcelada") {
@@ -460,17 +510,34 @@ export function abrirModalDespesaCartaoRapida(
   state.isEditMode = false;
   state.editingTransactionId = null;
   state.isQuickAddMode = true;
+
+  // Limpa o modal para o estado inicial
   resetModalNovaTransacao();
 
+  // NOVO: Popula as listas de cartões e orçamentos antes de definir os valores
+  popularSeletoresFixos();
+
   elements.modalHeaderNovaTransacao.textContent = `Nova Despesa: ${cartaoNome}`;
+
+  // Define os valores fixos do fluxo rápido
   elements.tipoTransacaoSelect.value = "despesa";
   elements.tipoTransacaoSelect.disabled = true;
+
   elements.categoriaDespesa.value = "cartao_credito";
   elements.categoriaDespesa.disabled = true;
+
   elements.cartaoDespesa.value = cartaoId;
   elements.cartaoDespesa.disabled = true;
 
+  // Injeta nota visual para o usuário
+  elements.cartaoDespesa.insertAdjacentHTML(
+    "afterend",
+    '<small class="form-note form-note-injected" style="color: #7f8c8d;">Cartão fixado pela fatura.</small>',
+  );
+
+  // Atualiza quais blocos devem aparecer na cascata
   atualizarVisibilidadeFormulario();
+
   elements.nomeTransacaoInput.focus();
   callbackAbrirModal(elements.modalNovaTransacao, null, "transacao");
 }
