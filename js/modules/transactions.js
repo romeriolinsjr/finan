@@ -509,7 +509,6 @@ export async function excluirTransacaoUnica(
   isInModal = false,
   callbackPopularFatura,
 ) {
-  if (!confirm("Excluir esta transação?")) return;
   try {
     await db
       .collection("users")

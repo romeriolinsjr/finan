@@ -564,12 +564,16 @@ document.addEventListener("DOMContentLoaded", () => {
           ui.abrirModalEspecifico,
           cards.popularModalDetalhesFatura,
         ),
-      excluirTransacaoUnica: (id) =>
-        trans.excluirTransacaoUnica(
+      excluirTransacaoUnica: async (id) => {
+        await trans.excluirTransacaoUnica(
           id,
           false,
           cards.popularModalDetalhesFatura,
-        ),
+        );
+        // Remove da memória local para sumir da tela instantaneamente
+        state.transacoes = state.transacoes.filter((t) => t.id !== id);
+        ui.renderizarTransacoesDoMes();
+      },
       abrirModal: ui.abrirModalEspecifico,
       // REINSERIDO: Callbacks essenciais para a edição funcionar
       resetModalNovaTransacao: trans.resetModalNovaTransacao,
@@ -727,12 +731,16 @@ document.addEventListener("DOMContentLoaded", () => {
       ui.handleTransactionListClick(e, {
         atualizarStatusPago: (id, s) =>
           trans.atualizarStatusPago(id, s, ui.atualizarResumoFinanceiro),
-        excluirTransacaoUnica: (id) =>
-          trans.excluirTransacaoUnica(
+        excluirTransacaoUnica: async (id) => {
+          await trans.excluirTransacaoUnica(
             id,
             true,
             cards.popularModalDetalhesFatura,
-          ),
+          );
+          // Remove da memória local
+          state.transacoes = state.transacoes.filter((t) => t.id !== id);
+          ui.renderizarTransacoesDoMes();
+        },
         abrirModal: ui.abrirModalEspecifico,
         abrirModalDetalhesFatura: cards.abrirModalDetalhesFatura,
         // REINSERIDO: Callbacks essenciais para a edição funcionar dentro da fatura
