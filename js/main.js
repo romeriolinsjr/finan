@@ -484,13 +484,16 @@ document.addEventListener("DOMContentLoaded", () => {
     if (s) {
       const mesVisualizado = utils.getMesAnoChave(state.currentDate);
 
-      // Limpa cache local e baixa os dados novos para garantir que o saldo atualize
+      // NOVO: Limpa o mês atual E TODOS os meses futuros da memória local.
+      // Isso garante que compras parceladas ou recorrentes apareçam ao navegar para frente.
       state.transacoes = state.transacoes.filter(
-        (t) => t.mesAnoReferencia !== mesVisualizado,
+        (t) => t.mesAnoReferencia < mesVisualizado,
       );
       state.mesesCarregados = state.mesesCarregados.filter(
-        (m) => m !== mesVisualizado,
+        (m) => m < mesVisualizado,
       );
+
+      // Baixa novamente os dados apenas do mês que você está vendo agora
       await garantirDadosDoMes(mesVisualizado);
 
       // PADRONIZAÇÃO: Sempre fecha o modal após salvar
