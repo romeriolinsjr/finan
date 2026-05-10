@@ -690,19 +690,26 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Faturas
-  elements.btnFaturaAnterior.addEventListener("click", () => {
+  // Faturas (Navegação Inteligente com Lazy Loading)
+  elements.btnFaturaAnterior.addEventListener("click", async () => {
     state.currentFaturaDate.setMonth(state.currentFaturaDate.getMonth() - 1);
+    const mesAno = utils.getMesAnoChave(state.currentFaturaDate);
+    // Garante que os dados do mês existam antes de popular
+    await garantirDadosDoMes(mesAno);
     cards.popularModalDetalhesFatura(
       elements.faturaCartaoNomeTitulo.dataset.cartaoId,
-      utils.getMesAnoChave(state.currentFaturaDate),
+      mesAno,
     );
   });
-  elements.btnFaturaProxima.addEventListener("click", () => {
+
+  elements.btnFaturaProxima.addEventListener("click", async () => {
     state.currentFaturaDate.setMonth(state.currentFaturaDate.getMonth() + 1);
+    const mesAno = utils.getMesAnoChave(state.currentFaturaDate);
+    // Garante que os dados do mês existam antes de popular
+    await garantirDadosDoMes(mesAno);
     cards.popularModalDetalhesFatura(
       elements.faturaCartaoNomeTitulo.dataset.cartaoId,
-      utils.getMesAnoChave(state.currentFaturaDate),
+      mesAno,
     );
   });
   elements.btnAddDespesaFromFatura.addEventListener("click", () => {
@@ -936,18 +943,26 @@ document.addEventListener("DOMContentLoaded", () => {
     state.editingPessoaId = null;
   });
 
-  // Relatórios
+  // Relatórios (Navegação Inteligente com Lazy Loading)
   elements.btnRelatorios.addEventListener("click", () =>
     ui.abrirModalEspecifico(elements.modalRelatorios, null, "relatorios", {
       popularModalRelatorio: reports.popularModalRelatorio,
     }),
   );
-  elements.btnRelatorioAnterior.addEventListener("click", () => {
+
+  elements.btnRelatorioAnterior.addEventListener("click", async () => {
     state.reportDate.setMonth(state.reportDate.getMonth() - 1);
+    const mesAno = utils.getMesAnoChave(state.reportDate);
+    // Garante os dados antes de gerar o relatório
+    await garantirDadosDoMes(mesAno);
     reports.popularModalRelatorio(state.reportDate);
   });
-  elements.btnRelatorioProximo.addEventListener("click", () => {
+
+  elements.btnRelatorioProximo.addEventListener("click", async () => {
     state.reportDate.setMonth(state.reportDate.getMonth() + 1);
+    const mesAno = utils.getMesAnoChave(state.reportDate);
+    // Garante os dados antes de gerar o relatório
+    await garantirDadosDoMes(mesAno);
     reports.popularModalRelatorio(state.reportDate);
   });
 
