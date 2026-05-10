@@ -1010,9 +1010,23 @@ document.addEventListener("DOMContentLoaded", () => {
     const { itemId, acao, context } = elements.modalConfirmarAcaoSerie.dataset;
     ui.fecharModalEspecifico(elements.modalConfirmarAcaoSerie);
     if (acao === "excluir") {
-      if (context === "dividaTerceiro")
+      if (context === "dividaTerceiro") {
         await third.excluirDividaTerceiroUnica(itemId);
-      else await trans.excluirTransacaoUnica(itemId);
+      } else {
+        // Lógica para despesas do usuário (Ordinária/Cartão)
+        await trans.excluirTransacaoUnica(itemId);
+
+        // Remove do cache local e atualiza a interface imediatamente
+        state.transacoes = state.transacoes.filter((t) => t.id !== itemId);
+        ui.renderizarTransacoesDoMes();
+
+        // Se o modal de fatura estiver aberto, atualiza a lista interna dele
+        if (elements.modalDetalhesFaturaCartao.style.display === "flex") {
+          const cId = elements.faturaCartaoNomeTitulo.dataset.cartaoId;
+          const mAno = elements.faturaCartaoNomeTitulo.dataset.mesAno;
+          if (cId && mAno) cards.popularModalDetalhesFatura(cId, mAno);
+        }
+      }
     } else {
       if (context === "dividaTerceiro")
         third.abrirModalEdicaoDivida(
@@ -1076,8 +1090,25 @@ document.addEventListener("DOMContentLoaded", () => {
 
       try {
         await batch.commit();
-        if (context !== "dividaTerceiro")
+
+        if (context !== "dividaTerceiro") {
+          // Limpa a série da memória local das despesas do usuário
+          state.transacoes = state.transacoes.filter(
+            (t) => t.serieId !== serieId,
+          );
           await utils.registrarUltimaAlteracao();
+
+          // Redesenha a tela principal e os saldos
+          ui.renderizarTransacoesDoMes();
+
+          // Se estiver visualizando uma fatura, atualiza os dados do modal
+          if (elements.modalDetalhesFaturaCartao.style.display === "flex") {
+            const cId = elements.faturaCartaoNomeTitulo.dataset.cartaoId;
+            const mAno = elements.faturaCartaoNomeTitulo.dataset.mesAno;
+            if (cId && mAno) cards.popularModalDetalhesFatura(cId, mAno);
+          }
+        }
+
         alert(`${querySnapshot.docs.length} item(ns) excluídos.`);
       } catch (error) {
         console.error(`Erro ao excluir:`, error);
