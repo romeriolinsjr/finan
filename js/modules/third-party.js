@@ -195,18 +195,14 @@ export async function excluirDividaTerceiroUnica(dividaId) {
 }
 
 export function obterDadosFormularioTerceiros() {
-  const pessoaSelect = elements.passo2Container.querySelector("#pessoaSelect");
-  const pessoaId = pessoaSelect ? pessoaSelect.value : null;
-
+  const pessoaId = elements.pessoaSelect ? elements.pessoaSelect.value : null;
   const descricaoDivida = elements.nomeTransacaoInput.value.trim();
+  const categoria = elements.categoriaDespesa.value;
 
-  const categoria =
-    elements.passo2Container.querySelector("#categoriaDespesa").value;
   const frequencia =
     categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA
-      ? elements.passo2Container.querySelector("#frequenciaDespesaOrd").value
-      : elements.passo2Container.querySelector("#frequenciaDespesaCartao")
-          .value;
+      ? elements.frequenciaDespesaOrd.value
+      : elements.frequenciaDespesaCartao.value;
 
   let dados = {
     pessoaId: pessoaId,
@@ -222,66 +218,34 @@ export function obterDadosFormularioTerceiros() {
 
   if (frequencia === CONSTS.FREQUENCIA.PARCELADA) {
     if (categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA) {
-      dados.valor =
-        parseFloat(
-          elements.passo2Container.querySelector("#valorDespesaOrdParcelada")
-            .value,
-        ) || 0;
-      dados.tipoCadastroParcela = elements.passo2Container.querySelector(
-        "#tipoCadastroParcelaOrd",
-      ).value;
-      dados.totalParcelas = parseInt(
-        elements.passo2Container.querySelector("#qtdParcelasOrd").value,
-      );
-      dados.parcelaAtual =
-        parseInt(
-          elements.passo2Container.querySelector("#parcelaAtualOrd").value,
-        ) || 1;
+      dados.valor = parseFloat(elements.valorDespesaOrd.value) || 0;
+      dados.tipoCadastroParcela = elements.tipoCadastroParcelaOrd.value;
+      dados.totalParcelas = parseInt(elements.qtdParcelasOrd.value);
+      dados.parcelaAtual = parseInt(elements.parcelaAtualOrd.value) || 1;
     } else {
-      dados.valor =
-        parseFloat(
-          elements.passo2Container.querySelector("#valorDespesaCartaoParcelada")
-            .value,
-        ) || 0;
-      dados.tipoCadastroParcela = elements.passo2Container.querySelector(
-        "#tipoCadastroParcelaCartao",
-      ).value;
-      dados.totalParcelas = parseInt(
-        elements.passo2Container.querySelector("#qtdParcelasCartao").value,
-      );
-      dados.parcelaAtual =
-        parseInt(
-          elements.passo2Container.querySelector("#parcelaAtualCartao").value,
-        ) || 1;
+      dados.valor = parseFloat(elements.valorDespesaCartao.value) || 0;
+      dados.tipoCadastroParcela = elements.tipoCadastroParcelaCartao.value;
+      dados.totalParcelas = parseInt(elements.qtdParcelasCartao.value);
+      dados.parcelaAtual = parseInt(elements.parcelaAtualCartao.value) || 1;
     }
   } else {
-    if (categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA) {
-      dados.valor =
-        parseFloat(
-          elements.passo2Container.querySelector(
-            "#valorDespesaOrdUnicaRecorrente",
-          ).value,
-        ) || 0;
-    } else {
-      dados.valor =
-        parseFloat(
-          elements.passo2Container.querySelector(
-            "#valorDespesaCartaoUnicaRecorrente",
-          ).value,
-        ) || 0;
-    }
+    dados.valor =
+      categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA
+        ? parseFloat(elements.valorDespesaOrd.value) || 0
+        : parseFloat(elements.valorDespesaCartao.value) || 0;
   }
 
   if (categoria === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO) {
-    const cartaoEl = elements.passo2Container.querySelector("#cartaoDespesa");
-    dados.cartaoId = cartaoEl ? cartaoEl.value : null;
+    dados.cartaoId = elements.cartaoDespesa
+      ? elements.cartaoDespesa.value
+      : null;
   }
 
   return dados;
 }
 
 export function atualizarSelectPessoas(idParaSelecionar = null) {
-  const pessoaSelect = elements.passo2Container.querySelector("#pessoaSelect");
+  const pessoaSelect = elements.pessoaSelect;
   if (!pessoaSelect) return;
 
   const valorSelecionadoAnteriormente = pessoaSelect.value;

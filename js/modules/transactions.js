@@ -437,6 +437,9 @@ export function popularSeletoresFixos() {
     (o) => (hOrc += `<option value="${o.id}">${o.nome}</option>`),
   );
   elements.orcamentoVinculado.innerHTML = hOrc;
+
+  // Pessoas (Para Despesas de Terceiros)
+  atualizarSelectPessoas();
 }
 
 export function atualizarSelectPessoas(idParaSelecionar = null) {

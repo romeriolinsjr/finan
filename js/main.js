@@ -828,6 +828,8 @@ document.addEventListener("DOMContentLoaded", () => {
   elements.btnAbrirCadastroTerceiros.addEventListener("click", () => {
     ui.fecharModalEspecifico(elements.modalMenuTerceiros);
     state.isModoTerceiros = true;
+    // NOVO: Popula os seletores (incluindo pessoas) antes de abrir
+    trans.popularSeletoresFixos();
     ui.abrirModalEspecifico(elements.modalNovaTransacao, null, "transacao", {
       resetModalNovaTransacao: trans.resetModalNovaTransacao,
       preencherModalParaEdicao: trans.preencherModalParaEdicao,
