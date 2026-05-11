@@ -307,23 +307,70 @@ export async function atualizarTransacaoExistente(dados) {
 
   try {
     if (state.editingSerieId) {
+      const itemAncora = state.transacoes.find(
+        (t) => t.id === state.editingTransactionId,
+      );
+      if (!itemAncora) return false;
+
+      const dataAntigaStr = itemAncora.dataEntrada || itemAncora.dataVencimento;
+      const dataNovaStr = dados.dataEntrada || dados.dataVencimento;
+
+      let diffMeses = 0;
+      let novoDia = null;
+      let recalcularDatas = false;
+
+      // Só ativa a lógica de data se os campos existirem no formulário (Ordinárias/Receitas)
+      if (dataNovaStr && dataAntigaStr) {
+        const dAntiga = new Date(dataAntigaStr + "T12:00:00");
+        const dNova = new Date(dataNovaStr + "T12:00:00");
+        diffMeses =
+          (dNova.getFullYear() - dAntiga.getFullYear()) * 12 +
+          (dNova.getMonth() - dAntiga.getMonth());
+        novoDia = dataNovaStr.split("-")[2];
+        recalcularDatas = true;
+      }
+
       const querySnapshot = await db
         .collection("users")
         .doc(state.currentUser.uid)
         .collection("transacoes")
         .where("serieId", "==", state.editingSerieId)
+        .where("mesAnoReferencia", ">=", itemAncora.mesAnoReferencia)
         .get();
+
       const batch = db.batch();
+
       querySnapshot.docs.forEach((doc) => {
-        const t = doc.data();
+        const tDoc = doc.data();
+
         const nomeFinal =
-          t.frequencia === "parcelada"
-            ? `${dados.nomeBase} (${t.parcelaAtual}/${t.totalParcelas})`
+          tDoc.frequencia === CONSTS.FREQUENCIA.PARCELADA
+            ? `${dados.nomeBase} (${tDoc.parcelaAtual}/${tDoc.totalParcelas})`
             : dados.nomeBase;
-        batch.update(doc.ref, { valor: dados.valor, nome: nomeFinal });
+
+        const updates = {
+          valor: dados.valor,
+          nome: nomeFinal,
+          orcamentoId: dados.orcamentoId || null,
+        };
+
+        // Se for Ordinária/Receita, aplica o deslocamento de data
+        if (recalcularDatas) {
+          const dataItemOriginalStr = tDoc.dataEntrada || tDoc.dataVencimento;
+          const dataItemOriginal = new Date(dataItemOriginalStr + "T12:00:00");
+          dataItemOriginal.setMonth(dataItemOriginal.getMonth() + diffMeses);
+          const novaDataFinal = `${dataItemOriginal.getFullYear()}-${(dataItemOriginal.getMonth() + 1).toString().padStart(2, "0")}-${novoDia}`;
+          const campoData =
+            tDoc.tipo === "receita" ? "dataEntrada" : "dataVencimento";
+          updates[campoData] = novaDataFinal;
+        }
+
+        batch.update(doc.ref, updates);
       });
+
       await batch.commit();
     } else {
+      // Edição de transação única (Não série)
       await db
         .collection("users")
         .doc(state.currentUser.uid)
@@ -334,6 +381,7 @@ export async function atualizarTransacaoExistente(dados) {
     await registrarUltimaAlteracao();
     return true;
   } catch (error) {
+    console.error("Erro ao atualizar série:", error);
     return false;
   }
 }

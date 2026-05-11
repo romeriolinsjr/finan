@@ -327,47 +327,63 @@ export async function atualizarStatusPagoFatura(
   }
 }
 
-export function prepararSoftDeleteCartao(cartaoId, callbackAbrirModal) {
+export async function prepararSoftDeleteCartao(cartaoId, callbackAbrirModal) {
   const cartao = state.cartoes.find((c) => c.id === cartaoId);
   if (!cartao) return;
 
-  // Busca todas as transações deste cartão para achar a última
-  const transacoesDoCartao = state.transacoes.filter(
-    (t) => t.cartaoId === cartaoId,
-  );
+  if (elements.loadingSpinnerOverlay)
+    elements.loadingSpinnerOverlay.style.display = "flex";
 
-  let textoInformativo = "";
-  let dataSugerida = "";
+  try {
+    // ESTA CONSULTA EXIGE UM ÍNDICE COMPOSTO NO FIREBASE
+    const querySnapshot = await db
+      .collection("users")
+      .doc(state.currentUser.uid)
+      .collection("transacoes")
+      .where("cartaoId", "==", cartaoId)
+      .orderBy("mesAnoReferencia", "desc")
+      .limit(1)
+      .get();
 
-  if (transacoesDoCartao.length > 0) {
-    // Ordena para achar o mês/ano mais distante
-    const ultimaTransacao = transacoesDoCartao.sort((a, b) =>
-      b.mesAnoReferencia.localeCompare(a.mesAnoReferencia),
-    )[0];
+    let textoInformativo = "";
+    let dataSugerida = "";
 
-    const [ano, mes] = ultimaTransacao.mesAnoReferencia.split("-");
-    const nomeMes = new Date(ano, mes - 1).toLocaleString("pt-BR", {
-      month: "long",
-    });
+    if (!querySnapshot.empty) {
+      const ultimaTransacao = querySnapshot.docs[0].data();
+      const [ano, mes] = ultimaTransacao.mesAnoReferencia.split("-");
+      const nomeMes = new Date(ano, mes - 1).toLocaleString("pt-BR", {
+        month: "long",
+      });
 
-    textoInformativo = `A última fatura com compras para o cartão "${cartao.nome}" é ${nomeMes} de ${ano}.`;
+      textoInformativo = `A última fatura com compras para o cartão "${cartao.nome}" é ${nomeMes} de ${ano}.`;
 
-    // Sugere o mês seguinte à última compra como data de corte padrão
-    let dataCorte = new Date(ano, mes, 1); // mes já é o próximo (0-indexed)
-    dataSugerida = `${dataCorte.getFullYear()}-${(dataCorte.getMonth() + 1).toString().padStart(2, "0")}`;
-  } else {
-    textoInformativo = `O cartão "${cartao.nome}" não possui compras cadastradas.`;
-    const hoje = new Date();
-    dataSugerida = `${hoje.getFullYear()}-${(hoje.getMonth() + 1).toString().padStart(2, "0")}`;
+      // Sugere o mês seguinte à última compra como data de corte padrão
+      let dataCorte = new Date(ano, mes, 1);
+      dataSugerida = `${dataCorte.getFullYear()}-${(dataCorte.getMonth() + 1)
+        .toString()
+        .padStart(2, "0")}`;
+    } else {
+      textoInformativo = `O cartão "${cartao.nome}" não possui compras cadastradas no histórico.`;
+      const hoje = new Date();
+      dataSugerida = `${hoje.getFullYear()}-${(hoje.getMonth() + 1)
+        .toString()
+        .padStart(2, "0")}`;
+    }
+
+    elements.infoUltimaCompraCartao.textContent = textoInformativo;
+    elements.dataCorteExclusaoCartao.value = dataSugerida;
+    elements.modalConfirmarExclusaoCartao.dataset.cartaoId = cartaoId;
+
+    callbackAbrirModal(elements.modalConfirmarExclusaoCartao, null, "generic");
+  } catch (error) {
+    console.error("Erro ao buscar última parcela:", error);
+    alert(
+      "Não foi possível buscar o histórico do cartão. Verifique se o índice do Firebase foi criado.",
+    );
+  } finally {
+    if (elements.loadingSpinnerOverlay)
+      elements.loadingSpinnerOverlay.style.display = "none";
   }
-
-  elements.infoUltimaCompraCartao.textContent = textoInformativo;
-  elements.dataCorteExclusaoCartao.value = dataSugerida;
-
-  // Salva o ID no modal para uso posterior
-  elements.modalConfirmarExclusaoCartao.dataset.cartaoId = cartaoId;
-
-  callbackAbrirModal(elements.modalConfirmarExclusaoCartao, null, "generic");
 }
 
 export async function executarSoftDeleteCartao(
@@ -379,24 +395,27 @@ export async function executarSoftDeleteCartao(
   if (!state.currentUser) return;
 
   try {
-    const batch = db.batch();
     const userRef = db.collection("users").doc(state.currentUser.uid);
 
-    // 1. Marcar o cartão como deletado e registrar a data de corte
+    // 1. Busca no FIREBASE (não no cache local) todas as compras deste cartão do mês de corte em diante
+    const snapshot = await userRef
+      .collection("transacoes")
+      .where("cartaoId", "==", cartaoId)
+      .where("mesAnoReferencia", ">=", dataCorte)
+      .get();
+
+    const batch = db.batch();
+
+    // 2. Marca o cartão como deletado e registra a data de corte no documento do cartão
     const cartaoRef = userRef.collection("cartoes").doc(cartaoId);
     batch.update(cartaoRef, {
       deletado: true,
       dataExclusao: dataCorte,
     });
 
-    // 2. Localizar e apagar permanentemente transações DESTE CARTÃO do mês de corte em diante
-    const comprasParaApagar = state.transacoes.filter(
-      (t) => t.cartaoId === cartaoId && t.mesAnoReferencia >= dataCorte,
-    );
-
-    comprasParaApagar.forEach((t) => {
-      const tRef = userRef.collection("transacoes").doc(t.id);
-      batch.delete(tRef);
+    // 3. Adiciona a deleção de todas as compras encontradas ao lote (batch)
+    snapshot.docs.forEach((doc) => {
+      batch.delete(doc.ref);
     });
 
     await batch.commit();

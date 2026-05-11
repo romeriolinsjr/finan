@@ -654,7 +654,7 @@ document.addEventListener("DOMContentLoaded", () => {
         },
       );
   });
-  elements.listaCartoesCadastradosUl.addEventListener("click", (e) => {
+  elements.listaCartoesCadastradosUl.addEventListener("click", async (e) => {
     const cartaoId =
       e.target.closest(".cartao-info")?.dataset.id ||
       e.target.closest("button")?.dataset.id;
@@ -688,8 +688,8 @@ document.addEventListener("DOMContentLoaded", () => {
         },
       );
     } else if (e.target.closest(".btn-delete-cartao")) {
-      // NOVA LÓGICA: Em vez de excluir direto, abre o modal de confirmação planejado
-      cards.prepararSoftDeleteCartao(cartaoId, ui.abrirModalEspecifico);
+      // Ajustado para esperar a busca da última parcela no banco
+      await cards.prepararSoftDeleteCartao(cartaoId, ui.abrirModalEspecifico);
     }
   });
 

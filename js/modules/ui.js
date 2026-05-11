@@ -429,8 +429,18 @@ export function renderizarTransacoesDoMes() {
   const faturasAgrupadas = {};
   despesasCartaoDoMes.forEach((dc) => {
     if (!dc.cartaoId) return;
+
+    // NOVO: Verifica se o cartão tem uma data de corte e se deve ser exibido neste mês
+    const cartaoInfo = state.cartoes.find((c) => c.id === dc.cartaoId) || {};
+    if (
+      cartaoInfo.deletado &&
+      cartaoInfo.dataExclusao &&
+      mesAnoAtual >= cartaoInfo.dataExclusao
+    ) {
+      return; // Pula este cartão, ele não deve aparecer mais deste mês em diante
+    }
+
     if (!faturasAgrupadas[dc.cartaoId]) {
-      const cartaoInfo = state.cartoes.find((c) => c.id === dc.cartaoId) || {};
       faturasAgrupadas[dc.cartaoId] = {
         cartaoId: dc.cartaoId,
         cartaoNome: cartaoInfo.nome || "Cartão Desconhecido",
