@@ -378,7 +378,14 @@ export function renderizarTransacoesDoMes() {
     );
   }
 
-  if (primeiroMesAnoComDados && mesAnoAtual < primeiroMesAnoComDados) {
+  // Identifica o mês real de hoje para evitar que o mês atual seja considerado "pré-histórico"
+  const mesAnoHoje = getMesAnoChave(new Date());
+
+  if (
+    primeiroMesAnoComDados &&
+    mesAnoAtual < primeiroMesAnoComDados &&
+    mesAnoAtual < mesAnoHoje
+  ) {
     atualizarResumoFinanceiro();
     const liEmpty = document.createElement("li");
     liEmpty.textContent = "Sem dados para este período.";

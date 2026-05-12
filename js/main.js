@@ -231,8 +231,14 @@ document.addEventListener("DOMContentLoaded", () => {
         id: doc.id,
       }));
 
-      // Adiciona as novas transações ao estado sem apagar as que já existem
-      state.transacoes = [...state.transacoes, ...novasTransacoes];
+      // NOVO: Filtra para adicionar apenas transações que NÃO estejam no estado local
+      // Isso evita que um item apareça duas vezes na tela
+      const transacoesFiltradas = novasTransacoes.filter(
+        (nova) =>
+          !state.transacoes.some((existente) => existente.id === nova.id),
+      );
+
+      state.transacoes = [...state.transacoes, ...transacoesFiltradas];
       state.mesesCarregados.push(mesAno);
     } catch (error) {
       console.error(`Erro ao carregar mês ${mesAno}:`, error);
@@ -452,6 +458,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Transações
   elements.btnAbrirModalNovaTransacao.addEventListener("click", () => {
+    // NOVO: Limpa o estado de edição para garantir um formulário novo e limpo
+    state.isEditMode = false;
+    state.editingTransactionId = null;
+    state.editingSerieId = null;
+
     // Garante que o estado de "Modo Terceiros" seja limpo ao entrar pelo menu geral
     state.isModoTerceiros = false;
     state.isQuickAddMode = false;
@@ -852,6 +863,12 @@ document.addEventListener("DOMContentLoaded", () => {
   );
   elements.btnAbrirCadastroTerceiros.addEventListener("click", () => {
     ui.fecharModalEspecifico(elements.modalMenuTerceiros);
+
+    // NOVO: Limpa o estado de edição
+    state.isEditMode = false;
+    state.editingTransactionId = null;
+    state.editingSerieId = null;
+
     state.isModoTerceiros = true;
     // NOVO: Popula os seletores (incluindo pessoas) antes de abrir
     trans.popularSeletoresFixos();
@@ -1092,16 +1109,18 @@ document.addEventListener("DOMContentLoaded", () => {
         await batch.commit();
 
         if (context !== "dividaTerceiro") {
-          // Limpa a série da memória local das despesas do usuário
+          // LIMPEZA LOCAL: Remove da memória apenas os itens do mês de referência para frente, preservando o passado
           state.transacoes = state.transacoes.filter(
-            (t) => t.serieId !== serieId,
+            (t) =>
+              !(
+                t.serieId === serieId &&
+                t.mesAnoReferencia >= mesAnoInicioExclusao
+              ),
           );
-          await utils.registrarUltimaAlteracao();
 
-          // Redesenha a tela principal e os saldos
+          await utils.registrarUltimaAlteracao();
           ui.renderizarTransacoesDoMes();
 
-          // Se estiver visualizando uma fatura, atualiza os dados do modal
           if (elements.modalDetalhesFaturaCartao.style.display === "flex") {
             const cId = elements.faturaCartaoNomeTitulo.dataset.cartaoId;
             const mAno = elements.faturaCartaoNomeTitulo.dataset.mesAno;
