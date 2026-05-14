@@ -737,8 +737,27 @@ body.modal-aberto {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 8px;
+  padding: 12px 12px; /* Aumentado levemente o padding lateral */
   border-bottom: 1px solid #eee;
+}
+
+/* Destaque para Orçamentos Fixos */
+#listaOrcamentos li.orcamento-item-ordinario {
+  background-color: #e1f5fe; /* Azul muito claro */
+  border-left: 5px solid #3498db;
+  margin-bottom: 2px;
+}
+
+#listaOrcamentos li.orcamento-item-outros {
+  background-color: #fff3e0; /* Laranja muito claro */
+  border-left: 5px solid #f39c12;
+  margin-bottom: 15px; /* Espaço para separação visual dos demais */
+  border-bottom: 2px solid #ddd; /* Linha de separação mais forte */
+}
+
+#listaOrcamentos li.orcamento-item-ordinario .orcamento-nome,
+#listaOrcamentos li.orcamento-item-outros .orcamento-nome {
+  font-weight: 600;
 }
 #listaCartoesCadastrados li:last-child,
 #listaOrcamentos li:last-child {

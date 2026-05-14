@@ -17,11 +17,26 @@ export function renderizarListaOrcamentos() {
       "<li>Nenhum orçamento cadastrado.</li>";
     return;
   }
-  const orcamentosOrdenados = [...state.orcamentos].sort(
-    (a, b) => b.valor - a.valor,
-  );
+
+  // Ordenação: Gastos Ordinários (1º), Outros Gastos (2º), demais por valor decrescente
+  const orcamentosOrdenados = [...state.orcamentos].sort((a, b) => {
+    if (a.isFixedOrdinary) return -1;
+    if (b.isFixedOrdinary) return 1;
+    if (a.isFixed) return -1;
+    if (b.isFixed) return 1;
+    return b.valor - a.valor;
+  });
+
   orcamentosOrdenados.forEach((orcamento) => {
     const li = document.createElement("li");
+
+    // Adiciona classes para estilização especial
+    if (orcamento.isFixedOrdinary) {
+      li.classList.add("orcamento-item-ordinario");
+    } else if (orcamento.isFixed) {
+      li.classList.add("orcamento-item-outros");
+    }
+
     const btnDeleteHTML =
       orcamento.isFixed || orcamento.isFixedOrdinary
         ? ""
