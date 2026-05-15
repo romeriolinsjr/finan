@@ -547,10 +547,12 @@ export function popularSeletoresFixos() {
   elements.cartaoDespesa.innerHTML = hCartoes;
 
   // Orçamentos
-  let hOrc = '<option value="">Nenhum</option>';
-  state.orcamentos.forEach(
-    (o) => (hOrc += `<option value="${o.id}">${o.nome}</option>`),
-  );
+  // Filtramos os orçamentos fixos (Ordinários e Outros Gastos) da lista de vinculação manual.
+  // "Gastos Ordinários" não pertence ao cartão e "Outros Gastos" é o padrão (Nenhum).
+  let hOrc = '<option value="">Nenhum (Outros Gastos)</option>';
+  state.orcamentos
+    .filter((o) => !o.isFixed && !o.isFixedOrdinary)
+    .forEach((o) => (hOrc += `<option value="${o.id}">${o.nome}</option>`));
   elements.orcamentoVinculado.innerHTML = hOrc;
 
   // Pessoas (Para Despesas de Terceiros)
