@@ -258,6 +258,9 @@ document.addEventListener("DOMContentLoaded", () => {
     state.activeUnsubscribers = [];
 
     const update = () => {
+      // Atualiza os seletores (Cartões, Orçamentos, Pessoas) para manter a reatividade nos modais
+      trans.popularSeletoresFixos();
+
       if (elements.searchInput.value.trim() === "")
         ui.renderizarTransacoesDoMes();
       else
@@ -641,29 +644,54 @@ document.addEventListener("DOMContentLoaded", () => {
       .collection("users")
       .doc(state.currentUser.uid)
       .collection("cartoes");
-    if (state.isCartaoEditMode)
-      await ref
-        .doc(elements.cartaoEditIdInput.value)
-        .update({ nome: n, diaVencimentoFatura: d });
-    else
-      await ref.add({
-        nome: n,
-        diaVencimentoFatura: d,
-        vencimentoNoMesSeguinte: false,
-      });
-    ui.fecharModalEspecifico(elements.modalCadastrarCartao);
-    if (
-      elements.modalCadastrarCartao.dataset.returnTo === "modalGerenciarCartoes"
-    )
-      ui.abrirModalEspecifico(
-        elements.modalGerenciarCartoes,
-        null,
-        "gerenciarCartoes",
-        {
-          renderizarListaCartoesCadastrados:
-            cards.renderizarListaCartoesCadastrados,
-        },
-      );
+
+    try {
+      let cartaoId = elements.cartaoEditIdInput.value;
+      const isNew = !state.isCartaoEditMode;
+
+      if (!isNew) {
+        await ref.doc(cartaoId).update({ nome: n, diaVencimentoFatura: d });
+      } else {
+        const docRef = await ref.add({
+          nome: n,
+          diaVencimentoFatura: d,
+          vencimentoNoMesSeguinte: false,
+        });
+        cartaoId = docRef.id;
+      }
+
+      // Capturamos o destino de retorno antes de limpar
+      const returnTo = elements.modalCadastrarCartao.dataset.returnTo;
+
+      // Limpamos o rastro para que o modal não reapareça indevidamente
+      elements.modalCadastrarCartao.dataset.returnTo = "";
+
+      ui.fecharModalEspecifico(elements.modalCadastrarCartao);
+
+      // Se o modal de Nova Transação estiver aberto, aguardamos o Firebase atualizar a lista
+      if (elements.modalNovaTransacao.style.display === "flex") {
+        setTimeout(() => {
+          trans.popularSeletoresFixos();
+          elements.cartaoDespesa.value = cartaoId;
+        }, 500); // Aguarda o onSnapshot processar a nova entrada
+      }
+
+      // Se o retorno era para o Gerenciador de Cartões, reabre ele
+      if (returnTo === "modalGerenciarCartoes") {
+        ui.abrirModalEspecifico(
+          elements.modalGerenciarCartoes,
+          null,
+          "gerenciarCartoes",
+          {
+            renderizarListaCartoesCadastrados:
+              cards.renderizarListaCartoesCadastrados,
+          },
+        );
+      }
+    } catch (error) {
+      console.error("Erro ao salvar cartão:", error);
+      alert("Ocorreu um erro ao salvar o cartão.");
+    }
   });
   elements.listaCartoesCadastradosUl.addEventListener("click", async (e) => {
     const cartaoId =
@@ -1251,6 +1279,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   elements.cartaoDespesa.addEventListener("change", (e) => {
     if (e.target.value === "novo_cartao") {
+      // Garante que o retorno está limpo para não sobrepor modais
+      elements.modalCadastrarCartao.dataset.returnTo = "";
+
       ui.abrirModalEspecifico(
         elements.modalCadastrarCartao,
         null,
@@ -1259,6 +1290,8 @@ document.addEventListener("DOMContentLoaded", () => {
           resetModalCartao: () => {
             elements.nomeCartaoInputModal.value = "";
             elements.diaVencimentoFaturaInputModal.value = "";
+            elements.modalCartaoTitulo.textContent = "Cadastrar Novo Cartão";
+            elements.btnSalvarCartaoModalBtn.textContent = "Salvar Cartão";
           },
         },
       );

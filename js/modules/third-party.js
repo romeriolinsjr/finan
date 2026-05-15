@@ -118,7 +118,12 @@ export function renderizarDividasDoMes() {
       "padding: 10px 15px 5px; margin: 15px 0 5px; background-color: #e9ecef; border-radius: 4px; display: flex; justify-content: space-between;";
     listaUl.appendChild(tituloPessoa);
 
-    grupo.dividas.forEach((divida) => {
+    // Ordena as dívidas desta pessoa por valor decrescente para manter a lista estável
+    const dividasOrdenadas = [...grupo.dividas].sort(
+      (a, b) => b.valor - a.valor,
+    );
+
+    dividasOrdenadas.forEach((divida) => {
       const li = document.createElement("li");
       li.className = "divida-terceiro-item";
       if (divida.reembolsado) li.classList.add("reembolsado");
