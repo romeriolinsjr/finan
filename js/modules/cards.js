@@ -397,7 +397,7 @@ export async function executarSoftDeleteCartao(
   try {
     const userRef = db.collection("users").doc(state.currentUser.uid);
 
-    // 1. Busca no FIREBASE (não no cache local) todas as compras deste cartão do mês de corte em diante
+    // 1. Busca no FIREBASE apenas as compras do usuário (transacoes) deste cartão do mês de corte em diante
     const snapshot = await userRef
       .collection("transacoes")
       .where("cartaoId", "==", cartaoId)
@@ -406,14 +406,14 @@ export async function executarSoftDeleteCartao(
 
     const batch = db.batch();
 
-    // 2. Marca o cartão como deletado e registra a data de corte no documento do cartão
+    // 2. Marca o cartão como deletado
     const cartaoRef = userRef.collection("cartoes").doc(cartaoId);
     batch.update(cartaoRef, {
       deletado: true,
       dataExclusao: dataCorte,
     });
 
-    // 3. Adiciona a deleção de todas as compras encontradas ao lote (batch)
+    // 3. Adiciona a exclusão das transações do usuário ao lote
     snapshot.docs.forEach((doc) => {
       batch.delete(doc.ref);
     });
@@ -421,9 +421,20 @@ export async function executarSoftDeleteCartao(
     await batch.commit();
     await registrarUltimaAlteracao();
 
-    alert("Cartão excluído com sucesso. O histórico anterior foi preservado.");
+    // 4. ATUALIZAÇÃO DA MEMÓRIA LOCAL (Crucial para o cálculo do saldo)
+    // Removemos do state.transacoes local as compras que foram excluídas do banco
+    state.transacoes = state.transacoes.filter(
+      (t) => !(t.cartaoId === cartaoId && t.mesAnoReferencia >= dataCorte),
+    );
+
+    alert(
+      "Cartão e compras do usuário excluídos. As dívidas de terceiros foram preservadas.",
+    );
+
     callbackFechar(elements.modalConfirmarExclusaoCartao);
-    callbackResumo(); // Atualiza o saldo da tela
+
+    // 5. Atualiza o Resumo Financeiro e a Lista da tela inicial com os dados limpos da memória
+    callbackResumo();
   } catch (error) {
     console.error("Erro ao executar soft delete:", error);
     alert("Ocorreu um erro ao excluir o cartão.");

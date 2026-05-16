@@ -1198,7 +1198,7 @@ document.addEventListener("DOMContentLoaded", () => {
         cartaoId,
         dataCorte,
         ui.fecharModalEspecifico,
-        ui.atualizarResumoFinanceiro,
+        ui.renderizarTransacoesDoMes,
       );
       elements.btnConfirmarSoftDeleteCartao.disabled = false;
       elements.btnConfirmarSoftDeleteCartao.textContent = "Confirmar e Excluir";
