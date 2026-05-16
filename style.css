@@ -741,18 +741,29 @@ body.modal-aberto {
   border-bottom: 1px solid #eee;
 }
 
-/* Destaque para Orçamentos Fixos */
+/* Destaque para Orçamentos Fixos (Modal Gerenciar) */
 #listaOrcamentos li.orcamento-item-ordinario {
-  background-color: #e1f5fe; /* Azul muito claro */
+  background-color: #e1f5fe;
   border-left: 5px solid #3498db;
   margin-bottom: 2px;
 }
 
 #listaOrcamentos li.orcamento-item-outros {
-  background-color: #fff3e0; /* Laranja muito claro */
+  background-color: #fff3e0;
   border-left: 5px solid #f39c12;
-  margin-bottom: 15px; /* Espaço para separação visual dos demais */
-  border-bottom: 2px solid #ddd; /* Linha de separação mais forte */
+  margin-bottom: 15px;
+  border-bottom: 2px solid #ddd;
+}
+
+/* Destaque para Orçamentos Fixos (Tela Inicial) */
+/* Mantemos a borda original (laranja) da classe .orcamento, mas mudamos o fundo */
+.transaction-item.orcamento.orcamento-item-ordinario {
+  background-color: #e1f5fe !important;
+}
+
+.transaction-item.orcamento.orcamento-item-outros {
+  background-color: #fff3e0 !important;
+  margin-bottom: 15px; /* Mantém a separação visual também na tela inicial */
 }
 
 #listaOrcamentos li.orcamento-item-ordinario .orcamento-nome,

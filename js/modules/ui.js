@@ -521,6 +521,8 @@ export function renderizarTransacoesDoMes() {
       valor: orcamento.valor - gastosNoOrcamento,
       valorTotalOrcamento: orcamento.valor,
       dataOrdenacao: dataOrcamento,
+      isFixed: orcamento.isFixed || false,
+      isFixedOrdinary: orcamento.isFixedOrdinary || false,
     });
   });
 
@@ -534,6 +536,18 @@ export function renderizarTransacoesDoMes() {
     const prioridadeA = tipoPrioridade[a.tipoDisplay];
     const prioridadeB = tipoPrioridade[b.tipoDisplay];
     if (prioridadeA !== prioridadeB) return prioridadeA - prioridadeB;
+
+    // Sub-ordenação específica para Orçamentos: Gastos Ordinários -> Outros Gastos -> Demais
+    if (
+      a.tipoDisplay === CONSTS.TIPO_RENDERIZACAO.ORCAMENTO &&
+      b.tipoDisplay === CONSTS.TIPO_RENDERIZACAO.ORCAMENTO
+    ) {
+      if (a.isFixedOrdinary) return -1;
+      if (b.isFixedOrdinary) return 1;
+      if (a.isFixed) return -1;
+      if (b.isFixed) return 1;
+    }
+
     const dateA =
       a.dataOrdenacao instanceof Date ? a.dataOrdenacao : new Date(0);
     const dateB =
@@ -582,6 +596,10 @@ export function renderizarTransacoesDoMes() {
         break;
       case CONSTS.TIPO_RENDERIZACAO.ORCAMENTO:
         li.classList.add("orcamento");
+        // Adiciona as classes de destaque se for um orçamento fixo
+        if (item.isFixedOrdinary) li.classList.add("orcamento-item-ordinario");
+        if (item.isFixed) li.classList.add("orcamento-item-outros");
+
         if (isOrcamentoFechado(item.orcamentoId, mesAnoAtual))
           li.classList.add("fechado");
         li.dataset.orcamentoId = item.id;
