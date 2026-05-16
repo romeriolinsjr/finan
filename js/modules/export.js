@@ -150,6 +150,76 @@ export async function gerarExtratoMensalPDF() {
 
   currentY = doc.lastAutoTable.finalY + 10;
 
+  // --- SEÇÃO: ANÁLISE DE DESPESAS ---
+  const despesasDoMesParaAnalise = transacoes.filter(
+    (t) => t.tipo === CONSTS.TIPO_TRANSACAO.DESPESA,
+  );
+  const calcularSubtotaisAnalise = (cat) => {
+    const d = despesasDoMesParaAnalise.filter((t) => t.categoria === cat);
+    return {
+      unica: d
+        .filter((t) => t.frequencia === CONSTS.FREQUENCIA.UNICA)
+        .reduce((s, t) => s + t.valor, 0),
+      recorrente: d
+        .filter((t) => t.frequencia === CONSTS.FREQUENCIA.RECORRENTE)
+        .reduce((s, t) => s + t.valor, 0),
+      parcelada: d
+        .filter((t) => t.frequencia === CONSTS.FREQUENCIA.PARCELADA)
+        .reduce((s, t) => s + t.valor, 0),
+    };
+  };
+
+  const subsOrdAnalise = calcularSubtotaisAnalise(
+    CONSTS.CATEGORIA_DESPESA.ORDINARIA,
+  );
+  const subsCartaoAnalise = calcularSubtotaisAnalise(
+    CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO,
+  );
+  const somaSubsOrd = Object.values(subsOrdAnalise).reduce((a, b) => a + b, 0);
+  const somaSubsCartao = Object.values(subsCartaoAnalise).reduce(
+    (a, b) => a + b,
+    0,
+  );
+
+  doc.autoTable({
+    startY: currentY,
+    head: [
+      [
+        "ANÁLISE DE DESPESAS",
+        "ÚNICA",
+        "RECORRENTE",
+        "PARCELADA",
+        "TOTAL (% SALÁRIO)",
+      ],
+    ],
+    body: [
+      [
+        "Gastos Ordinários",
+        formatCurrency(subsOrdAnalise.unica),
+        formatCurrency(subsOrdAnalise.recorrente),
+        formatCurrency(subsOrdAnalise.parcelada),
+        `${formatCurrency(somaSubsOrd)} (${((somaSubsOrd / (totalReceitas || 1)) * 100).toFixed(1)}%)`,
+      ],
+      [
+        "Cartão de Crédito",
+        formatCurrency(subsCartaoAnalise.unica),
+        formatCurrency(subsCartaoAnalise.recorrente),
+        formatCurrency(subsCartaoAnalise.parcelada),
+        `${formatCurrency(somaSubsCartao)} (${((somaSubsCartao / (totalReceitas || 1)) * 100).toFixed(1)}%)`,
+      ],
+    ],
+    theme: "grid",
+    headStyles: { fillColor: [52, 73, 94] },
+    columnStyles: {
+      1: { halign: "right" },
+      2: { halign: "right" },
+      3: { halign: "right" },
+      4: { halign: "right" },
+    },
+  });
+
+  currentY = doc.lastAutoTable.finalY + 10;
+
   // SEÇÃO 1: RECEITAS
   doc.autoTable({
     startY: currentY,
