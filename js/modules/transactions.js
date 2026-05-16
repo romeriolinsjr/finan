@@ -189,8 +189,12 @@ export function preencherModalParaEdicao(id) {
       }
     } else {
       // Configuração para Cartão de Crédito
+      // Garantimos que os seletores estejam vindo do estado mais atualizado
+      popularSeletoresFixos();
+
       elements.cartaoDespesa.value = transacao.cartaoId;
-      elements.cartaoDespesa.disabled = true;
+      // LIBERADO: Permitimos a troca do cartão para correções de erros de cadastro
+      elements.cartaoDespesa.disabled = false;
 
       // O Orçamento deve ser preenchido mas permanecer editável para correções
       elements.orcamentoVinculado.value = transacao.orcamentoId || "";
@@ -539,9 +543,18 @@ export async function adicionarNovaDividaTerceiro(dados) {
 
 export function popularSeletoresFixos() {
   // Cartões
+  // Se estivermos editando, precisamos incluir o cartão da transação mesmo que ele esteja "deletado" (Soft Delete)
+  // para que o nome apareça corretamente no seletor.
   let hCartoes = '<option value="">-- Selecione --</option>';
   state.cartoes
-    .filter((c) => !c.deletado)
+    .filter(
+      (c) =>
+        !c.deletado ||
+        (state.isEditMode &&
+          state.editingTransactionId &&
+          state.transacoes.find((t) => t.id === state.editingTransactionId)
+            ?.cartaoId === c.id),
+    )
     .forEach((c) => (hCartoes += `<option value="${c.id}">${c.nome}</option>`));
   hCartoes += '<option value="novo_cartao">Cadastrar novo...</option>';
   elements.cartaoDespesa.innerHTML = hCartoes;
