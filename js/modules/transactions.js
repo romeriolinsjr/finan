@@ -290,8 +290,7 @@ export function validarDadosDaTransacao(dados) {
 export async function atualizarTransacaoExistente(dados) {
   if (!state.currentUser) return false;
 
-  // Capturamos o nome do orçamento que foi selecionado no modal (mês atual)
-  // Isso é vital para encontrar o ID correspondente nos meses futuros
+  // 1. Identifica o nome do orçamento alvo para rastrear IDs em outros meses
   const orcamentoOriginal = state.orcamentos.find(
     (o) => o.id === dados.orcamentoId,
   );
@@ -322,12 +321,26 @@ export async function atualizarTransacaoExistente(dados) {
       );
       if (!itemAncora) return false;
 
+      // 2. Busca o MAPEAMENTO de orçamentos no Firestore (não apenas no state local)
+      // Isso garante que mesmo meses não carregados no cache sejam atualizados corretamente.
+      let mapaOrcamentos = {};
+      if (nomeOrcamentoAlvo) {
+        const orcSnap = await db
+          .collection("users")
+          .doc(state.currentUser.uid)
+          .collection("orcamentos")
+          .where("nome", "==", nomeOrcamentoAlvo)
+          .get();
+        orcSnap.docs.forEach((doc) => {
+          mapaOrcamentos[doc.data().mesAnoReferencia] = doc.id;
+        });
+      }
+
       const dataAntigaStr = itemAncora.dataEntrada || itemAncora.dataVencimento;
       const dataNovaStr = dados.dataEntrada || dados.dataVencimento;
-
-      let diffMeses = 0;
-      let novoDia = null;
-      let recalcularDatas = false;
+      let diffMeses = 0,
+        novoDia = null,
+        recalcularDatas = false;
 
       if (dataNovaStr && dataAntigaStr) {
         const dAntiga = new Date(dataAntigaStr + "T12:00:00");
@@ -351,42 +364,34 @@ export async function atualizarTransacaoExistente(dados) {
 
       querySnapshot.docs.forEach((doc) => {
         const tDoc = doc.data();
-
         const nomeFinalItem =
           tDoc.frequencia === CONSTS.FREQUENCIA.PARCELADA
             ? `${dados.nomeBase} (${tDoc.parcelaAtual}/${tDoc.totalParcelas})`
             : dados.nomeBase;
 
-        // LÓGICA DE VÍNCULO TEMPORAL: Busca o ID do orçamento para este mês específico da série
-        let orcamentoIdParaEsteMes = null;
-        if (nomeOrcamentoAlvo) {
-          const orcNoMes = state.orcamentos.find(
-            (o) =>
-              o.nome === nomeOrcamentoAlvo &&
-              o.mesAnoReferencia === tDoc.mesAnoReferencia,
-          );
-          orcamentoIdParaEsteMes = orcNoMes ? orcNoMes.id : null;
-        }
+        // Vínculo inteligente usando o mapa carregado do banco
+        const orcamentoIdParaEsteMes =
+          mapaOrcamentos[tDoc.mesAnoReferencia] || null;
 
         const updates = {
           valor: dados.valor,
           nome: nomeFinalItem,
           orcamentoId: orcamentoIdParaEsteMes,
+          cartaoId: dados.cartaoId || null, // Garante que a troca de cartão também propaga
         };
 
         if (recalcularDatas) {
           const dataItemOriginalStr = tDoc.dataEntrada || tDoc.dataVencimento;
           const dataItemOriginal = new Date(dataItemOriginalStr + "T12:00:00");
-          dataItemOriginal.setMonth(dataItemOriginal.setMonth() + diffMeses);
+          dataItemOriginal.setMonth(dataItemOriginal.getMonth() + diffMeses);
           const novaDataFinal = `${dataItemOriginal.getFullYear()}-${(dataItemOriginal.getMonth() + 1).toString().padStart(2, "0")}-${novoDia}`;
-          const campoData =
-            tDoc.tipo === "receita" ? "dataEntrada" : "dataVencimento";
-          updates[campoData] = novaDataFinal;
+          updates[tDoc.tipo === "receita" ? "dataEntrada" : "dataVencimento"] =
+            novaDataFinal;
         }
 
         batch.update(doc.ref, updates);
 
-        // ATUALIZAÇÃO LOCAL (Série): Para refletir no UI sem F5
+        // Atualiza cache local
         const indexLocal = state.transacoes.findIndex((t) => t.id === doc.id);
         if (indexLocal !== -1) {
           state.transacoes[indexLocal] = {
@@ -406,7 +411,6 @@ export async function atualizarTransacaoExistente(dados) {
         .doc(state.editingTransactionId)
         .update(dadosParaAtualizar);
 
-      // ATUALIZAÇÃO LOCAL (Única)
       const indexLocal = state.transacoes.findIndex(
         (t) => t.id === state.editingTransactionId,
       );
