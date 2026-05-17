@@ -52,7 +52,12 @@ export function atualizarResumoFinanceiro() {
   const activeBudgetIds = state.orcamentos.map((o) => o.id);
 
   // 2. Lógica de Orçamentos (Cálculo de Previsão vs Real)
-  state.orcamentos.forEach((orcamento) => {
+  // IMPORTANTE: Filtramos apenas os orçamentos do mês de referência atual
+  const orcamentosDoMes = state.orcamentos.filter(
+    (o) => o.mesAnoReferencia === mesAnoAtual,
+  );
+
+  orcamentosDoMes.forEach((orcamento) => {
     let gastosNesteOrcamento = transacoesDoMes
       .filter((t) => t.orcamentoId === orcamento.id)
       .reduce((total, t) => total + t.valor, 0);
@@ -105,9 +110,11 @@ export function atualizarResumoFinanceiro() {
   // Atualiza visual do botão "Fechar/Abrir Todos Orçamentos"
   if (elements.btnFecharTodosOrcamentos) {
     const mesAno = getMesAnoChave(state.currentDate);
-    const algumAberto = state.orcamentos.some(
-      (orc) => !isOrcamentoFechado(orc.id, mesAno),
-    );
+
+    // CORREÇÃO TEMPORAL: Filtramos apenas os orçamentos do mês atual para decidir o texto do botão
+    const algumAberto = state.orcamentos
+      .filter((orc) => orc.mesAnoReferencia === mesAno)
+      .some((orc) => !isOrcamentoFechado(orc.id, mesAno));
 
     if (algumAberto) {
       elements.btnFecharTodosOrcamentos.innerHTML =
@@ -487,7 +494,12 @@ export function renderizarTransacoesDoMes() {
   });
 
   // Orçamentos
-  state.orcamentos.forEach((orcamento) => {
+  // IMPORTANTE: Exibe apenas os orçamentos vinculados ao mês que está na tela
+  const orcamentosParaRenderizar = state.orcamentos.filter(
+    (o) => o.mesAnoReferencia === mesAnoAtual,
+  );
+
+  orcamentosParaRenderizar.forEach((orcamento) => {
     const [ano, mes] = mesAnoAtual.split("-").map(Number);
     const dataOrcamento = new Date(ano, mes - 1, orcamento.dia);
     let gastosNoOrcamento = transacoesDoMesVisivel

@@ -908,6 +908,69 @@
         </div>
       </div>
     </div>
+
+    <!-- NOVO: Modal para Escolha de Escopo do Orçamento -->
+    <div id="modalConfirmarEscopoOrcamento" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Salvar Orçamento</h2>
+          <span
+            class="close-button"
+            data-modal-id="modalConfirmarEscopoOrcamento"
+            >×</span
+          >
+        </div>
+        <div class="modal-body" style="padding-bottom: 35px">
+          <p
+            id="textoConfirmarEscopoOrcamento"
+            style="
+              margin-bottom: 20px;
+              text-align: center;
+              color: #2c3e50;
+              font-weight: 500;
+            "
+          >
+            Onde você deseja aplicar esta alteração?
+          </p>
+          <div
+            class="modal-body-buttons"
+            style="display: flex; flex-direction: column; gap: 12px"
+          >
+            <button
+              id="btnOrcamentoApenasEste"
+              class="btn-primary"
+              style="
+                background-color: #3498db;
+                width: 100%;
+                padding: 12px;
+                margin: 0;
+              "
+            >
+              Alterar APENAS este mês
+            </button>
+            <button
+              id="btnOrcamentoEsteEFuturos"
+              class="btn-primary"
+              style="
+                background-color: #27ae60;
+                width: 100%;
+                padding: 12px;
+                margin: 0;
+              "
+            >
+              Alterar ESTE e os PRÓXIMOS meses
+            </button>
+            <button
+              id="btnOrcamentoCancelar"
+              class="btn-secondary"
+              style="width: 100%; padding: 12px; margin: 0"
+            >
+              Voltar / Desistir
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
     <!-- NOVO: Modal para informar sobre a verificação de e-mail -->
     <!-- NOVO: Modal para Detalhes de Série Parcelada -->
     <div id="modalDetalhesSerie" class="modal">

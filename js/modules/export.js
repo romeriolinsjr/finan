@@ -65,7 +65,11 @@ export async function gerarExtratoMensalPDF() {
   let totalPrevistoOrcamentos = 0;
   let despesasProjetadasDashboard = 0;
 
-  const dadosOrcamentos = state.orcamentos.map((orc) => {
+  const orcamentosExport = state.orcamentos.filter(
+    (o) => o.mesAnoReferencia === mesAno,
+  );
+
+  const dadosOrcamentos = orcamentosExport.map((orc) => {
     let gastoDeste = transacoes
       .filter((t) => t.orcamentoId === orc.id)
       .reduce((s, t) => s + t.valor, 0);

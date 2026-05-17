@@ -80,19 +80,18 @@ document.addEventListener("DOMContentLoaded", () => {
     elements.listaTransacoesUl.innerHTML = "<li>Carregando...</li>";
     await carregarDadosIniciais();
 
-    // --- LÓGICA: Garantir existência dos orçamentos fixos (Cartão e Ordinários) ---
+    // --- LÓGICA: Garantir existência dos orçamentos fixos para o mês atual ---
+    const mesAnoAtual = utils.getMesAnoChave(state.currentDate);
     const orcamentoFixoCartao = state.orcamentos.find(
-      (o) => o.isFixed === true,
+      (o) => o.isFixed === true && o.mesAnoReferencia === mesAnoAtual,
     );
     const orcamentoFixoOrdinario = state.orcamentos.find(
-      (o) => o.isFixedOrdinary === true,
+      (o) => o.isFixedOrdinary === true && o.mesAnoReferencia === mesAnoAtual,
     );
 
     const promessasCriacao = [];
 
-    // Cria "Outros Gastos" (Cartão) se não existir
     if (!orcamentoFixoCartao && state.currentUser) {
-      console.log("Orçamento 'Outros Gastos' não encontrado. Criando...");
       promessasCriacao.push(
         db
           .collection("users")
@@ -103,14 +102,42 @@ document.addEventListener("DOMContentLoaded", () => {
             valor: 0,
             dia: 1,
             isFixed: true,
+            mesAnoReferencia: mesAnoAtual,
           })
           .then((docRef) => {
             state.orcamentos.push({
+              id: docRef.id,
               nome: "Outros Gastos",
               valor: 0,
               dia: 1,
               isFixed: true,
+              mesAnoReferencia: mesAnoAtual,
+            });
+          }),
+      );
+    }
+
+    if (!orcamentoFixoOrdinario && state.currentUser) {
+      promessasCriacao.push(
+        db
+          .collection("users")
+          .doc(state.currentUser.uid)
+          .collection("orcamentos")
+          .add({
+            nome: "Gastos Ordinários",
+            valor: 0,
+            dia: 1,
+            isFixedOrdinary: true,
+            mesAnoReferencia: mesAnoAtual,
+          })
+          .then((docRef) => {
+            state.orcamentos.push({
               id: docRef.id,
+              nome: "Gastos Ordinários",
+              valor: 0,
+              dia: 1,
+              isFixedOrdinary: true,
+              mesAnoReferencia: mesAnoAtual,
             });
           }),
       );
@@ -156,7 +183,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!state.currentUser) return;
     const userCollections = db.collection("users").doc(state.currentUser.uid);
 
-    // Define os 3 meses iniciais (Anterior, Atual, Próximo)
     const dataAtual = new Date();
     const mesesParaBaixar = [];
     for (let i = -1; i <= 1; i++) {
@@ -172,7 +198,10 @@ document.addEventListener("DOMContentLoaded", () => {
             .where("mesAnoReferencia", "in", mesesParaBaixar)
             .get(),
           userCollections.collection("cartoes").get(),
-          userCollections.collection("orcamentos").get(),
+          userCollections
+            .collection("orcamentos")
+            .where("mesAnoReferencia", "in", mesesParaBaixar)
+            .get(),
           userCollections.collection("orcamentosFechados").get(),
           userCollections.collection("ajustesFatura").get(),
           userCollections.collection("dividasTerceiros").get(),
@@ -203,7 +232,41 @@ document.addEventListener("DOMContentLoaded", () => {
       state.pessoas = pSnap.docs.map((doc) => ({ ...doc.data(), id: doc.id }));
       state.pessoas.sort((a, b) => a.nome.localeCompare(b.nome));
 
-      // Marca esses meses como carregados no cache
+      // 1. Migração de Legados (caso não existam orçamentos com mês)
+      const orcsComMes = state.orcamentos.filter((o) => o.mesAnoReferencia);
+      if (orcsComMes.length === 0) {
+        const legacySnap = await userCollections.collection("orcamentos").get();
+        const legacyBudgets = legacySnap.docs
+          .map((doc) => ({ ...doc.data(), id: doc.id }))
+          .filter((doc) => !doc.mesAnoReferencia);
+        if (legacyBudgets.length > 0) {
+          await budgets.migrarOrcamentosLegados(
+            legacyBudgets,
+            mesesParaBaixar[1],
+          );
+          const freshSnap = await userCollections
+            .collection("orcamentos")
+            .where("mesAnoReferencia", "==", mesesParaBaixar[1])
+            .get();
+          state.orcamentos = freshSnap.docs.map((doc) => ({
+            ...doc.data(),
+            id: doc.id,
+          }));
+        }
+      }
+
+      // 2. Garantir orçamentos para os 3 meses iniciais (Propagação Automática no Load)
+      for (const mes of mesesParaBaixar) {
+        const orcsDoMes = state.orcamentos.filter(
+          (o) => o.mesAnoReferencia === mes,
+        );
+        if (orcsDoMes.length === 0) {
+          console.log(`Propagando orçamento inicial para ${mes}...`);
+          const novos = await budgets.propagarOrcamentos(null, mes);
+          state.orcamentos = [...state.orcamentos, ...novos];
+        }
+      }
+
       state.mesesCarregados = [...mesesParaBaixar];
     } catch (error) {
       console.error("Erro dados iniciais:", error);
@@ -212,38 +275,59 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // NOVA FUNÇÃO: Carrega um mês específico se ele não estiver no cache
   async function garantirDadosDoMes(mesAno) {
-    if (state.mesesCarregados.includes(mesAno)) return; // Já está no cache
+    if (state.mesesCarregados.includes(mesAno)) return;
 
     console.log(`Carregando dados sob demanda para: ${mesAno}`);
-    // Exibe o spinner diretamente pelo elemento
     if (elements.loadingSpinnerOverlay)
       elements.loadingSpinnerOverlay.style.display = "flex";
 
     try {
       const userCollections = db.collection("users").doc(state.currentUser.uid);
-      const snapshot = await userCollections
-        .collection("transacoes")
-        .where("mesAnoReferencia", "==", mesAno)
-        .get();
 
-      const novasTransacoes = snapshot.docs.map((doc) => ({
+      const [snapTrans, snapOrc] = await Promise.all([
+        userCollections
+          .collection("transacoes")
+          .where("mesAnoReferencia", "==", mesAno)
+          .get(),
+        userCollections
+          .collection("orcamentos")
+          .where("mesAnoReferencia", "==", mesAno)
+          .get(),
+      ]);
+
+      const novasTransacoes = snapTrans.docs.map((doc) => ({
         ...doc.data(),
         id: doc.id,
       }));
-
-      // NOVO: Filtra para adicionar apenas transações que NÃO estejam no estado local
-      // Isso evita que um item apareça duas vezes na tela
       const transacoesFiltradas = novasTransacoes.filter(
         (nova) =>
           !state.transacoes.some((existente) => existente.id === nova.id),
       );
-
       state.transacoes = [...state.transacoes, ...transacoesFiltradas];
-      state.mesesCarregados.push(mesAno);
+
+      let orcamentosDoMes = snapOrc.docs.map((doc) => ({
+        ...doc.data(),
+        id: doc.id,
+      }));
+
+      // LÓGICA DE PROPAGAÇÃO MELHORADA
+      if (orcamentosDoMes.length === 0) {
+        console.log(`Mês ${mesAno} vazio. Iniciando propagação...`);
+        orcamentosDoMes = await budgets.propagarOrcamentos(null, mesAno);
+      }
+
+      // Adiciona ao estado local removendo qualquer lixo que pudesse existir daquele mês
+      state.orcamentos = state.orcamentos.filter(
+        (o) => o.mesAnoReferencia !== mesAno,
+      );
+      state.orcamentos = [...state.orcamentos, ...orcamentosDoMes];
+
+      if (!state.mesesCarregados.includes(mesAno)) {
+        state.mesesCarregados.push(mesAno);
+      }
     } catch (error) {
       console.error(`Erro ao carregar mês ${mesAno}:`, error);
     } finally {
-      // Oculta o spinner diretamente pelo elemento
       if (elements.loadingSpinnerOverlay)
         elements.loadingSpinnerOverlay.style.display = "none";
     }
@@ -275,12 +359,9 @@ document.addEventListener("DOMContentLoaded", () => {
     // Armazenamos o retorno de cada onSnapshot (a função de desligar)
     // userRef.collection("transacoes").onSnapshot... (REMOVIDO PARA ECONOMIA)
 
-    state.activeUnsubscribers.push(
-      userRef.collection("cartoes").onSnapshot((s) => {
-        state.cartoes = s.docs.map((d) => ({ ...d.data(), id: d.id }));
-        update();
-      }),
-    );
+    // O listener de orçamentos agora é removido do modelo global e passa a ser
+    // gerenciado pelo carregamento sob demanda (garantirDadosDoMes),
+    // seguindo o mesmo padrão de economia e performance das transações.
 
     state.activeUnsubscribers.push(
       userRef.collection("orcamentos").onSnapshot((s) => {
@@ -846,20 +927,82 @@ document.addEventListener("DOMContentLoaded", () => {
       resetFormOrcamento: budgets.resetFormOrcamento, // ADICIONADO
     }),
   );
-  elements.btnSalvarOrcamento.addEventListener("click", async () => {
+  // Dispara a escolha de escopo ao salvar um orçamento
+  elements.btnSalvarOrcamento.addEventListener("click", () => {
     const id = elements.orcamentoEditIdInput.value;
     const n = elements.nomeOrcamentoInput.value.trim();
     const v = parseFloat(elements.valorOrcamentoInput.value);
     const d = parseInt(elements.diaOrcamentoInput.value);
-    if (!n || isNaN(v) || isNaN(d)) return;
-    const ref = db
-      .collection("users")
-      .doc(state.currentUser.uid)
-      .collection("orcamentos");
-    if (id) await ref.doc(id).update({ nome: n, valor: v, dia: d });
-    else await ref.add({ nome: n, valor: v, dia: d });
-    ui.fecharModalEspecifico(elements.modalOrcamentos);
+
+    if (!n || isNaN(v) || isNaN(d)) {
+      alert("Preencha todos os campos corretamente.");
+      return;
+    }
+
+    if (id) {
+      // Se for edição, abre o modal de escolha de escopo
+      ui.abrirModalEspecifico(elements.modalConfirmarEscopoOrcamento);
+    } else {
+      // Se for novo orçamento, dispara salvamento com flag de criação
+      executarSalvamentoOrcamento("novo");
+    }
   });
+
+  // Função interna para processar o salvamento de orçamentos (Temporal)
+  async function executarSalvamentoOrcamento(tipoEdicao) {
+    const dados = {
+      id: elements.orcamentoEditIdInput.value,
+      nome: elements.nomeOrcamentoInput.value.trim(),
+      valor: parseFloat(elements.valorOrcamentoInput.value),
+      dia: parseInt(elements.diaOrcamentoInput.value),
+      tipoEdicao: tipoEdicao,
+    };
+
+    const sucesso = await budgets.salvarOrcamentoTemporal(dados);
+
+    if (sucesso) {
+      const mesAnoAtual = utils.getMesAnoChave(state.currentDate);
+
+      // Se for um NOVO orçamento ou alteração de série, limpamos o cache de meses futuros
+      if (tipoEdicao === "futuros" || tipoEdicao === "novo") {
+        state.mesesCarregados = state.mesesCarregados.filter(
+          (m) => m <= mesAnoAtual,
+        );
+        state.orcamentos = state.orcamentos.filter(
+          (o) => o.mesAnoReferencia <= mesAnoAtual,
+        );
+      } else {
+        // Se mudou só este mês, invalida apenas este mês no cache
+        state.mesesCarregados = state.mesesCarregados.filter(
+          (m) => m !== mesAnoAtual,
+        );
+        state.orcamentos = state.orcamentos.filter(
+          (o) => o.mesAnoReferencia !== mesAnoAtual,
+        );
+      }
+
+      // Re-sincroniza a memória com o banco
+      await garantirDadosDoMes(mesAnoAtual);
+
+      // Fecha os modais envolvidos
+      ui.fecharModalEspecifico(elements.modalConfirmarEscopoOrcamento);
+      ui.fecharModalEspecifico(elements.modalOrcamentos);
+
+      // Atualiza visualmente a tela inicial e o resumo
+      ui.renderizarTransacoesDoMes();
+    }
+  }
+
+  // Ouvintes para o modal de confirmação de escopo de orçamento
+  elements.btnOrcamentoApenasEste.addEventListener("click", () =>
+    executarSalvamentoOrcamento("unico"),
+  );
+  elements.btnOrcamentoEsteEFuturos.addEventListener("click", () =>
+    executarSalvamentoOrcamento("futuros"),
+  );
+  elements.btnOrcamentoCancelar.addEventListener("click", () =>
+    ui.fecharModalEspecifico(elements.modalConfirmarEscopoOrcamento),
+  );
   elements.listaOrcamentosUl.addEventListener("click", (e) => {
     const id = e.target.closest("button")?.dataset.id;
     if (e.target.closest(".btn-edit-orcamento"))

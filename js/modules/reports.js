@@ -51,7 +51,11 @@ export function popularModalRelatorio(date) {
   let totalPrevistoOrcamentos = 0;
   let somaDespesasProjetadas = 0;
 
-  state.orcamentos.forEach((orc) => {
+  const orcamentosRelatorio = state.orcamentos.filter(
+    (o) => o.mesAnoReferencia === mesAno,
+  );
+
+  orcamentosRelatorio.forEach((orc) => {
     totalPrevistoOrcamentos += orc.valor;
     let gastoDeste = despesasDoMes
       .filter((t) => t.orcamentoId === orc.id)
@@ -133,7 +137,17 @@ export function popularModalRelatorio(date) {
   </div></section>`;
 
   let orcamentosHTML = "";
-  state.orcamentos.forEach((orc) => {
+
+  // Ordenação: Gastos Ordinários (1º), Outros Gastos (2º), demais por valor decrescente
+  const orcamentosOrdenadosRelatorio = [...orcamentosRelatorio].sort((a, b) => {
+    if (a.isFixedOrdinary) return -1;
+    if (b.isFixedOrdinary) return 1;
+    if (a.isFixed) return -1;
+    if (b.isFixed) return 1;
+    return b.valor - a.valor;
+  });
+
+  orcamentosOrdenadosRelatorio.forEach((orc) => {
     let gastoNoOrc = despesasDoMes
       .filter((t) => t.orcamentoId === orc.id)
       .reduce((s, t) => s + t.valor, 0);
@@ -149,6 +163,7 @@ export function popularModalRelatorio(date) {
       gastoNoOrc += despesasDoMes
         .filter((t) => t.categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA)
         .reduce((s, t) => s + t.valor, 0);
+
     orcamentosHTML += `<div class="relatorio-orcamento-item"><span>${orc.nome}</span><div class="orcamento-valores"><small>Prev: ${formatCurrency(orc.valor)}</small><small>Gasto: ${formatCurrency(gastoNoOrc)}</small><strong style="color:${orc.valor - gastoNoOrc >= 0 ? "#27ae60" : "#e74c3c"}">Saldo: ${formatCurrency(orc.valor - gastoNoOrc)}</strong></div></div>`;
   });
 

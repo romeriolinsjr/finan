@@ -395,6 +395,12 @@ export async function adicionarNovasTransacoes(dados) {
   let transacoesParaAdicionar = [];
   const mesAnoBase = getMesAnoChave(state.currentDate);
 
+  // Capturamos o nome do orçamento selecionado no mês atual para buscar seus "clones" no futuro
+  const orcamentoOriginal = state.orcamentos.find(
+    (o) => o.id === dados.orcamentoId,
+  );
+  const nomeOrcamentoAlvo = orcamentoOriginal ? orcamentoOriginal.nome : null;
+
   if (dados.frequencia === "recorrente" || dados.frequencia === "parcelada") {
     const serieId = db.collection("users").doc().id;
     const totalMeses =
@@ -407,8 +413,10 @@ export async function adicionarNovasTransacoes(dados) {
         parseDateString(dados.dataEntrada || dados.dataVencimento),
       );
       dataRef.setMonth(dataRef.getMonth() + i);
-      let mesReferencia = new Date(state.currentDate);
-      mesReferencia.setMonth(mesReferencia.getMonth() + i);
+
+      let mesReferenciaObj = new Date(state.currentDate);
+      mesReferenciaObj.setMonth(mesReferenciaObj.getMonth() + i);
+      const mesReferenciaChave = getMesAnoChave(mesReferenciaObj);
 
       const valorFinal =
         dados.frequencia === "parcelada" &&
@@ -416,13 +424,25 @@ export async function adicionarNovasTransacoes(dados) {
           ? parseFloat((dados.valor / dados.totalParcelas).toFixed(2))
           : dados.valor;
 
+      // Tenta encontrar o ID do orçamento correspondente para este mês específico na série
+      let orcamentoIdVinculo = null;
+      if (nomeOrcamentoAlvo) {
+        const orcNoMes = state.orcamentos.find(
+          (o) =>
+            o.nome === nomeOrcamentoAlvo &&
+            o.mesAnoReferencia === mesReferenciaChave,
+        );
+        orcamentoIdVinculo = orcNoMes ? orcNoMes.id : null;
+      }
+
       transacoesParaAdicionar.push({
         ...dados,
         serieId,
+        orcamentoId: orcamentoIdVinculo, // Vínculo dinâmico por mês
         valor: valorFinal,
         parcelaAtual:
           dados.frequencia === "parcelada" ? dados.parcelaAtual + i : null,
-        mesAnoReferencia: getMesAnoChave(mesReferencia),
+        mesAnoReferencia: mesReferenciaChave,
         dataVencimento: dados.dataVencimento
           ? dataRef.toISOString().split("T")[0]
           : null,
@@ -560,12 +580,20 @@ export function popularSeletoresFixos() {
   elements.cartaoDespesa.innerHTML = hCartoes;
 
   // Orçamentos
-  // Filtramos os orçamentos fixos (Ordinários e Outros Gastos) da lista de vinculação manual.
-  // "Gastos Ordinários" não pertence ao cartão e "Outros Gastos" é o padrão (Nenhum).
+  // Obtemos o mês que está sendo exibido na tela para filtrar a lista
+  const mesAnoAtualVisivel = getMesAnoChave(state.currentDate);
+
+  // Filtramos apenas os orçamentos que pertencem a este mês e que não são os fixos
   let hOrc = '<option value="">Nenhum (Outros Gastos)</option>';
   state.orcamentos
-    .filter((o) => !o.isFixed && !o.isFixedOrdinary)
+    .filter(
+      (o) =>
+        o.mesAnoReferencia === mesAnoAtualVisivel &&
+        !o.isFixed &&
+        !o.isFixedOrdinary,
+    )
     .forEach((o) => (hOrc += `<option value="${o.id}">${o.nome}</option>`));
+
   elements.orcamentoVinculado.innerHTML = hOrc;
 
   // Pessoas (Para Despesas de Terceiros)

@@ -15,6 +15,15 @@ export function getMesAnoChave(date) {
   return `${year}-${month}`;
 }
 
+/**
+ * Retorna a chave do mês anterior (YYYY-MM) a partir de uma chave fornecida.
+ */
+export function getMesAnteriorChave(mesAnoChave) {
+  const [ano, mes] = mesAnoChave.split("-").map(Number);
+  const date = new Date(ano, mes - 2, 1);
+  return getMesAnoChave(date);
+}
+
 export function parseDateString(dateString) {
   if (!dateString) return null;
   const parts = dateString.split("-");

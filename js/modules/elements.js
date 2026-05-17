@@ -197,4 +197,10 @@ export const elements = {
   inputValorBanco: document.getElementById("inputValorBanco"),
   resultadoDiferenca: document.getElementById("resultadoDiferenca"),
   faturaCartaoTotalValor: document.getElementById("faturaCartaoTotalValor"),
+  modalConfirmarEscopoOrcamento: document.getElementById(
+    "modalConfirmarEscopoOrcamento",
+  ),
+  btnOrcamentoApenasEste: document.getElementById("btnOrcamentoApenasEste"),
+  btnOrcamentoEsteEFuturos: document.getElementById("btnOrcamentoEsteEFuturos"),
+  btnOrcamentoCancelar: document.getElementById("btnOrcamentoCancelar"),
 };

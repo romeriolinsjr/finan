@@ -12,14 +12,19 @@ import {
 export function renderizarListaOrcamentos() {
   if (!elements.listaOrcamentosUl) return;
   elements.listaOrcamentosUl.innerHTML = "";
-  if (state.orcamentos.length === 0) {
+
+  const mesAnoAtual = getMesAnoChave(state.currentDate);
+  const orcamentosDoMes = state.orcamentos.filter(
+    (o) => o.mesAnoReferencia === mesAnoAtual,
+  );
+
+  if (orcamentosDoMes.length === 0) {
     elements.listaOrcamentosUl.innerHTML =
-      "<li>Nenhum orçamento cadastrado.</li>";
+      "<li>Nenhum orçamento para este mês.</li>";
     return;
   }
 
-  // Ordenação: Gastos Ordinários (1º), Outros Gastos (2º), demais por valor decrescente
-  const orcamentosOrdenados = [...state.orcamentos].sort((a, b) => {
+  const orcamentosOrdenados = [...orcamentosDoMes].sort((a, b) => {
     if (a.isFixedOrdinary) return -1;
     if (b.isFixedOrdinary) return 1;
     if (a.isFixed) return -1;
@@ -29,13 +34,8 @@ export function renderizarListaOrcamentos() {
 
   orcamentosOrdenados.forEach((orcamento) => {
     const li = document.createElement("li");
-
-    // Adiciona classes para estilização especial
-    if (orcamento.isFixedOrdinary) {
-      li.classList.add("orcamento-item-ordinario");
-    } else if (orcamento.isFixed) {
-      li.classList.add("orcamento-item-outros");
-    }
+    if (orcamento.isFixedOrdinary) li.classList.add("orcamento-item-ordinario");
+    else if (orcamento.isFixed) li.classList.add("orcamento-item-outros");
 
     const btnDeleteHTML =
       orcamento.isFixed || orcamento.isFixedOrdinary
@@ -59,9 +59,13 @@ export function abrirModalDetalhesOrcamento(
   mesAno,
   callbackAbrirModal,
 ) {
-  const orcamento = state.orcamentos.find((o) => o.id === orcamentoId);
+  const orcamento = state.orcamentos.find(
+    (o) => o.id === orcamentoId && o.mesAnoReferencia === mesAno,
+  );
   if (!orcamento) return;
-  const activeBudgetIds = state.orcamentos.map((o) => o.id);
+  const activeBudgetIds = state.orcamentos
+    .filter((o) => o.mesAnoReferencia === mesAno)
+    .map((o) => o.id);
   const gastosVinculados = state.transacoes.filter((t) => {
     const mesBate = t.mesAnoReferencia === mesAno;
     const vinculadoDiretamente = t.orcamentoId === orcamentoId;
@@ -76,7 +80,6 @@ export function abrirModalDetalhesOrcamento(
       mesBate && (vinculadoDiretamente || ehOrfaoCartao || ehGastoOrdinario)
     );
   });
-
   const prioridade = {
     [CONSTS.FREQUENCIA.RECORRENTE]: 1,
     [CONSTS.FREQUENCIA.PARCELADA]: 2,
@@ -87,7 +90,6 @@ export function abrirModalDetalhesOrcamento(
       (prioridade[a.frequencia] || 4) - (prioridade[b.frequencia] || 4) ||
       b.valor - a.valor,
   );
-
   const totalGasto = gastosVinculados.reduce(
     (total, gasto) => total + gasto.valor,
     0,
@@ -101,10 +103,10 @@ export function abrirModalDetalhesOrcamento(
   elements.orcamentoDetalhesRestante.style.color =
     orcamento.valor - totalGasto >= 0 ? "#27ae60" : "#c0392b";
   elements.listaGastosOrcamento.innerHTML = "";
-  if (gastosVinculados.length === 0) {
+  if (gastosVinculados.length === 0)
     elements.listaGastosOrcamento.innerHTML =
       "<li>Nenhum gasto vinculado.</li>";
-  } else {
+  else {
     gastosVinculados.forEach((gasto) => {
       const li = document.createElement("li");
       li.innerHTML = `<span>${gasto.nome}</span><span>${formatCurrency(gasto.valor)}</span>`;
@@ -119,7 +121,10 @@ export function abrirModalDetalhesOrcamento(
 }
 
 export function preencherModalEdicaoOrcamento(orcamentoId) {
-  const orcamento = state.orcamentos.find((o) => o.id === orcamentoId);
+  const mesAnoAtual = getMesAnoChave(state.currentDate);
+  const orcamento = state.orcamentos.find(
+    (o) => o.id === orcamentoId && o.mesAnoReferencia === mesAnoAtual,
+  );
   if (!orcamento) return;
   elements.orcamentoEditIdInput.value = orcamento.id;
   elements.nomeOrcamentoInput.value = orcamento.nome;
@@ -161,37 +166,212 @@ export function resetFormOrcamento() {
 
 export async function alternarTodosOrcamentosDoMes() {
   if (!state.currentUser || state.orcamentos.length === 0) return;
-
   const mesAno = getMesAnoChave(state.currentDate);
   const orcamentosAbertos = state.orcamentos.filter(
-    (orc) => !isOrcamentoFechado(orc.id, mesAno),
+    (orc) =>
+      orc.mesAnoReferencia === mesAno && !isOrcamentoFechado(orc.id, mesAno),
   );
-
   const batch = db.batch();
   const ref = db
     .collection("users")
     .doc(state.currentUser.uid)
     .collection("orcamentosFechados");
-
   if (orcamentosAbertos.length > 0) {
-    // FECHAR TODOS os que estão abertos
     orcamentosAbertos.forEach((orc) => {
       const docId = `${orc.id}_${mesAno}`;
       batch.set(ref.doc(docId), { orcamentoId: orc.id, mesAno: mesAno });
     });
   } else {
-    // REABRIR TODOS (pois todos já estavam fechados)
-    state.orcamentos.forEach((orc) => {
-      const docId = `${orc.id}_${mesAno}`;
-      batch.delete(ref.doc(docId));
-    });
+    state.orcamentos
+      .filter((o) => o.mesAnoReferencia === mesAno)
+      .forEach((orc) => {
+        const docId = `${orc.id}_${mesAno}`;
+        batch.delete(ref.doc(docId));
+      });
   }
-
   try {
-    // Executa silenciosamente sem alertas
     await batch.commit();
     await registrarUltimaAlteracao();
   } catch (error) {
-    console.error("Erro ao alternar orçamentos em lote:", error);
+    console.error(error);
+  }
+}
+
+export async function migrarOrcamentosLegados(legacyBudgets, mesAnoDestino) {
+  if (!state.currentUser) return;
+  const batch = db.batch();
+  const ref = db
+    .collection("users")
+    .doc(state.currentUser.uid)
+    .collection("orcamentos");
+  legacyBudgets.forEach((old) => {
+    const newDoc = ref.doc();
+    batch.set(newDoc, { ...old, mesAnoReferencia: mesAnoDestino });
+    batch.delete(ref.doc(old.id));
+  });
+  await batch.commit();
+}
+
+/**
+ * Motor de Propagação Robusto
+ */
+export async function propagarOrcamentos(ignorado, mesDestino) {
+  if (!state.currentUser) return [];
+  const ref = db
+    .collection("users")
+    .doc(state.currentUser.uid)
+    .collection("orcamentos");
+
+  try {
+    const snapUltimo = await ref
+      .where("mesAnoReferencia", "<", mesDestino)
+      .orderBy("mesAnoReferencia", "desc")
+      .limit(1)
+      .get();
+
+    if (snapUltimo.empty) {
+      const fixos = [
+        {
+          nome: "Outros Gastos",
+          valor: 0,
+          dia: 1,
+          isFixed: true,
+          mesAnoReferencia: mesDestino,
+        },
+        {
+          nome: "Gastos Ordinários",
+          valor: 0,
+          dia: 1,
+          isFixedOrdinary: true,
+          mesAnoReferencia: mesDestino,
+        },
+      ];
+      const batch = db.batch();
+      const novos = [];
+      fixos.forEach((f) => {
+        const newDoc = ref.doc();
+        batch.set(newDoc, f);
+        novos.push({ ...f, id: newDoc.id });
+      });
+      await batch.commit();
+      return novos;
+    }
+
+    const mesBase = snapUltimo.docs[0].data().mesAnoReferencia;
+    const snapBase = await ref.where("mesAnoReferencia", "==", mesBase).get();
+
+    // Filtramos apenas documentos válidos e limpamos nomes para comparação
+    const orcamentosBase = snapBase.docs
+      .map((doc) => ({ ...doc.data(), id: doc.id }))
+      .filter((d) => d.nome);
+
+    const snapDestino = await ref
+      .where("mesAnoReferencia", "==", mesDestino)
+      .get();
+    const nomesNoDestino = snapDestino.docs.map((doc) =>
+      (doc.data().nome || "").toString().trim(),
+    );
+
+    const batch = db.batch();
+    const novosAdicionados = [];
+
+    orcamentosBase.forEach((base) => {
+      const nomeBaseLimpo = base.nome.toString().trim();
+      if (!nomesNoDestino.includes(nomeBaseLimpo)) {
+        const newDocRef = ref.doc();
+        const { id, ...dataToClone } = base; // Removemos o ID antigo
+        const newData = { ...dataToClone, mesAnoReferencia: mesDestino };
+        batch.set(newDocRef, newData);
+        novosAdicionados.push({ ...newData, id: newDocRef.id });
+      }
+    });
+
+    if (novosAdicionados.length > 0) {
+      await batch.commit();
+    }
+
+    const snapFinal = await ref
+      .where("mesAnoReferencia", "==", mesDestino)
+      .get();
+    return snapFinal.docs.map((doc) => ({ ...doc.data(), id: doc.id }));
+  } catch (error) {
+    console.error("ERRO NA PROPAGAÇÃO:", error);
+    return [];
+  }
+}
+
+export async function salvarOrcamentoTemporal(dados) {
+  if (!state.currentUser) return;
+  const mesAnoAtual = getMesAnoChave(state.currentDate);
+  const ref = db
+    .collection("users")
+    .doc(state.currentUser.uid)
+    .collection("orcamentos");
+  const { id, nome, valor, dia, tipoEdicao } = dados;
+
+  try {
+    if (id && tipoEdicao === "futuros") {
+      // 1. Atualização do item atual por ID
+      await ref.doc(id).update({ valor, dia });
+
+      // 2. Atualização dos clones futuros
+      try {
+        const snap = await ref
+          .where("nome", "==", nome)
+          .where("mesAnoReferencia", ">", mesAnoAtual)
+          .get();
+
+        if (!snap.empty) {
+          const batch = db.batch();
+          snap.docs.forEach((doc) => {
+            batch.update(doc.ref, { valor, dia });
+          });
+          await batch.commit();
+        }
+      } catch (indexError) {
+        console.error("Erro de índice:", indexError);
+        alert(
+          "O valor deste mês foi salvo, mas os futuros dependem de um índice no Firebase. Veja o console (F12).",
+        );
+      }
+    } else if (id) {
+      // Atualização de apenas um mês
+      await ref.doc(id).update({ valor, dia });
+    } else {
+      // NOVO ORÇAMENTO: Propaga automaticamente para todos os meses futuros já inicializados
+      const batch = db.batch();
+
+      // Busca todos os meses futuros que já possuem qualquer orçamento cadastrado
+      const snapshotMesesFuturos = await ref
+        .where("mesAnoReferencia", ">", mesAnoAtual)
+        .get();
+
+      // Identificamos quais meses já existem no banco para não deixá-los incompletos
+      const mesesParaInserir = new Set();
+      mesesParaInserir.add(mesAnoAtual);
+      snapshotMesesFuturos.docs.forEach((doc) =>
+        mesesParaInserir.add(doc.data().mesAnoReferencia),
+      );
+
+      mesesParaInserir.forEach((mes) => {
+        const newDocRef = ref.doc();
+        batch.set(newDocRef, {
+          nome: nome,
+          valor: valor,
+          dia: dia,
+          mesAnoReferencia: mes,
+          isFixed: dados.isFixed || false,
+          isFixedOrdinary: dados.isFixedOrdinary || false,
+        });
+      });
+
+      await batch.commit();
+    }
+
+    await registrarUltimaAlteracao();
+    return true;
+  } catch (error) {
+    console.error("Erro ao salvar orçamento temporal:", error);
+    return false;
   }
 }
