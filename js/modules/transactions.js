@@ -290,7 +290,13 @@ export function validarDadosDaTransacao(dados) {
 export async function atualizarTransacaoExistente(dados) {
   if (!state.currentUser) return false;
 
-  // Define o nome correto preservando a numeração da parcela se for uma edição individual
+  // Capturamos o nome do orçamento que foi selecionado no modal (mês atual)
+  // Isso é vital para encontrar o ID correspondente nos meses futuros
+  const orcamentoOriginal = state.orcamentos.find(
+    (o) => o.id === dados.orcamentoId,
+  );
+  const nomeOrcamentoAlvo = orcamentoOriginal ? orcamentoOriginal.nome : null;
+
   let nomeFinal = dados.nomeBase;
   if (
     dados.frequencia === CONSTS.FREQUENCIA.PARCELADA &&
@@ -323,7 +329,6 @@ export async function atualizarTransacaoExistente(dados) {
       let novoDia = null;
       let recalcularDatas = false;
 
-      // Só ativa a lógica de data se os campos existirem no formulário (Ordinárias/Receitas)
       if (dataNovaStr && dataAntigaStr) {
         const dAntiga = new Date(dataAntigaStr + "T12:00:00");
         const dNova = new Date(dataNovaStr + "T12:00:00");
@@ -347,22 +352,32 @@ export async function atualizarTransacaoExistente(dados) {
       querySnapshot.docs.forEach((doc) => {
         const tDoc = doc.data();
 
-        const nomeFinal =
+        const nomeFinalItem =
           tDoc.frequencia === CONSTS.FREQUENCIA.PARCELADA
             ? `${dados.nomeBase} (${tDoc.parcelaAtual}/${tDoc.totalParcelas})`
             : dados.nomeBase;
 
+        // LÓGICA DE VÍNCULO TEMPORAL: Busca o ID do orçamento para este mês específico da série
+        let orcamentoIdParaEsteMes = null;
+        if (nomeOrcamentoAlvo) {
+          const orcNoMes = state.orcamentos.find(
+            (o) =>
+              o.nome === nomeOrcamentoAlvo &&
+              o.mesAnoReferencia === tDoc.mesAnoReferencia,
+          );
+          orcamentoIdParaEsteMes = orcNoMes ? orcNoMes.id : null;
+        }
+
         const updates = {
           valor: dados.valor,
-          nome: nomeFinal,
-          orcamentoId: dados.orcamentoId || null,
+          nome: nomeFinalItem,
+          orcamentoId: orcamentoIdParaEsteMes,
         };
 
-        // Se for Ordinária/Receita, aplica o deslocamento de data
         if (recalcularDatas) {
           const dataItemOriginalStr = tDoc.dataEntrada || tDoc.dataVencimento;
           const dataItemOriginal = new Date(dataItemOriginalStr + "T12:00:00");
-          dataItemOriginal.setMonth(dataItemOriginal.getMonth() + diffMeses);
+          dataItemOriginal.setMonth(dataItemOriginal.setMonth() + diffMeses);
           const novaDataFinal = `${dataItemOriginal.getFullYear()}-${(dataItemOriginal.getMonth() + 1).toString().padStart(2, "0")}-${novoDia}`;
           const campoData =
             tDoc.tipo === "receita" ? "dataEntrada" : "dataVencimento";
@@ -370,17 +385,37 @@ export async function atualizarTransacaoExistente(dados) {
         }
 
         batch.update(doc.ref, updates);
+
+        // ATUALIZAÇÃO LOCAL (Série): Para refletir no UI sem F5
+        const indexLocal = state.transacoes.findIndex((t) => t.id === doc.id);
+        if (indexLocal !== -1) {
+          state.transacoes[indexLocal] = {
+            ...state.transacoes[indexLocal],
+            ...updates,
+          };
+        }
       });
 
       await batch.commit();
     } else {
-      // Edição de transação única (Não série)
+      // Edição de transação única
       await db
         .collection("users")
         .doc(state.currentUser.uid)
         .collection("transacoes")
         .doc(state.editingTransactionId)
         .update(dadosParaAtualizar);
+
+      // ATUALIZAÇÃO LOCAL (Única)
+      const indexLocal = state.transacoes.findIndex(
+        (t) => t.id === state.editingTransactionId,
+      );
+      if (indexLocal !== -1) {
+        state.transacoes[indexLocal] = {
+          ...state.transacoes[indexLocal],
+          ...dadosParaAtualizar,
+        };
+      }
     }
     await registrarUltimaAlteracao();
     return true;
