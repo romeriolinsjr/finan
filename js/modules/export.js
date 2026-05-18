@@ -65,9 +65,16 @@ export async function gerarExtratoMensalPDF() {
   let totalPrevistoOrcamentos = 0;
   let despesasProjetadasDashboard = 0;
 
-  const orcamentosExport = state.orcamentos.filter(
-    (o) => o.mesAnoReferencia === mesAno,
-  );
+  const orcamentosExport = state.orcamentos
+    .filter((o) => o.mesAnoReferencia === mesAno)
+    .sort((a, b) => {
+      // Hierarquia: 1º Ordinários, 2º Outros (Crédito), 3º Valor Decrescente
+      if (a.isFixedOrdinary) return -1;
+      if (b.isFixedOrdinary) return 1;
+      if (a.isFixed) return -1;
+      if (b.isFixed) return 1;
+      return b.valor - a.valor;
+    });
 
   const dadosOrcamentos = orcamentosExport.map((orc) => {
     let gastoDeste = transacoes

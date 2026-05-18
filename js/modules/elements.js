@@ -215,4 +215,5 @@ export const elements = {
   btnExcluirOrcamentoCancelar: document.getElementById(
     "btnExcluirOrcamentoCancelar",
   ),
+  userEmailDisplay: document.getElementById("userEmailDisplay"),
 };

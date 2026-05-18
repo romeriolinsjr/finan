@@ -29,6 +29,12 @@ document.addEventListener("DOMContentLoaded", () => {
         state.currentUser = user;
         state.isRegisterMode = false;
         elements.modalAuth.style.display = "none";
+
+        // NOVO: Exibe o email do usuário logado na sidebar
+        if (elements.userEmailDisplay) {
+          elements.userEmailDisplay.textContent = user.email;
+        }
+
         if (appContainer) appContainer.style.display = "flex";
         elements.sidebarFooter.style.display = "block";
 
@@ -63,6 +69,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
       state.currentUser = null;
       state.isRegisterMode = false;
+
+      // NOVO: Limpa o email da sidebar ao sair
+      if (elements.userEmailDisplay) {
+        elements.userEmailDisplay.textContent = "";
+      }
+
       if (appContainer) appContainer.style.display = "none";
       authMod.resetAuthModalUI();
       utils.hideSpinner();
