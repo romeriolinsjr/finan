@@ -1194,29 +1194,48 @@ document.addEventListener("DOMContentLoaded", () => {
       .doc(state.currentUser.uid)
       .collection("pessoas");
 
-    if (state.isPessoaEditMode && state.editingPessoaId) {
-      await ref.doc(state.editingPessoaId).update({ nome: n });
-      alert("Nome atualizado!");
-    } else {
-      const doc = await ref.add({ nome: n });
-      // Se estiver no fluxo de Nova Transação, já seleciona a pessoa
-      if (
-        state.isModoTerceiros &&
-        elements.passo2Container.style.display === "block"
-      ) {
-        third.atualizarSelectPessoas(doc.id);
-      }
-    }
+    try {
+      let pessoaId = state.editingPessoaId;
+      const isNew = !state.isPessoaEditMode;
 
-    elements.nomePessoaInputModal.value = "";
-    ui.fecharModalEspecifico(elements.modalCadastrarPessoa);
-    if (state.isPessoaEditMode) {
-      ui.abrirModalEspecifico(elements.modalGerenciarPessoas, null, "generic", {
-        renderizarListaCartoesCadastrados: third.renderizarListaPessoas,
-      });
+      if (!isNew) {
+        await ref.doc(pessoaId).update({ nome: n });
+      } else {
+        const docRef = await ref.add({ nome: n });
+        pessoaId = docRef.id;
+      }
+
+      const returnTo = elements.modalCadastrarPessoa.dataset.returnTo;
+      elements.modalCadastrarPessoa.dataset.returnTo = "";
+
+      ui.fecharModalEspecifico(elements.modalCadastrarPessoa);
+
+      // Se o modal de Nova Transação estiver aberto, atualiza o seletor e seleciona a nova pessoa
+      if (elements.modalNovaTransacao.style.display === "flex") {
+        trans.popularSeletoresFixos();
+        elements.pessoaSelect.value = pessoaId;
+      }
+
+      // Se deve retornar ao gerenciador de pessoas
+      if (returnTo === "modalGerenciarPessoas") {
+        ui.abrirModalEspecifico(
+          elements.modalGerenciarPessoas,
+          null,
+          "gerenciarPessoas",
+          {
+            renderizarListaPessoas: third.renderizarListaPessoas,
+          },
+        );
+      }
+
+      // Limpeza de estado
+      state.isPessoaEditMode = false;
+      state.editingPessoaId = null;
+      elements.nomePessoaInputModal.value = "";
+    } catch (error) {
+      console.error("Erro ao salvar pessoa:", error);
+      alert("Ocorreu um erro ao salvar o cadastro.");
     }
-    state.isPessoaEditMode = false;
-    state.editingPessoaId = null;
   });
 
   // Relatórios (Navegação Inteligente com Lazy Loading)
@@ -1257,6 +1276,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   elements.btnAbrirModalCadastroPessoaDirect.addEventListener("click", () => {
     ui.fecharModalEspecifico(elements.modalGerenciarPessoas);
+    elements.modalCadastrarPessoa.dataset.returnTo = "modalGerenciarPessoas";
     state.isPessoaEditMode = false;
     document.querySelector("#modalCadastrarPessoa h2").textContent =
       "Cadastrar Nova Pessoa";
@@ -1529,6 +1549,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
   elements.pessoaSelect.addEventListener("change", () => {
     if (elements.pessoaSelect.value === "cadastrar_nova") {
+      // Garante que não há retorno para o gerenciador neste fluxo
+      elements.modalCadastrarPessoa.dataset.returnTo = "";
+
+      state.isPessoaEditMode = false;
+      document.querySelector("#modalCadastrarPessoa h2").textContent =
+        "Cadastrar Nova Pessoa";
+      elements.btnSalvarPessoaModal.textContent = "Salvar Pessoa";
+
       ui.abrirModalEspecifico(elements.modalCadastrarPessoa);
       elements.pessoaSelect.value = "";
     }
