@@ -290,10 +290,7 @@ export function validarDadosDaTransacao(dados) {
 export async function atualizarTransacaoExistente(dados) {
   if (!state.currentUser) return false;
 
-  // IMPORTANTE: Importação dinâmica do módulo de orçamentos para evitar dependência circular se necessário
-  // mas como estamos usando o objeto global 'budgets' via main, assumimos que as funções estão disponíveis.
-  // No caso de módulos ESM, budgets é importado no main.js.
-
+  // 1. Captura o nome do orçamento selecionado para rastreio em outros meses
   const orcamentoOriginal = state.orcamentos.find(
     (o) => o.id === dados.orcamentoId,
   );
@@ -324,6 +321,25 @@ export async function atualizarTransacaoExistente(dados) {
       );
       if (!itemAncora) return false;
 
+      // --- INÍCIO DO MOTOR ECONÔMICO ---
+
+      // A. Busca TODOS os orçamentos do usuário de uma vez só (Economia de Cota)
+      const allOrcsSnap = await db
+        .collection("users")
+        .doc(state.currentUser.uid)
+        .collection("orcamentos")
+        .get();
+
+      // Organiza os orçamentos em um mapa de memória: { "2026-05": [orcs], "2026-06": [orcs] }
+      let mapaMensalOrcamentos = {};
+      allOrcsSnap.docs.forEach((doc) => {
+        const d = doc.data();
+        const mes = d.mesAnoReferencia;
+        if (!mapaMensalOrcamentos[mes]) mapaMensalOrcamentos[mes] = [];
+        mapaMensalOrcamentos[mes].push({ ...d, id: doc.id });
+      });
+
+      // B. Busca todas as transações da série do ponto atual em diante
       const querySnapshot = await db
         .collection("users")
         .doc(state.currentUser.uid)
@@ -334,86 +350,45 @@ export async function atualizarTransacaoExistente(dados) {
 
       if (querySnapshot.empty) return false;
 
-      // 1. MAPEAMENTO DE ORÇAMENTOS: Garante que o planejamento exista para todos os meses da série
-      let mapaOrcamentos = {};
-      if (nomeOrcamentoAlvo) {
-        // Identifica todos os meses únicos que esta série de transações abrange
-        const mesesNecessarios = [
-          ...new Set(
-            querySnapshot.docs.map((doc) => doc.data().mesAnoReferencia),
-          ),
-        ].sort();
+      const batch = db.batch();
+      const mesesNaSerie = [
+        ...new Set(
+          querySnapshot.docs.map((doc) => doc.data().mesAnoReferencia),
+        ),
+      ].sort();
 
-        // Fazemos um loop sequencial para garantir que cada mês tenha orçamentos inicializados
-        // Isso "pavimenta" a estrada para o futuro, garantindo os IDs de orçamento.
-        for (const mesReq of mesesNecessarios) {
-          // Busca no Firestore (não no cache) se já existe orçamentos para este mês
-          const orcSnap = await db
-            .collection("users")
-            .doc(state.currentUser.uid)
-            .collection("orcamentos")
-            .where("mesAnoReferencia", "==", mesReq)
-            .get();
+      // C. Pavimentação Preventiva: Garante que cada mês da série tenha orçamentos inicializados
+      for (const mesReq of mesesNaSerie) {
+        if (
+          !mapaMensalOrcamentos[mesReq] ||
+          mapaMensalOrcamentos[mesReq].length === 0
+        ) {
+          // Se o mês está vazio, buscamos o mês anterior mais próximo que tenha dados no nosso mapa
+          const mesesDisponiveis = Object.keys(mapaMensalOrcamentos)
+            .filter((m) => m < mesReq)
+            .sort()
+            .reverse();
+          const mesBase = mesesDisponiveis[0];
 
-          let orcsDoMes = orcSnap.docs.map((d) => ({ ...d.data(), id: d.id }));
-
-          // Se o mês está vazio no banco, forçamos a propagação/clonagem agora
-          if (orcsDoMes.length === 0) {
-            console.log(
-              `Paving: Inicializando orçamentos para ${mesReq} durante atualização de série...`,
-            );
-            // Nota: budgets.propagarOrcamentos deve estar acessível (importado no main ou passado via callback)
-            // Como este arquivo é um módulo, usaremos a referência global do Firebase para simplificar se o import falhar,
-            // mas aqui usaremos a lógica de busca direta.
-
-            // Aqui chamamos a lógica de propagação diretamente para garantir independência do módulo budgets
-            // mas usaremos a lógica que já temos para evitar redundância de código:
-            const novos = await db.runTransaction(async (transaction) => {
-              // Busca o último disponível antes deste mês
-              const snapUltimo = await db
+          if (mesBase && mapaMensalOrcamentos[mesBase]) {
+            console.log(`Pavimentando ${mesReq} usando base de ${mesBase}...`);
+            mapaMensalOrcamentos[mesReq] = [];
+            mapaMensalOrcamentos[mesBase].forEach((orcBase) => {
+              const newRef = db
                 .collection("users")
                 .doc(state.currentUser.uid)
                 .collection("orcamentos")
-                .where("mesAnoReferencia", "<", mesReq)
-                .orderBy("mesAnoReferencia", "desc")
-                .limit(1)
-                .get();
-
-              if (snapUltimo.empty) return [];
-
-              const mesBase = snapUltimo.docs[0].data().mesAnoReferencia;
-              const snapBase = await db
-                .collection("users")
-                .doc(state.currentUser.uid)
-                .collection("orcamentos")
-                .where("mesAnoReferencia", "==", mesBase)
-                .get();
-
-              let criados = [];
-              snapBase.docs.forEach((dBase) => {
-                const newRef = db
-                  .collection("users")
-                  .doc(state.currentUser.uid)
-                  .collection("orcamentos")
-                  .doc();
-                const newData = { ...dBase.data(), mesAnoReferencia: mesReq };
-                transaction.set(newRef, newData);
-                criados.push({ ...newData, id: newRef.id });
-              });
-              return criados;
+                .doc();
+              const newData = { ...orcBase, mesAnoReferencia: mesReq };
+              delete newData.id;
+              batch.set(newRef, newData);
+              mapaMensalOrcamentos[mesReq].push({ ...newData, id: newRef.id });
             });
-            orcsDoMes = novos;
-          }
-
-          // Adiciona ao nosso mapa o ID do orçamento alvo para este mês
-          const alvoNoMes = orcsDoMes.find((o) => o.nome === nomeOrcamentoAlvo);
-          if (alvoNoMes) {
-            mapaOrcamentos[mesReq] = alvoNoMes.id;
           }
         }
       }
 
-      // 2. APLICAÇÃO DOS UPDATES NAS TRANSAÇÕES
+      // D. Atualização das Transações
       const dataAntigaStr = itemAncora.dataEntrada || itemAncora.dataVencimento;
       const dataNovaStr = dados.dataEntrada || dados.dataVencimento;
       let diffMeses = 0,
@@ -430,8 +405,6 @@ export async function atualizarTransacaoExistente(dados) {
         recalcularDatas = true;
       }
 
-      const batch = db.batch();
-
       querySnapshot.docs.forEach((doc) => {
         const tDoc = doc.data();
         const nomeFinalItem =
@@ -439,24 +412,35 @@ export async function atualizarTransacaoExistente(dados) {
             ? `${dados.nomeBase} (${tDoc.parcelaAtual}/${tDoc.totalParcelas})`
             : dados.nomeBase;
 
+        // Procura o orçamento pelo nome no nosso mapa de memória do mês correspondente
+        let idOrcamentoAlvo = null;
+        if (nomeOrcamentoAlvo && mapaMensalOrcamentos[tDoc.mesAnoReferencia]) {
+          const alvo = mapaMensalOrcamentos[tDoc.mesAnoReferencia].find(
+            (o) => o.nome === nomeOrcamentoAlvo,
+          );
+          idOrcamentoAlvo = alvo ? alvo.id : null;
+        }
+
         const updates = {
           valor: dados.valor,
           nome: nomeFinalItem,
-          orcamentoId: mapaOrcamentos[tDoc.mesAnoReferencia] || null,
+          orcamentoId: idOrcamentoAlvo,
           cartaoId: dados.cartaoId || null,
         };
 
         if (recalcularDatas) {
-          const dataItemOriginalStr = tDoc.dataEntrada || tDoc.dataVencimento;
-          const dataItemOriginal = new Date(dataItemOriginalStr + "T12:00:00");
-          dataItemOriginal.setMonth(dataItemOriginal.getMonth() + diffMeses);
-          const novaDataFinal = `${dataItemOriginal.getFullYear()}-${(dataItemOriginal.getMonth() + 1).toString().padStart(2, "0")}-${novoDia}`;
+          const dItemOrig = new Date(
+            (tDoc.dataEntrada || tDoc.dataVencimento) + "T12:00:00",
+          );
+          dItemOrig.setMonth(dItemOrig.getMonth() + diffMeses);
+          const novaData = `${dItemOrig.getFullYear()}-${(dItemOrig.getMonth() + 1).toString().padStart(2, "0")}-${novoDia}`;
           updates[tDoc.tipo === "receita" ? "dataEntrada" : "dataVencimento"] =
-            novaDataFinal;
+            novaData;
         }
 
         batch.update(doc.ref, updates);
 
+        // Atualização reativa imediata da memória local
         const indexLocal = state.transacoes.findIndex((t) => t.id === doc.id);
         if (indexLocal !== -1) {
           state.transacoes[indexLocal] = {
@@ -467,8 +451,9 @@ export async function atualizarTransacaoExistente(dados) {
       });
 
       await batch.commit();
+      console.log(`Sucesso: ${querySnapshot.size} meses atualizados.`);
     } else {
-      // Edição única
+      // Edição única (Reatividade já integrada)
       await db
         .collection("users")
         .doc(state.currentUser.uid)
@@ -486,10 +471,11 @@ export async function atualizarTransacaoExistente(dados) {
         };
       }
     }
+
     await registrarUltimaAlteracao();
     return true;
   } catch (error) {
-    console.error("Erro ao atualizar série:", error);
+    console.error("Erro no motor de atualização:", error);
     return false;
   }
 }

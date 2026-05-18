@@ -309,69 +309,133 @@ export async function salvarOrcamentoTemporal(dados) {
     .collection("orcamentos");
   const { id, nome, valor, dia, tipoEdicao } = dados;
 
+  // Busca o nome original no estado local antes da atualização para rastreio futuro
+  const orcamentoNoEstado = state.orcamentos.find((o) => o.id === id);
+  const nomeAntigoParaBusca = orcamentoNoEstado ? orcamentoNoEstado.nome : nome;
+
   try {
     if (id && tipoEdicao === "futuros") {
-      // 1. Atualização do item atual por ID
-      await ref.doc(id).update({ valor, dia });
+      // 1. Atualiza o documento do mês atual (pode mudar nome, valor e dia)
+      await ref.doc(id).update({ nome, valor, dia });
 
-      // 2. Atualização dos clones futuros
+      // 2. Atualiza os clones futuros baseando-se no NOME ANTIGO
       try {
         const snap = await ref
-          .where("nome", "==", nome)
+          .where("nome", "==", nomeAntigoParaBusca)
           .where("mesAnoReferencia", ">", mesAnoAtual)
           .get();
 
         if (!snap.empty) {
           const batch = db.batch();
           snap.docs.forEach((doc) => {
-            batch.update(doc.ref, { valor, dia });
+            batch.update(doc.ref, { nome, valor, dia });
           });
           await batch.commit();
         }
       } catch (indexError) {
         console.error("Erro de índice:", indexError);
         alert(
-          "O valor deste mês foi salvo, mas os futuros dependem de um índice no Firebase. Veja o console (F12).",
+          "O mês atual foi salvo, mas a atualização futura falhou por falta de índice. Veja o console (F12).",
         );
       }
     } else if (id) {
-      // Atualização de apenas um mês
-      await ref.doc(id).update({ valor, dia });
+      // Atualização de apenas um mês (permite renomear apenas este mês)
+      await ref.doc(id).update({ nome, valor, dia });
     } else {
-      // NOVO ORÇAMENTO: Propaga automaticamente para todos os meses futuros já inicializados
+      // NOVO ORÇAMENTO: Propaga para o futuro evitando duplicatas por nome
       const batch = db.batch();
 
-      // Busca todos os meses futuros que já possuem qualquer orçamento cadastrado
+      // 1. Busca meses futuros já inicializados para saber onde pavimentar
       const snapshotMesesFuturos = await ref
         .where("mesAnoReferencia", ">", mesAnoAtual)
         .get();
 
-      // Identificamos quais meses já existem no banco para não deixá-los incompletos
-      const mesesParaInserir = new Set();
-      mesesParaInserir.add(mesAnoAtual);
-      snapshotMesesFuturos.docs.forEach((doc) =>
-        mesesParaInserir.add(doc.data().mesAnoReferencia),
+      // 2. Busca especificamente onde JÁ EXISTE este nome para não duplicar
+      const snapshotNomesExistentes = await ref
+        .where("nome", "==", nome)
+        .where("mesAnoReferencia", ">=", mesAnoAtual)
+        .get();
+
+      const mesesQueJaTemEsseNome = new Set(
+        snapshotNomesExistentes.docs.map((doc) => doc.data().mesAnoReferencia),
       );
 
-      mesesParaInserir.forEach((mes) => {
-        const newDocRef = ref.doc();
-        batch.set(newDocRef, {
-          nome: nome,
-          valor: valor,
-          dia: dia,
-          mesAnoReferencia: mes,
-          isFixed: dados.isFixed || false,
-          isFixedOrdinary: dados.isFixedOrdinary || false,
-        });
+      const mesesParaProcessar = new Set();
+      mesesParaProcessar.add(mesAnoAtual);
+      snapshotMesesFuturos.docs.forEach((doc) =>
+        mesesParaProcessar.add(doc.data().mesAnoReferencia),
+      );
+
+      let criadosCount = 0;
+      mesesParaProcessar.forEach((mes) => {
+        // SÓ cria o documento se o nome não existir naquele mês
+        if (!mesesQueJaTemEsseNome.has(mes)) {
+          const newDocRef = ref.doc();
+          batch.set(newDocRef, {
+            nome: nome,
+            valor: valor,
+            dia: dia,
+            mesAnoReferencia: mes,
+            isFixed: false,
+            isFixedOrdinary: false,
+          });
+          criadosCount++;
+        }
       });
 
       await batch.commit();
+      console.log(
+        `Criação concluída: ${criadosCount} meses preenchidos para o orçamento "${nome}".`,
+      );
     }
 
     await registrarUltimaAlteracao();
     return true;
   } catch (error) {
     console.error("Erro ao salvar orçamento temporal:", error);
+    return false;
+  }
+}
+
+/**
+ * Exclui um orçamento com lógica de escopo (único ou futuro).
+ */
+export async function excluirOrcamentoTemporal(orcamentoId, tipoExclusao) {
+  if (!state.currentUser) return false;
+  const ref = db
+    .collection("users")
+    .doc(state.currentUser.uid)
+    .collection("orcamentos");
+
+  const orcamento = state.orcamentos.find((o) => o.id === orcamentoId);
+  if (!orcamento) return false;
+
+  try {
+    if (tipoExclusao === "futuros") {
+      const mesAnoAtual = orcamento.mesAnoReferencia;
+      const nomeParaExcluir = orcamento.nome;
+
+      // Busca todos os clones futuros com o mesmo nome
+      const snap = await ref
+        .where("nome", "==", nomeParaExcluir)
+        .where("mesAnoReferencia", ">=", mesAnoAtual)
+        .get();
+
+      const batch = db.batch();
+      snap.docs.forEach((doc) => batch.delete(doc.ref));
+      await batch.commit();
+      console.log(
+        `${snap.size} orçamentos da série "${nomeParaExcluir}" excluídos.`,
+      );
+    } else {
+      // Exclusão apenas do documento atual
+      await ref.doc(orcamentoId).delete();
+    }
+
+    await registrarUltimaAlteracao();
+    return true;
+  } catch (error) {
+    console.error("Erro ao excluir orçamento:", error);
     return false;
   }
 }

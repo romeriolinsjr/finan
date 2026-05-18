@@ -971,6 +971,69 @@
         </div>
       </div>
     </div>
+
+    <!-- NOVO: Modal para Escolha de Escopo de EXCLUSÃO do Orçamento -->
+    <div id="modalConfirmarExclusaoEscopoOrcamento" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Excluir Orçamento</h2>
+          <span
+            class="close-button"
+            data-modal-id="modalConfirmarExclusaoEscopoOrcamento"
+            >×</span
+          >
+        </div>
+        <div class="modal-body" style="padding-bottom: 35px">
+          <p
+            id="textoConfirmarExclusaoEscopoOrcamento"
+            style="
+              margin-bottom: 20px;
+              text-align: center;
+              color: #c0392b;
+              font-weight: bold;
+            "
+          >
+            Como você deseja realizar a exclusão?
+          </p>
+          <div
+            class="modal-body-buttons"
+            style="display: flex; flex-direction: column; gap: 12px"
+          >
+            <button
+              id="btnExcluirOrcamentoApenasEste"
+              class="btn-primary"
+              style="
+                background-color: #3498db;
+                width: 100%;
+                padding: 12px;
+                margin: 0;
+              "
+            >
+              Excluir APENAS deste mês
+            </button>
+            <button
+              id="btnExcluirOrcamentoEsteEFuturos"
+              class="btn-primary"
+              style="
+                background-color: #e74c3c;
+                width: 100%;
+                padding: 12px;
+                margin: 0;
+              "
+            >
+              Excluir deste e de TODOS os futuros
+            </button>
+            <button
+              id="btnExcluirOrcamentoCancelar"
+              class="btn-secondary"
+              style="width: 100%; padding: 12px; margin: 0"
+            >
+              Voltar / Desistir
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
     <!-- NOVO: Modal para informar sobre a verificação de e-mail -->
     <!-- NOVO: Modal para Detalhes de Série Parcelada -->
     <div id="modalDetalhesSerie" class="modal">

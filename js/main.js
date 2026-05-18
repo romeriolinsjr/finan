@@ -143,32 +143,6 @@ document.addEventListener("DOMContentLoaded", () => {
       );
     }
 
-    // Cria "Gastos Ordinários" (PIX/Débito) se não existir
-    if (!orcamentoFixoOrdinario && state.currentUser) {
-      console.log("Orçamento 'Gastos Ordinários' não encontrado. Criando...");
-      promessasCriacao.push(
-        db
-          .collection("users")
-          .doc(state.currentUser.uid)
-          .collection("orcamentos")
-          .add({
-            nome: "Gastos Ordinários",
-            valor: 0,
-            dia: 1,
-            isFixedOrdinary: true, // Identificador para despesas ordinárias
-          })
-          .then((docRef) => {
-            state.orcamentos.push({
-              nome: "Gastos Ordinários",
-              valor: 0,
-              dia: 1,
-              isFixedOrdinary: true,
-              id: docRef.id,
-            });
-          }),
-      );
-    }
-
     if (promessasCriacao.length > 0) {
       await Promise.all(promessasCriacao);
     }
@@ -352,6 +326,12 @@ document.addEventListener("DOMContentLoaded", () => {
           elements.searchInput.value,
           ui.renderizarTransacoesDoMes,
         );
+
+      // REATIVIDADE: Atualiza o modal de cartões se estiver aberto
+      if (elements.modalGerenciarCartoes.style.display === "flex") {
+        cards.renderizarListaCartoesCadastrados();
+      }
+
       if (elements.modalConsultarTerceiros.style.display === "flex")
         third.renderizarDividasDoMes();
     };
@@ -577,6 +557,18 @@ document.addEventListener("DOMContentLoaded", () => {
       ? await trans.atualizarTransacaoExistente(d)
       : await trans.adicionarNovasTransacoes(d);
     if (s) {
+      // Feedback visual para o usuário (Opção B)
+      if (state.isEditMode && state.editingSerieId) {
+        alert(
+          `Sucesso! A série de transações foi atualizada em todos os meses futuros mapeados.`,
+        );
+      } else if (
+        !state.isEditMode &&
+        (d.frequencia === "recorrente" || d.frequencia === "parcelada")
+      ) {
+        alert(`Sucesso! A nova série foi registrada para os próximos meses.`);
+      }
+
       const mesVisualizado = utils.getMesAnoChave(state.currentDate);
 
       // NOVO: Limpa o mês atual E TODOS os meses futuros da memória local.
@@ -634,7 +626,13 @@ document.addEventListener("DOMContentLoaded", () => {
           .collection("cartoes")
           .doc(cartaoId)
           .update({ vencimentoNoMesSeguinte: novoEstado });
+
+        // REATIVIDADE IMEDIATA: Atualiza localmente para mudar o ícone na hora
+        const idx = state.cartoes.findIndex((c) => c.id === cartaoId);
+        if (idx !== -1) state.cartoes[idx].vencimentoNoMesSeguinte = novoEstado;
+
         await utils.registrarUltimaAlteracao();
+        ui.renderizarTransacoesDoMes();
       }
       return;
     }
@@ -730,34 +728,44 @@ document.addEventListener("DOMContentLoaded", () => {
       let cartaoId = elements.cartaoEditIdInput.value;
       const isNew = !state.isCartaoEditMode;
 
+      let dadosCartao;
       if (!isNew) {
-        await ref.doc(cartaoId).update({ nome: n, diaVencimentoFatura: d });
+        dadosCartao = { nome: n, diaVencimentoFatura: d };
+        await ref.doc(cartaoId).update(dadosCartao);
+
+        // Atualização local imediata para reatividade instantânea
+        const idx = state.cartoes.findIndex((c) => c.id === cartaoId);
+        if (idx > -1) {
+          state.cartoes[idx] = { ...state.cartoes[idx], ...dadosCartao };
+        }
       } else {
-        const docRef = await ref.add({
+        dadosCartao = {
           nome: n,
           diaVencimentoFatura: d,
           vencimentoNoMesSeguinte: false,
-        });
+          deletado: false,
+        };
+        const docRef = await ref.add(dadosCartao);
         cartaoId = docRef.id;
+
+        // Injeta na memória local imediatamente
+        state.cartoes.push({ id: cartaoId, ...dadosCartao });
       }
 
-      // Capturamos o destino de retorno antes de limpar
       const returnTo = elements.modalCadastrarCartao.dataset.returnTo;
-
-      // Limpamos o rastro para que o modal não reapareça indevidamente
       elements.modalCadastrarCartao.dataset.returnTo = "";
 
       ui.fecharModalEspecifico(elements.modalCadastrarCartao);
 
-      // Se o modal de Nova Transação estiver aberto, aguardamos o Firebase atualizar a lista
+      // Re-renderiza os seletores e listas de cartões em tempo real
+      trans.popularSeletoresFixos();
+
+      // Se estiver no modal de transação, seleciona o novo cartão automaticamente
       if (elements.modalNovaTransacao.style.display === "flex") {
-        setTimeout(() => {
-          trans.popularSeletoresFixos();
-          elements.cartaoDespesa.value = cartaoId;
-        }, 500); // Aguarda o onSnapshot processar a nova entrada
+        elements.cartaoDespesa.value = cartaoId;
       }
 
-      // Se o retorno era para o Gerenciador de Cartões, reabre ele
+      // Se deve retornar ao gerenciador, garante que a lista está atualizada
       if (returnTo === "modalGerenciarCartoes") {
         ui.abrirModalEspecifico(
           elements.modalGerenciarCartoes,
@@ -768,6 +776,11 @@ document.addEventListener("DOMContentLoaded", () => {
               cards.renderizarListaCartoesCadastrados,
           },
         );
+      }
+
+      // Caso o modal gerenciador esteja aberto ao fundo, força o refresh da lista
+      if (elements.modalGerenciarCartoes.style.display === "flex") {
+        cards.renderizarListaCartoesCadastrados();
       }
     } catch (error) {
       console.error("Erro ao salvar cartão:", error);
@@ -1003,20 +1016,80 @@ document.addEventListener("DOMContentLoaded", () => {
   elements.btnOrcamentoCancelar.addEventListener("click", () =>
     ui.fecharModalEspecifico(elements.modalConfirmarEscopoOrcamento),
   );
+  // Ouvinte para a lista de orçamentos (Edição e Exclusão)
   elements.listaOrcamentosUl.addEventListener("click", (e) => {
-    const id = e.target.closest("button")?.dataset.id;
-    if (e.target.closest(".btn-edit-orcamento"))
+    const button = e.target.closest("button");
+    const id = button?.dataset.id;
+    if (!id) return;
+
+    if (button.classList.contains("btn-edit-orcamento")) {
       budgets.preencherModalEdicaoOrcamento(id);
-    else if (
-      e.target.closest(".btn-delete-orcamento") &&
-      confirm("Excluir orçamento?")
-    )
-      db.collection("users")
-        .doc(state.currentUser.uid)
-        .collection("orcamentos")
-        .doc(id)
-        .delete();
+    } else if (button.classList.contains("btn-delete-orcamento")) {
+      const orcamento = state.orcamentos.find((o) => o.id === id);
+      if (!orcamento) return;
+
+      // Armazena o ID do orçamento no dataset do modal para uso posterior
+      elements.modalConfirmarExclusaoEscopoOrcamento.dataset.orcamentoIdParaExcluir =
+        id;
+      elements.modalConfirmarExclusaoEscopoOrcamento.dataset.orcamentoNomeParaExcluir =
+        orcamento.nome;
+
+      document.getElementById(
+        "textoConfirmarExclusaoEscopoOrcamento",
+      ).textContent =
+        `Como você deseja excluir o orçamento "${orcamento.nome}"?`;
+
+      ui.abrirModalEspecifico(elements.modalConfirmarExclusaoEscopoOrcamento);
+    }
   });
+
+  // Função auxiliar para processar a exclusão após a escolha
+  async function executarExclusaoOrcamento(tipoExclusao) {
+    const id =
+      elements.modalConfirmarExclusaoEscopoOrcamento.dataset
+        .orcamentoIdParaExcluir;
+    const mesAnoAtual = utils.getMesAnoChave(state.currentDate);
+
+    if (await budgets.excluirOrcamentoTemporal(id, tipoExclusao)) {
+      // Limpa cache local para refletir a exclusão
+      if (tipoExclusao === "futuros") {
+        state.mesesCarregados = state.mesesCarregados.filter(
+          (m) => m < mesAnoAtual,
+        );
+        state.orcamentos = state.orcamentos.filter(
+          (o) => o.mesAnoReferencia < mesAnoAtual,
+        );
+      } else {
+        state.mesesCarregados = state.mesesCarregados.filter(
+          (m) => m !== mesAnoAtual,
+        );
+        state.orcamentos = state.orcamentos.filter(
+          (o) => o.mesAnoReferencia !== mesAnoAtual,
+        );
+      }
+
+      // Re-sincroniza memória com o banco
+      await garantirDadosDoMes(mesAnoAtual);
+
+      // Fecha os modais
+      ui.fecharModalEspecifico(elements.modalConfirmarExclusaoEscopoOrcamento);
+
+      // Atualiza as listas
+      ui.renderizarTransacoesDoMes();
+      budgets.renderizarListaOrcamentos();
+    }
+  }
+
+  // Ouvintes para o novo modal de confirmação de EXCLUSÃO
+  elements.btnExcluirOrcamentoApenasEste.addEventListener("click", () =>
+    executarExclusaoOrcamento("unico"),
+  );
+  elements.btnExcluirOrcamentoEsteEFuturos.addEventListener("click", () =>
+    executarExclusaoOrcamento("futuros"),
+  );
+  elements.btnExcluirOrcamentoCancelar.addEventListener("click", () =>
+    ui.fecharModalEspecifico(elements.modalConfirmarExclusaoEscopoOrcamento),
+  );
 
   elements.btnFecharTodosOrcamentos.addEventListener("click", () => {
     budgets.alternarTodosOrcamentosDoMes();

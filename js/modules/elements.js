@@ -203,4 +203,16 @@ export const elements = {
   btnOrcamentoApenasEste: document.getElementById("btnOrcamentoApenasEste"),
   btnOrcamentoEsteEFuturos: document.getElementById("btnOrcamentoEsteEFuturos"),
   btnOrcamentoCancelar: document.getElementById("btnOrcamentoCancelar"),
+  modalConfirmarExclusaoEscopoOrcamento: document.getElementById(
+    "modalConfirmarExclusaoEscopoOrcamento",
+  ),
+  btnExcluirOrcamentoApenasEste: document.getElementById(
+    "btnExcluirOrcamentoApenasEste",
+  ),
+  btnExcluirOrcamentoEsteEFuturos: document.getElementById(
+    "btnExcluirOrcamentoEsteEFuturos",
+  ),
+  btnExcluirOrcamentoCancelar: document.getElementById(
+    "btnExcluirOrcamentoCancelar",
+  ),
 };
