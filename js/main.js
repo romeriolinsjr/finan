@@ -569,16 +569,16 @@ document.addEventListener("DOMContentLoaded", () => {
       ? await trans.atualizarTransacaoExistente(d)
       : await trans.adicionarNovasTransacoes(d);
     if (s) {
-      // Feedback visual para o usuário (Opção B)
+      // Feedback visual dinâmico com contador de meses/parcelas
       if (state.isEditMode && state.editingSerieId) {
         alert(
-          `Sucesso! A série de transações foi atualizada em todos os meses futuros mapeados.`,
+          `Sucesso! A série de transações foi atualizada em ${s} meses no histórico.`,
         );
       } else if (
         !state.isEditMode &&
         (d.frequencia === "recorrente" || d.frequencia === "parcelada")
       ) {
-        alert(`Sucesso! A nova série foi registrada para os próximos meses.`);
+        alert(`Sucesso! A nova série foi registrada para ${s} meses adiante.`);
       }
 
       const mesVisualizado = utils.getMesAnoChave(state.currentDate);

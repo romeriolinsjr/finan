@@ -452,6 +452,9 @@ export async function atualizarTransacaoExistente(dados) {
 
       await batch.commit();
       console.log(`Sucesso: ${querySnapshot.size} meses atualizados.`);
+
+      await registrarUltimaAlteracao();
+      return querySnapshot.size; // Retorna o número de meses afetados na série
     } else {
       // Edição única (Reatividade já integrada)
       await db
@@ -470,10 +473,10 @@ export async function atualizarTransacaoExistente(dados) {
           ...dadosParaAtualizar,
         };
       }
-    }
 
-    await registrarUltimaAlteracao();
-    return true;
+      await registrarUltimaAlteracao();
+      return 1; // Retorna 1 mês afetado
+    }
   } catch (error) {
     console.error("Erro no motor de atualização:", error);
     return false;
@@ -568,7 +571,7 @@ export async function adicionarNovasTransacoes(dados) {
 
   try {
     await batch.commit();
-    return true;
+    return transacoesParaAdicionar.length; // Retorna a quantidade total de parcelas criadas
   } catch (e) {
     return false;
   }
