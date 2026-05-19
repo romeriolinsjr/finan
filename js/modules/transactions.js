@@ -32,8 +32,16 @@ export function atualizarVisibilidadeFormulario() {
 
     if (categoria === "ordinaria") {
       elements.secaoDespesaOrdinaria.style.display = "block";
-      elements.camposParceladaOrd.style.display =
-        freqOrd === "parcelada" ? "block" : "none";
+
+      // Controla a exibição dos campos de parcelamento
+      const isParceladaOrd = freqOrd === "parcelada";
+      elements.containerTipoCadastroOrd.style.display = isParceladaOrd
+        ? "block"
+        : "none";
+      elements.camposParceladaOrd.style.display = isParceladaOrd
+        ? "block"
+        : "none";
+
       elements.btnSalvarTransacao.style.display = "inline-block";
     } else if (categoria === "cartao_credito") {
       elements.secaoDespesaCartao.style.display = "block";

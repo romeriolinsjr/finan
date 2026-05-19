@@ -74,6 +74,7 @@ export const elements = {
   valorDespesaOrd: document.getElementById("valorDespesaOrd"),
   dataVencimentoDespesaOrd: document.getElementById("dataVencimentoDespesaOrd"),
   camposParceladaOrd: document.getElementById("camposParceladaOrd"),
+  containerTipoCadastroOrd: document.getElementById("containerTipoCadastroOrd"),
   tipoCadastroParcelaOrd: document.getElementById("tipoCadastroParcelaOrd"),
   qtdParcelasOrd: document.getElementById("qtdParcelasOrd"),
   parcelaAtualOrd: document.getElementById("parcelaAtualOrd"),
