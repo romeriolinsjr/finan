@@ -1717,3 +1717,206 @@ body.modal-aberto {
     justify-content: center !important;
   }
 }
+
+/* ========================================= */
+/*      ESTILOS PARA O WEEKLY TRACKER        */
+/* ========================================= */
+
+.tracker-cycle-card {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.tracker-cycle-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid #f1f2f6;
+  padding-bottom: 15px;
+  margin-bottom: 20px;
+}
+
+.tracker-cycle-header h3 {
+  margin: 0;
+  color: #2c3e50;
+  font-size: 1.2em;
+}
+
+.weeks-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 15px;
+}
+
+.week-bucket {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: transform 0.2s ease;
+}
+
+.week-bucket:hover {
+  transform: translateY(-3px);
+}
+
+.week-bucket.active {
+  border: 2px solid #3498db;
+  background-color: #f0f7ff;
+}
+
+.week-title {
+  font-weight: bold;
+  font-size: 0.9em;
+  color: #7f8c8d;
+  display: flex;
+  justify-content: space-between;
+}
+
+.week-value {
+  font-size: 1.1em;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+/* Barras de Progresso */
+.progress-bar-container {
+  height: 8px;
+  background: #e9ecef;
+  border-radius: 4px;
+  overflow: hidden;
+  margin: 5px 0;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  width: 0%;
+  transition:
+    width 0.5s ease,
+    background-color 0.3s ease;
+}
+
+.status-normal {
+  background-color: #27ae60;
+}
+.status-warning {
+  background-color: #f1c40f;
+}
+.status-danger {
+  background-color: #e74c3c;
+}
+
+.week-footer {
+  font-size: 0.8em;
+  color: #95a5a6;
+  text-align: right;
+}
+
+/* Listagem de Itens dentro do Tracker */
+.tracker-items-summary {
+  margin-top: 20px;
+  border-top: 1px dashed #ccc;
+  padding-top: 15px;
+}
+
+.tracker-item-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 5px;
+  background: #fff;
+  margin-bottom: 5px;
+  font-size: 0.9em;
+  border: 1px solid #f1f2f6;
+}
+
+.tracker-item-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-transfer {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.2em;
+  padding: 0;
+  color: #3498db;
+  transition: transform 0.2s;
+}
+
+.btn-transfer:hover {
+  transform: scale(1.2);
+}
+
+.btn-remove-tracker {
+  color: #e74c3c;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1em;
+}
+
+@media (max-width: 768px) {
+  .weeks-grid {
+    grid-template-columns: 1fr 1fr; /* Duas colunas no mobile */
+  }
+
+  .tracker-cycle-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+}
+
+/* Estilização Padronizada dos Botões do Tracker */
+.btn-tracker-main {
+  background-color: #27ae60 !important;
+  padding: 12px 30px !important;
+  font-size: 1.1em !important;
+  font-weight: 600 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 6px rgba(39, 174, 96, 0.2);
+}
+
+.tracker-card-footer {
+  margin-top: 20px;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  border-top: 1px solid #eee;
+  padding-top: 18px;
+  flex-wrap: wrap;
+}
+
+.btn-tracker-alt {
+  padding: 10px 18px !important;
+  font-size: 0.95em !important;
+  font-weight: 500 !important;
+  border-radius: 6px !important;
+  border: none !important;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.btn-tracker-alt:hover {
+  opacity: 0.9;
+}
+
+.btn-danger {
+  background-color: #e74c3c !important;
+  color: white !important;
+}
+
+@media (max-width: 500px) {
+  .tracker-card-footer button {
+    width: 100%; /* Botões ocupam largura total no celular para facilitar o clique */
+  }
+}

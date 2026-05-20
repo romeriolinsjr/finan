@@ -28,4 +28,7 @@ export const state = {
   editingPessoaId: null,
   mesesCarregados: [], // Armazena chaves como "2024-05" para controle de cache
   activeUnsubscribers: [], // Armazena as funções de limpeza das escutas do Firebase
+  // WEEKLY TRACKER:
+  ciclosTracker: [], // Armazena os ciclos ativos (Ciclo 1 e Ciclo 2)
+  votosTracker: [], // Armazena as atribuições manuais de transações a ciclos específicos
 };

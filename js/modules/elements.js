@@ -217,4 +217,27 @@ export const elements = {
     "btnExcluirOrcamentoCancelar",
   ),
   userEmailDisplay: document.getElementById("userEmailDisplay"),
+  // =========================================
+  //        ELEMENTOS DO WEEKLY TRACKER
+  // =========================================
+  btnWeeklyTracker: document.getElementById("btnWeeklyTracker"),
+  modalWeeklyTracker: document.getElementById("modalWeeklyTracker"),
+  weeklyTrackerTitulo: document.getElementById("weeklyTrackerTitulo"),
+  btnAbrirNovoCiclo: document.getElementById("btnAbrirNovoCiclo"),
+  containerCiclosTracker: document.getElementById("containerCiclosTracker"),
+
+  // Modal de Configuração de Ciclo
+  modalConfigCiclo: document.getElementById("modalConfigCiclo"),
+  modalConfigCicloTitulo: document.getElementById("modalConfigCicloTitulo"),
+  cicloEditIdInput: document.getElementById("cicloEditId"),
+  dataInicioCicloInput: document.getElementById("dataInicioCiclo"),
+  dataFimCicloInput: document.getElementById("dataFimCiclo"),
+  metaCicloInput: document.getElementById("metaCiclo"),
+  btnSalvarConfigCiclo: document.getElementById("btnSalvarConfigCiclo"),
+
+  // Modal de Valor Inicial
+  modalValorInicialCiclo: document.getElementById("modalValorInicialCiclo"),
+  cicloValorInicialIdInput: document.getElementById("cicloValorInicialId"),
+  valorInicialCicloInput: document.getElementById("valorInicialCicloInput"),
+  btnSalvarValorInicial: document.getElementById("btnSalvarValorInicial"),
 };

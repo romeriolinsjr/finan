@@ -465,12 +465,36 @@ export async function atualizarTransacaoExistente(dados) {
       return querySnapshot.size; // Retorna o número de meses afetados na série
     } else {
       // Edição única (Reatividade já integrada)
-      await db
+      const transRef = db
         .collection("users")
         .doc(state.currentUser.uid)
         .collection("transacoes")
-        .doc(state.editingTransactionId)
-        .update(dadosParaAtualizar);
+        .doc(state.editingTransactionId);
+      await transRef.update(dadosParaAtualizar);
+
+      // LÓGICA DE CAPTURA NA EDIÇÃO:
+      // Se o usuário editou uma compra antiga e ela é Cartão, vincula ao Tracker para que apareça lá
+      if (
+        dadosParaAtualizar.categoria === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO
+      ) {
+        const ciclosAtivos = state.ciclosTracker
+          .filter((c) => c.status === "ativo")
+          .sort((a, b) => new Date(a.dataInicio) - new Date(b.dataInicio));
+
+        const cicloAlvo =
+          ciclosAtivos.length > 1 ? ciclosAtivos[1] : ciclosAtivos[0];
+
+        if (cicloAlvo) {
+          const trackerRef = db
+            .collection("users")
+            .doc(state.currentUser.uid)
+            .collection("votos_tracker");
+          await trackerRef.doc(state.editingTransactionId).set({
+            transacaoId: state.editingTransactionId,
+            cicloId: cicloAlvo.id,
+          });
+        }
+      }
 
       const indexLocal = state.transacoes.findIndex(
         (t) => t.id === state.editingTransactionId,
@@ -483,7 +507,7 @@ export async function atualizarTransacaoExistente(dados) {
       }
 
       await registrarUltimaAlteracao();
-      return 1; // Retorna 1 mês afetado
+      return 1;
     }
   } catch (error) {
     console.error("Erro no motor de atualização:", error);
@@ -496,7 +520,6 @@ export async function adicionarNovasTransacoes(dados) {
   let transacoesParaAdicionar = [];
   const mesAnoBase = getMesAnoChave(state.currentDate);
 
-  // Capturamos o nome do orçamento selecionado no mês atual para buscar seus "clones" no futuro
   const orcamentoOriginal = state.orcamentos.find(
     (o) => o.id === dados.orcamentoId,
   );
@@ -514,7 +537,6 @@ export async function adicionarNovasTransacoes(dados) {
         parseDateString(dados.dataEntrada || dados.dataVencimento),
       );
       dataRef.setMonth(dataRef.getMonth() + i);
-
       let mesReferenciaObj = new Date(state.currentDate);
       mesReferenciaObj.setMonth(mesReferenciaObj.getMonth() + i);
       const mesReferenciaChave = getMesAnoChave(mesReferenciaObj);
@@ -525,7 +547,6 @@ export async function adicionarNovasTransacoes(dados) {
           ? parseFloat((dados.valor / dados.totalParcelas).toFixed(2))
           : dados.valor;
 
-      // Tenta encontrar o ID do orçamento correspondente para este mês específico na série
       let orcamentoIdVinculo = null;
       if (nomeOrcamentoAlvo) {
         const orcNoMes = state.orcamentos.find(
@@ -539,7 +560,7 @@ export async function adicionarNovasTransacoes(dados) {
       transacoesParaAdicionar.push({
         ...dados,
         serieId,
-        orcamentoId: orcamentoIdVinculo, // Vínculo dinâmico por mês
+        orcamentoId: orcamentoIdVinculo,
         valor: valorFinal,
         parcelaAtual:
           dados.frequencia === "parcelada" ? dados.parcelaAtual + i : null,
@@ -571,15 +592,41 @@ export async function adicionarNovasTransacoes(dados) {
     .collection("users")
     .doc(state.currentUser.uid)
     .collection("transacoes");
-  transacoesParaAdicionar.forEach((t) => {
+  const trackerRef = db
+    .collection("users")
+    .doc(state.currentUser.uid)
+    .collection("votos_tracker");
+
+  transacoesParaAdicionar.forEach((t, index) => {
     const d = { ...t };
     delete d.nomeBase;
-    batch.set(ref.doc(), d);
+    const newTransRef = ref.doc();
+    batch.set(newTransRef, d);
+
+    // LÓGICA DE CAPTURA AUTOMÁTICA (Weekly Tracker) - CORRIGIDA
+    if (
+      index === 0 &&
+      d.categoria === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO
+    ) {
+      const ciclosAtivos = state.ciclosTracker
+        .filter((c) => c.status === "ativo")
+        .sort((a, b) => new Date(a.dataInicio) - new Date(b.dataInicio));
+
+      const cicloAlvo =
+        ciclosAtivos.length > 1 ? ciclosAtivos[1] : ciclosAtivos[0];
+
+      if (cicloAlvo) {
+        batch.set(trackerRef.doc(newTransRef.id), {
+          transacaoId: newTransRef.id,
+          cicloId: cicloAlvo.id,
+        });
+      }
+    }
   });
 
   try {
     await batch.commit();
-    return transacoesParaAdicionar.length; // Retorna a quantidade total de parcelas criadas
+    return transacoesParaAdicionar.length;
   } catch (e) {
     return false;
   }

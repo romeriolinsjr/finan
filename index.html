@@ -40,6 +40,7 @@
         <button id="btnRelatorios">Relatórios</button>
         <!-- NOVO -->
         <button id="btnDespesasTerceiros">Despesas de Terceiros</button>
+        <button id="btnWeeklyTracker">Acompanhamento Semanal</button>
         <!-- NOVO -->
         <section class="financial-summary">
           <h2>Resumo Financeiro</h2>
@@ -1222,6 +1223,130 @@
       crossorigin="anonymous"
       referrerpolicy="no-referrer"
     ></script>
+
+    <!-- Modal Principal do Acompanhamento Semanal (Weekly Tracker) -->
+    <div id="modalWeeklyTracker" class="modal">
+      <div class="modal-content modal-large">
+        <div class="modal-header">
+          <h2 id="weeklyTrackerTitulo">Acompanhamento Semanal</h2>
+          <span class="close-button" data-modal-id="modalWeeklyTracker">×</span>
+        </div>
+        <div class="modal-body">
+          <!-- Botões de Gestão Superior -->
+          <div
+            style="
+              display: flex;
+              gap: 10px;
+              margin-bottom: 25px;
+              flex-wrap: wrap;
+              justify-content: center;
+            "
+          >
+            <button id="btnAbrirNovoCiclo" class="btn-primary btn-tracker-main">
+              Abrir Novo Ciclo
+            </button>
+          </div>
+
+          <!-- Container dos Ciclos Ativos (Ciclo 1 e Ciclo 2) -->
+          <div
+            id="containerCiclosTracker"
+            style="display: flex; flex-direction: column; gap: 30px"
+          >
+            <!-- Os ciclos e suas semanas serão injetados via JS aqui -->
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button
+            class="btn-secondary close-button-footer"
+            data-modal-id="modalWeeklyTracker"
+          >
+            Fechar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal para Abrir/Configurar Ciclo -->
+    <div id="modalConfigCiclo" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="modalConfigCicloTitulo">Configurar Ciclo</h2>
+          <span class="close-button" data-modal-id="modalConfigCiclo">×</span>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="cicloEditId" />
+          <div>
+            <label for="dataInicioCiclo">Data de Início (Abertura):</label>
+            <input type="date" id="dataInicioCiclo" required />
+          </div>
+          <div>
+            <label for="dataFimCiclo">Data de Fim (Fechamento):</label>
+            <input type="date" id="dataFimCiclo" required />
+          </div>
+          <div>
+            <label for="metaCiclo">Meta de Gastos para o Ciclo (R$):</label>
+            <input
+              type="number"
+              id="metaCiclo"
+              step="0.01"
+              placeholder="Ex: 3100.00"
+              required
+            />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button
+            class="btn-secondary close-button-footer"
+            data-modal-id="modalConfigCiclo"
+          >
+            Cancelar
+          </button>
+          <button id="btnSalvarConfigCiclo" class="btn-primary">
+            Salvar Ciclo
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal para Ajustar Valor Inicial / Parcelas Fixas -->
+    <div id="modalValorInicialCiclo" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Valor Inicial do Ciclo</h2>
+          <span class="close-button" data-modal-id="modalValorInicialCiclo"
+            >×</span
+          >
+        </div>
+        <div class="modal-body">
+          <p style="font-size: 0.9em; color: #7f8c8d; margin-bottom: 15px">
+            Informe o valor referente a parcelas de meses anteriores e gastos
+            fixos já conhecidos para este ciclo.
+          </p>
+          <input type="hidden" id="cicloValorInicialId" />
+          <div>
+            <label for="valorInicialCicloInput">Valor (R$):</label>
+            <input
+              type="number"
+              id="valorInicialCicloInput"
+              step="0.01"
+              placeholder="0,00"
+              required
+            />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button
+            class="btn-secondary close-button-footer"
+            data-modal-id="modalValorInicialCiclo"
+          >
+            Cancelar
+          </button>
+          <button id="btnSalvarValorInicial" class="btn-primary">
+            Salvar Valor
+          </button>
+        </div>
+      </div>
+    </div>
 
     <!-- Chamada do script principal como módulo -->
     <script type="module" src="js/main.js"></script>

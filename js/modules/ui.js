@@ -35,94 +35,94 @@ export function atualizarResumoFinanceiro() {
     !elements.saldoMesDisplay
   )
     return;
+
   const mesAnoAtual = getMesAnoChave(state.currentDate);
+
+  // Garantimos que estamos filtrando transações e orçamentos do mês CORRETO
   const transacoesDoMes = state.transacoes.filter(
     (t) => t.mesAnoReferencia === mesAnoAtual,
   );
-
-  let receitasDoMes = 0;
-  let despesasDoMes = 0;
-
-  // 1. Soma das Receitas
-  receitasDoMes = transacoesDoMes
-    .filter((t) => t.tipo === CONSTS.TIPO_TRANSACAO.RECEITA)
-    .reduce((total, t) => total + t.valor, 0);
-
-  // Mapeia IDs de orçamentos para capturar órfãos
-  const activeBudgetIds = state.orcamentos.map((o) => o.id);
-
-  // 2. Lógica de Orçamentos (Cálculo de Previsão vs Real)
-  // IMPORTANTE: Filtramos apenas os orçamentos do mês de referência atual
   const orcamentosDoMes = state.orcamentos.filter(
     (o) => o.mesAnoReferencia === mesAnoAtual,
   );
 
-  orcamentosDoMes.forEach((orcamento) => {
-    let gastosNesteOrcamento = transacoesDoMes
-      .filter((t) => t.orcamentoId === orcamento.id)
-      .reduce((total, t) => total + t.valor, 0);
+  let receitasTotais = 0;
+  let despesasProjetadasTotais = 0;
 
-    // Se for o orçamento fixo de CARTÃO, captura cartões sem orcamentoId ou IDs deletados
-    if (orcamento.isFixed) {
-      const gastosCartaoOrfaos = transacoesDoMes
+  // 1. Soma das Receitas
+  receitasTotais = transacoesDoMes
+    .filter((t) => t.tipo === CONSTS.TIPO_TRANSACAO.RECEITA)
+    .reduce((acc, t) => acc + (Number(t.valor) || 0), 0);
+
+  // Mapeia IDs para lógica de órfãos
+  const activeBudgetIds = orcamentosDoMes.map((o) => o.id);
+
+  // 2. Lógica de Orçamentos (Coração do Saldo)
+  orcamentosDoMes.forEach((orc) => {
+    const orcValorPlan = Number(orc.valor) || 0;
+
+    // Gasto Real direto
+    let gastoRealNoOrc = transacoesDoMes
+      .filter((t) => t.orcamentoId === orc.id)
+      .reduce((acc, t) => acc + (Number(t.valor) || 0), 0);
+
+    // Gasto Real Órfão (Cartão)
+    if (orc.isFixed) {
+      gastoRealNoOrc += transacoesDoMes
         .filter(
           (t) =>
             t.categoria === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO &&
             (!t.orcamentoId || !activeBudgetIds.includes(t.orcamentoId)),
         )
-        .reduce((total, t) => total + t.valor, 0);
-      gastosNesteOrcamento += gastosCartaoOrfaos;
+        .reduce((acc, t) => acc + (Number(t.valor) || 0), 0);
     }
 
-    // Se for o orçamento de GASTOS ORDINÁRIOS, captura TUDO o que não é cartão
-    if (orcamento.isFixedOrdinary) {
-      const gastosOrdinariosTotais = transacoesDoMes
+    // Gasto Real Órfão (Ordinário)
+    if (orc.isFixedOrdinary) {
+      gastoRealNoOrc += transacoesDoMes
         .filter((t) => t.categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA)
-        .reduce((total, t) => total + t.valor, 0);
-      gastosNesteOrcamento += gastosOrdinariosTotais;
+        .reduce((acc, t) => acc + (Number(t.valor) || 0), 0);
     }
 
-    if (isOrcamentoFechado(orcamento.id, mesAnoAtual)) {
-      despesasDoMes += gastosNesteOrcamento;
+    // A regra de Ouro: Se fechado, usa o Real. Se aberto, usa o Maior entre Plano e Real.
+    if (isOrcamentoFechado(orc.id, mesAnoAtual)) {
+      despesasProjetadasTotais += gastoRealNoOrc;
     } else {
-      despesasDoMes += Math.max(orcamento.valor, gastosNesteOrcamento);
+      despesasProjetadasTotais += Math.max(orcValorPlan, gastoRealNoOrc);
     }
   });
 
-  // 3. Abate os ajustes de fatura
-  const totalAjustesDoMes = state.ajustesFatura
+  // 3. Subtrai ajustes de fatura
+  const totalAjustes = state.ajustesFatura
     .filter((a) => a.mesAnoReferencia === mesAnoAtual)
-    .reduce((total, a) => total + a.valor, 0);
-  despesasDoMes -= totalAjustesDoMes;
+    .reduce((acc, a) => acc + (Number(a.valor) || 0), 0);
 
-  const saldoDoMes = receitasDoMes - despesasDoMes;
-  elements.totalReceitasDisplay.textContent = formatCurrency(receitasDoMes);
-  elements.totalDespesasDisplay.textContent = formatCurrency(despesasDoMes);
-  elements.saldoMesDisplay.textContent = formatCurrency(saldoDoMes);
+  despesasProjetadasTotais -= totalAjustes;
+
+  const saldoFinal = receitasTotais - despesasProjetadasTotais;
+
+  // Atualização Visual
+  elements.totalReceitasDisplay.textContent = formatCurrency(receitasTotais);
+  elements.totalDespesasDisplay.textContent = formatCurrency(
+    despesasProjetadasTotais,
+  );
+  elements.saldoMesDisplay.textContent = formatCurrency(saldoFinal);
 
   if (!state.areValuesHidden) {
     elements.saldoMesDisplay.style.color =
-      saldoDoMes > 0 ? "#27ae60" : saldoDoMes < 0 ? "#e74c3c" : "#3498db";
+      saldoFinal > 0 ? "#27ae60" : saldoFinal < 0 ? "#e74c3c" : "#3498db";
   } else {
     elements.saldoMesDisplay.style.color = "";
   }
 
-  // Atualiza visual do botão "Fechar/Abrir Todos Orçamentos"
+  // Sincronia do botão de cadeado
   if (elements.btnFecharTodosOrcamentos) {
-    const mesAno = getMesAnoChave(state.currentDate);
-
-    // CORREÇÃO TEMPORAL: Filtramos apenas os orçamentos do mês atual para decidir o texto do botão
-    const algumAberto = state.orcamentos
-      .filter((orc) => orc.mesAnoReferencia === mesAno)
-      .some((orc) => !isOrcamentoFechado(orc.id, mesAno));
-
-    if (algumAberto) {
-      elements.btnFecharTodosOrcamentos.innerHTML =
-        "🔓 Fechar todos os orçamentos";
-    } else {
-      elements.btnFecharTodosOrcamentos.innerHTML =
-        "🔒 Abrir todos os orçamentos";
-    }
+    const algumAberto = orcamentosDoMes.some(
+      (orc) => !isOrcamentoFechado(orc.id, mesAnoAtual),
+    );
+    elements.btnFecharTodosOrcamentos.innerHTML = algumAberto
+      ? "🔓 Fechar todos os orçamentos"
+      : "🔒 Abrir todos os orçamentos";
   }
 }
 

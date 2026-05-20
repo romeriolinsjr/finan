@@ -13,6 +13,7 @@ import * as third from "./modules/third-party.js";
 import * as search from "./modules/search.js";
 import * as reports from "./modules/reports.js";
 import * as exportMod from "./modules/export.js";
+import * as tracker from "./modules/weekly-tracker.js";
 
 document.addEventListener("DOMContentLoaded", () => {
   console.log("Finan Modularizado - JS Carregado");
@@ -348,20 +349,25 @@ document.addEventListener("DOMContentLoaded", () => {
         third.renderizarDividasDoMes();
     };
 
-    // Armazenamos o retorno de cada onSnapshot (a função de desligar)
-    // userRef.collection("transacoes").onSnapshot... (REMOVIDO PARA ECONOMIA)
+    // 1. ESCUTA DO DOCUMENTO DO USUÁRIO (Restaura e mantém Data da Última Alteração)
+    state.activeUnsubscribers.push(
+      userRef.onSnapshot((doc) => {
+        if (doc.exists) {
+          authMod.exibirDataUltimaAtualizacao(doc.data().lastModified);
+        }
+      }),
+    );
 
-    // O listener de orçamentos agora é removido do modelo global e passa a ser
-    // gerenciado pelo carregamento sob demanda (garantirDadosDoMes),
-    // seguindo o mesmo padrão de economia e performance das transações.
-
+    // 2. ESCUTA DE ORÇAMENTOS
     state.activeUnsubscribers.push(
       userRef.collection("orcamentos").onSnapshot((s) => {
         state.orcamentos = s.docs.map((d) => ({ ...d.data(), id: d.id }));
+        console.log("State: Orçamentos atualizados via Snapshot.");
         update();
       }),
     );
 
+    // 3. ESCUTA DE CADEADOS (ORÇAMENTOS FECHADOS)
     state.activeUnsubscribers.push(
       userRef.collection("orcamentosFechados").onSnapshot((s) => {
         state.orcamentosFechados = s.docs.map((d) => ({
@@ -372,6 +378,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }),
     );
 
+    // 4. ESCUTA DE AJUSTES DE FATURA
     state.activeUnsubscribers.push(
       userRef.collection("ajustesFatura").onSnapshot((s) => {
         state.ajustesFatura = s.docs.map((d) => ({ ...d.data(), id: d.id }));
@@ -379,6 +386,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }),
     );
 
+    // 5. ESCUTA DE DÍVIDAS DE TERCEIROS
     state.activeUnsubscribers.push(
       userRef.collection("dividasTerceiros").onSnapshot((s) => {
         state.dividasTerceiros = s.docs.map((d) => ({ ...d.data(), id: d.id }));
@@ -386,6 +394,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }),
     );
 
+    // 6. ESCUTA DE PESSOAS
     state.activeUnsubscribers.push(
       userRef.collection("pessoas").onSnapshot((s) => {
         state.pessoas = s.docs.map((d) => ({ ...d.data(), id: d.id }));
@@ -395,7 +404,29 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }),
     );
+
+    // 7. ESCUTAS DO WEEKLY TRACKER (Persistência e Reatividade)
+    state.activeUnsubscribers.push(
+      userRef.collection("ciclos_tracker").onSnapshot((s) => {
+        state.ciclosTracker = s.docs.map((d) => ({ ...d.data(), id: d.id }));
+        console.log("Ciclos Tracker atualizados:", state.ciclosTracker.length);
+        if (elements.modalWeeklyTracker.style.display === "flex") {
+          tracker.renderizarTracker();
+        }
+      }),
+    );
+
+    state.activeUnsubscribers.push(
+      userRef.collection("votos_tracker").onSnapshot((s) => {
+        state.votosTracker = s.docs.map((d) => ({ ...d.data(), id: d.id }));
+        if (elements.modalWeeklyTracker.style.display === "flex") {
+          tracker.renderizarTracker();
+        }
+      }),
+    );
   }
+
+  // --- GATILHOS DE INTERFACE (VITAIS) ---
 
   // --- GATILHOS DE INTERFACE (VITAIS) ---
 
@@ -607,6 +638,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // Força a atualização da lista na tela inicial e do resumo financeiro
       ui.renderizarTransacoesDoMes();
+
+      // REATIVIDADE WEEKLY TRACKER: Atualiza o tracker se estiver aberto
+      if (elements.modalWeeklyTracker.style.display === "flex") {
+        tracker.renderizarTracker();
+      }
     }
   });
 
@@ -1525,40 +1561,132 @@ document.addEventListener("DOMContentLoaded", () => {
     trans.atualizarVisibilidadeFormulario();
   });
 
-  elements.cartaoDespesa.addEventListener("change", (e) => {
-    if (e.target.value === "novo_cartao") {
-      // Garante que o retorno está limpo para não sobrepor modais
-      elements.modalCadastrarCartao.dataset.returnTo = "";
-
-      ui.abrirModalEspecifico(
-        elements.modalCadastrarCartao,
-        null,
-        "cartaoCadastroEdicao",
-        {
-          resetModalCartao: () => {
-            elements.nomeCartaoInputModal.value = "";
-            elements.diaVencimentoFaturaInputModal.value = "";
-            elements.modalCartaoTitulo.textContent = "Cadastrar Novo Cartão";
-            elements.btnSalvarCartaoModalBtn.textContent = "Salvar Cartão";
+  // Ouvinte para o seletor de Cartões (Cadastro Rápido)
+  if (elements.cartaoDespesa) {
+    elements.cartaoDespesa.addEventListener("change", (e) => {
+      if (e.target.value === "novo_cartao") {
+        elements.modalCadastrarCartao.dataset.returnTo = "";
+        ui.abrirModalEspecifico(
+          elements.modalCadastrarCartao,
+          null,
+          "cartaoCadastroEdicao",
+          {
+            resetModalCartao: () => {
+              elements.nomeCartaoInputModal.value = "";
+              elements.diaVencimentoFaturaInputModal.value = "";
+              elements.modalCartaoTitulo.textContent = "Cadastrar Novo Cartão";
+              elements.btnSalvarCartaoModalBtn.textContent = "Salvar Cartão";
+            },
           },
-        },
-      );
-      e.target.value = "";
-    }
-  });
+        );
+        e.target.value = "";
+      }
+    });
+  }
 
-  elements.pessoaSelect.addEventListener("change", () => {
-    if (elements.pessoaSelect.value === "cadastrar_nova") {
-      // Garante que não há retorno para o gerenciador neste fluxo
-      elements.modalCadastrarPessoa.dataset.returnTo = "";
+  // Ouvinte para o seletor de Pessoas (Cadastro Rápido)
+  if (elements.pessoaSelect) {
+    elements.pessoaSelect.addEventListener("change", () => {
+      if (elements.pessoaSelect.value === "cadastrar_nova") {
+        elements.modalCadastrarPessoa.dataset.returnTo = "";
+        state.isPessoaEditMode = false;
+        document.querySelector("#modalCadastrarPessoa h2").textContent =
+          "Cadastrar Nova Pessoa";
+        elements.btnSalvarPessoaModal.textContent = "Salvar Pessoa";
+        ui.abrirModalEspecifico(elements.modalCadastrarPessoa);
+        elements.pessoaSelect.value = "";
+      }
+    });
+  }
 
-      state.isPessoaEditMode = false;
-      document.querySelector("#modalCadastrarPessoa h2").textContent =
-        "Cadastrar Nova Pessoa";
-      elements.btnSalvarPessoaModal.textContent = "Salvar Pessoa";
+  // =========================================
+  //      EVENTOS DO WEEKLY TRACKER
+  // =========================================
 
-      ui.abrirModalEspecifico(elements.modalCadastrarPessoa);
-      elements.pessoaSelect.value = "";
-    }
-  });
-});
+  // Abrir o Painel Principal do Weekly Tracker
+  if (elements.btnWeeklyTracker) {
+    elements.btnWeeklyTracker.addEventListener("click", async () => {
+      // Usamos await para garantir que transações fora do cache sejam carregadas
+      await tracker.renderizarTracker();
+      ui.abrirModalEspecifico(elements.modalWeeklyTracker);
+    });
+  }
+
+  if (elements.btnAbrirNovoCiclo) {
+    elements.btnAbrirNovoCiclo.addEventListener("click", () => {
+      // Bloqueio Proativo: Verifica se já existem 2 ciclos ativos antes de abrir o modal
+      const ativos = state.ciclosTracker.filter((c) => c.status === "ativo");
+      if (ativos.length >= 2) {
+        alert(
+          "Você já possui 2 ciclos ativos (Principal e Transição). Encerre o mais antigo antes de abrir um novo.",
+        );
+        return;
+      }
+
+      elements.cicloEditIdInput.value = "";
+      elements.dataInicioCicloInput.value = "";
+      elements.dataFimCicloInput.value = "";
+      elements.metaCicloInput.value = "";
+      elements.modalConfigCicloTitulo.textContent = "Abrir Novo Ciclo";
+      ui.abrirModalEspecifico(elements.modalConfigCiclo);
+    });
+  }
+
+  if (elements.btnSalvarConfigCiclo) {
+    elements.btnSalvarConfigCiclo.addEventListener("click", async () => {
+      const dados = {
+        id: elements.cicloEditIdInput.value,
+        dataInicio: elements.dataInicioCicloInput.value,
+        dataFim: elements.dataFimCicloInput.value,
+        metaTotal: parseFloat(elements.metaCicloInput.value) || 0,
+      };
+      if (!dados.dataInicio || !dados.dataFim || dados.metaTotal <= 0) {
+        alert("Por favor, preencha as datas e uma meta válida.");
+        return;
+      }
+      if (await tracker.salvarConfigCiclo(dados)) {
+        ui.fecharModalEspecifico(elements.modalConfigCiclo);
+      }
+    });
+  }
+
+  if (elements.btnSalvarValorInicial) {
+    elements.btnSalvarValorInicial.addEventListener("click", async () => {
+      const id = elements.cicloValorInicialIdInput.value;
+      const valor = parseFloat(elements.valorInicialCicloInput.value) || 0;
+      if (await tracker.salvarValorInicial(id, valor)) {
+        ui.fecharModalEspecifico(elements.modalValorInicialCiclo);
+      }
+    });
+  }
+
+  if (elements.containerCiclosTracker) {
+    elements.containerCiclosTracker.addEventListener("click", (e) => {
+      const btnTransfer = e.target.closest(".btn-transfer");
+      if (btnTransfer) {
+        const { transId, currentCiclo } = btnTransfer.dataset;
+        tracker.transferirItem(transId, currentCiclo);
+      }
+    });
+  }
+
+  window.trackerMod = {
+    abrirConfig: (id) => {
+      const ciclo = state.ciclosTracker.find((c) => c.id === id);
+      if (ciclo) {
+        elements.cicloEditIdInput.value = ciclo.id;
+        elements.dataInicioCicloInput.value = ciclo.dataInicio;
+        elements.dataFimCicloInput.value = ciclo.dataFim;
+        elements.metaCicloInput.value = ciclo.metaTotal;
+        elements.modalConfigCicloTitulo.textContent = "Editar Dados do Ciclo";
+        ui.abrirModalEspecifico(elements.modalConfigCiclo);
+      }
+    },
+    abrirValorInicial: (id, valorAtual) => {
+      elements.cicloValorInicialIdInput.value = id;
+      elements.valorInicialCicloInput.value = valorAtual;
+      ui.abrirModalEspecifico(elements.modalValorInicialCiclo);
+    },
+    encerrarCiclo: (id) => tracker.encerrarCiclo(id),
+  };
+}); // Fim do DOMContentLoaded
