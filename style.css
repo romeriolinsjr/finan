@@ -972,8 +972,15 @@ body.modal-aberto {
 }
 .relatorio-secao h3 {
   margin-top: 0;
-  margin-bottom: 15px;
+  margin-bottom: 20px;
   color: #2c3e50;
+  background-color: #f1f4f7; /* Fundo cinza-azulado muito claro */
+  padding: 12px 15px;
+  border-radius: 6px;
+  border-left: 5px solid #3498db; /* Barra vertical azul na esquerda */
+  font-size: 1.1em;
+  text-transform: uppercase; /* Títulos em caixa alta para maior distinção */
+  letter-spacing: 0.5px;
 }
 
 .relatorio-grid {
@@ -1035,11 +1042,12 @@ body.modal-aberto {
 .relatorio-item-analise {
   display: flex;
   justify-content: space-between;
-  padding: 8px 5px;
-  border-bottom: 1px solid #f0f0f0;
-}
-.relatorio-item-analise:last-child {
-  border-bottom: none;
+  align-items: center;
+  padding: 10px 15px;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  border-left: 5px solid #bdc3c7;
+  margin-bottom: 8px;
 }
 .relatorio-item-analise span {
   color: #333;
@@ -1064,7 +1072,8 @@ body.modal-aberto {
   align-items: center;
   background-color: #f8f9fa;
   padding: 10px 15px;
-  border-radius: 5px;
+  border-radius: 6px;
+  border-left: 5px solid #bdc3c7;
 }
 
 .relatorio-orcamento-item > span,
@@ -1090,8 +1099,7 @@ body.modal-aberto {
 
 .relatorio-orcamento-total {
   margin-top: 15px;
-  border-top: 2px solid #3498db;
-  background-color: transparent;
+  border-top: 1px solid #e0e0e0;
   font-weight: bold;
 }
 

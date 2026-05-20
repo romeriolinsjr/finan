@@ -110,19 +110,30 @@ export function popularModalRelatorio(date) {
     CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO,
   );
 
-  const analiseDespesasHTML = `<section class="relatorio-secao"><h3>Análise de Despesas</h3><div class="relatorio-grid-analise"><div class="relatorio-sub-secao"><h4>Gastos Ordinários</h4><div class="relatorio-item-analise"><span>Únicas</span> <strong>${formatCurrency(
-    subtotaisOrd.unica,
-  )}</strong></div><div class="relatorio-item-analise"><span>Recorrentes</span> <strong>${formatCurrency(
-    subtotaisOrd.recorrente,
-  )}</strong></div><div class="relatorio-item-analise"><span>Parceladas</span> <strong>${formatCurrency(
-    subtotaisOrd.parcelada,
-  )}</strong></div></div><div class="relatorio-sub-secao"><h4>Gastos com Cartão de Crédito</h4><div class="relatorio-item-analise"><span>Únicas</span> <strong>${formatCurrency(
-    subtotaisCartao.unica,
-  )}</strong></div><div class="relatorio-item-analise"><span>Recorrentes</span> <strong>${formatCurrency(
-    subtotaisCartao.recorrente,
-  )}</strong></div><div class="relatorio-item-analise"><span>Parceladas</span> <strong>${formatCurrency(
-    subtotaisCartao.parcelada,
-  )}</strong></div></div></div></section>`;
+  const analiseDespesasHTML = `
+    <section class="relatorio-secao">
+      <h3>Análise de Despesas</h3>
+      <div class="relatorio-grid-analise">
+        <div class="relatorio-sub-secao">
+          <h4>Ordinárias</h4>
+          <div class="relatorio-item-analise"><span>Únicas</span> <strong>${formatCurrency(subtotaisOrd.unica)}</strong></div>
+          <div class="relatorio-item-analise"><span>Recorrentes</span> <strong>${formatCurrency(subtotaisOrd.recorrente)}</strong></div>
+          <div class="relatorio-item-analise"><span>Parceladas</span> <strong>${formatCurrency(subtotaisOrd.parcelada)}</strong></div>
+          <div class="relatorio-item-analise" style="border-top: 1px solid #eee; margin-top: 5px; padding-top: 5px; font-weight: bold;">
+            <span>Total</span> <strong>${formatCurrency(totalGastoRealOrdinario)}</strong>
+          </div>
+        </div>
+        <div class="relatorio-sub-secao">
+          <h4>Cartão de Crédito</h4>
+          <div class="relatorio-item-analise"><span>Únicas</span> <strong>${formatCurrency(subtotaisCartao.unica)}</strong></div>
+          <div class="relatorio-item-analise"><span>Recorrentes</span> <strong>${formatCurrency(subtotaisCartao.recorrente)}</strong></div>
+          <div class="relatorio-item-analise"><span>Parceladas</span> <strong>${formatCurrency(subtotaisCartao.parcelada)}</strong></div>
+          <div class="relatorio-item-analise" style="border-top: 1px solid #eee; margin-top: 5px; padding-top: 5px; font-weight: bold;">
+            <span>Total</span> <strong>${formatCurrency(totalGastoRealCartao)}</strong>
+          </div>
+        </div>
+      </div>
+    </section>`;
 
   document.getElementById("relatorio-secao-analise-despesas").innerHTML =
     analiseDespesasHTML;
