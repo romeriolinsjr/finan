@@ -68,9 +68,12 @@ export async function gerarExtratoMensalPDF() {
     (t) => t.mesAnoReferencia === mesAno,
   );
   const activeBudgetIds = state.orcamentos.map((o) => o.id);
-  const receitas = transacoes.filter(
-    (t) => t.tipo === CONSTS.TIPO_TRANSACAO.RECEITA,
-  );
+
+  // Filtra e ordena as receitas por valor decrescente
+  const receitas = transacoes
+    .filter((t) => t.tipo === CONSTS.TIPO_TRANSACAO.RECEITA)
+    .sort((a, b) => b.valor - a.valor);
+
   const totalReceitas = receitas.reduce((s, t) => s + t.valor, 0);
 
   // Orçamentos
