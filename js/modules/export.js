@@ -7,6 +7,23 @@ import {
   isOrcamentoFechado,
 } from "./utils.js";
 
+// Função auxiliar para carregar a logo (favicon)
+const getLogoBase64 = () => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0);
+      resolve(canvas.toDataURL("image/png"));
+    };
+    img.onerror = () => resolve(null);
+    img.src = "favicon.png"; // Caminho do seu ícone
+  });
+};
+
 export async function gerarExtratoMensalPDF() {
   if (!window.jspdf) {
     alert("O motor de PDF não foi carregado. Tente recarregar a página.");
@@ -22,53 +39,47 @@ export async function gerarExtratoMensalPDF() {
   });
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 14;
+  let currentY = 20;
 
-  // --- 1. PREPARAÇÃO E CÁLCULOS DE TOTAIS ---
+  // --- CORES PADRONIZADAS ---
+  const COLOR_BLUE = [52, 152, 219]; // #3498db
+  const COLOR_GRAY = [189, 195, 199]; // #bdc3c7
+  const COLOR_DARK = [44, 62, 80]; // #2c3e50
+  const COLOR_BG_HEADER = [241, 244, 247]; // #f1f4f7
+
+  // --- FUNÇÕES AUXILIARES DE ESTILIZAÇÃO ---
+  const drawSectionHeader = (title, y) => {
+    // Fundo cinza claro
+    doc.setFillColor(...COLOR_BG_HEADER);
+    doc.rect(margin, y, pageWidth - margin * 2, 10, "F");
+    // Borda azul à esquerda
+    doc.setFillColor(...COLOR_BLUE);
+    doc.rect(margin, y, 1.5, 10, "F");
+    // Texto
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(...COLOR_DARK);
+    doc.text(title.toUpperCase(), margin + 5, y + 6.5);
+    return y + 15;
+  };
+
+  // --- 1. PREPARAÇÃO DE DADOS ---
   const transacoes = state.transacoes.filter(
     (t) => t.mesAnoReferencia === mesAno,
   );
   const activeBudgetIds = state.orcamentos.map((o) => o.id);
-
-  // Totais de Receitas
   const receitas = transacoes.filter(
     (t) => t.tipo === CONSTS.TIPO_TRANSACAO.RECEITA,
   );
   const totalReceitas = receitas.reduce((s, t) => s + t.valor, 0);
 
-  // Totais de Despesas Ordinárias
-  const despesasOrd = transacoes.filter(
-    (t) =>
-      t.tipo === CONSTS.TIPO_TRANSACAO.DESPESA &&
-      t.categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA,
-  );
-  const totalOrd = despesasOrd.reduce((s, t) => s + t.valor, 0);
-
-  // Totais de Cartões
-  let totalFaturas = 0;
-  const dadosCartoes = state.cartoes
-    .filter((c) => !c.deletado || transacoes.some((t) => t.cartaoId === c.id))
-    .map((cartao) => {
-      const totalGasto = transacoes
-        .filter((t) => t.cartaoId === cartao.id)
-        .reduce((s, t) => s + t.valor, 0);
-      const ajustes = calcularTotalAjustes(cartao.id, mesAno);
-      const valorFinal = totalGasto - ajustes;
-      if (totalGasto > 0) totalFaturas += valorFinal;
-      return totalGasto > 0
-        ? [`Fatura ${cartao.nome}`, formatCurrency(valorFinal)]
-        : null;
-    })
-    .filter((row) => row !== null);
-
-  // Totais de Orçamentos (Lógica Dashboard)
+  // Orçamentos
   let totalGastoRealOrcamentos = 0;
   let totalPrevistoOrcamentos = 0;
-  let despesasProjetadasDashboard = 0;
-
+  let despesasProjetadas = 0;
   const orcamentosExport = state.orcamentos
     .filter((o) => o.mesAnoReferencia === mesAno)
     .sort((a, b) => {
-      // Hierarquia: 1º Ordinários, 2º Outros (Crédito), 3º Valor Decrescente
       if (a.isFixedOrdinary) return -1;
       if (b.isFixedOrdinary) return 1;
       if (a.isFixed) return -1;
@@ -77,308 +88,314 @@ export async function gerarExtratoMensalPDF() {
     });
 
   const dadosOrcamentos = orcamentosExport.map((orc) => {
-    let gastoDeste = transacoes
+    let gasto = transacoes
       .filter((t) => t.orcamentoId === orc.id)
       .reduce((s, t) => s + t.valor, 0);
-    if (orc.isFixed) {
-      gastoDeste += transacoes
+    if (orc.isFixed)
+      gasto += transacoes
         .filter(
           (t) =>
             t.categoria === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO &&
             (!t.orcamentoId || !activeBudgetIds.includes(t.orcamentoId)),
         )
         .reduce((s, t) => s + t.valor, 0);
-    }
-    if (orc.isFixedOrdinary) {
-      gastoDeste += transacoes
+    if (orc.isFixedOrdinary)
+      gasto += transacoes
         .filter((t) => t.categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA)
         .reduce((s, t) => s + t.valor, 0);
-    }
 
-    totalGastoRealOrcamentos += gastoDeste;
+    totalGastoRealOrcamentos += gasto;
     totalPrevistoOrcamentos += orc.valor;
-
-    // Lógica de Saldo do Mês (Cadeados)
-    despesasProjetadasDashboard += isOrcamentoFechado(orc.id, mesAno)
-      ? gastoDeste
-      : Math.max(orc.valor, gastoDeste);
-
-    const saldo = orc.valor - gastoDeste;
+    despesasProjetadas += isOrcamentoFechado(orc.id, mesAno)
+      ? gasto
+      : Math.max(orc.valor, gasto);
     return [
       orc.nome,
       formatCurrency(orc.valor),
-      formatCurrency(gastoDeste),
-      formatCurrency(saldo),
+      formatCurrency(gasto),
+      formatCurrency(orc.valor - gasto),
     ];
   });
 
-  // Cálculo de Saldo Final (Resumo Financeiro)
   const totalAjustesMes = state.ajustesFatura
     .filter((a) => a.mesAnoReferencia === mesAno)
     .reduce((s, a) => s + a.valor, 0);
-  const despesasTotaisResumo = despesasProjetadasDashboard - totalAjustesMes;
-  const saldoMensalResumo = totalReceitas - despesasTotaisResumo;
+  const despesasTotaisResumo = despesasProjetadas - totalAjustesMes;
+  const saldoFinalResumo = totalReceitas - despesasTotaisResumo;
 
-  // --- 2. CONSTRUÇÃO DO PDF ---
+  // --- 2. CABEÇALHO COM LOGO ---
+  const logo = await getLogoBase64();
+  if (logo) {
+    doc.addImage(logo, "PNG", margin, 12, 10, 10);
+  }
+  doc.setFontSize(20);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(...COLOR_DARK);
+  doc.text("FINAN", logo ? margin + 12 : margin, 20);
 
-  // Cabeçalho
-  doc.setFontSize(22);
-  doc.setTextColor(44, 62, 80);
-  doc.text("FINAN", pageWidth / 2, 20, { align: "center" });
-  doc.setFontSize(14);
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
   doc.setTextColor(127, 140, 141);
-  doc.text(`EXTRATO MENSAL: ${nomeMes.toUpperCase()}`, pageWidth / 2, 28, {
-    align: "center",
+  doc.text(`EXTRATO MENSAL: ${nomeMes.toUpperCase()}`, pageWidth - margin, 20, {
+    align: "right",
   });
 
-  let currentY = 35;
+  currentY = 30;
 
-  // SEÇÃO: RESUMO FINANCEIRO (DASHBOARD)
+  // --- SEÇÃO: RESUMO GERAL ---
+  currentY = drawSectionHeader("Resumo Geral", currentY);
   doc.autoTable({
     startY: currentY,
-    head: [["RESUMO FINANCEIRO DO MÊS", "VALOR"]],
     body: [
-      ["Receitas do Mês", formatCurrency(totalReceitas)],
-      [
-        "Despesas do Mês (Previsto vs Real)",
-        formatCurrency(despesasTotaisResumo),
-      ],
-      [
-        { content: "Saldo do Mês", styles: { fontStyle: "bold" } },
-        {
-          content: formatCurrency(saldoMensalResumo),
-          styles: {
-            fontStyle: "bold",
-            textColor: saldoMensalResumo >= 0 ? [39, 174, 96] : [192, 57, 43],
-          },
-        },
-      ],
+      ["Receitas Totais", formatCurrency(totalReceitas)],
+      ["Despesas Totais", formatCurrency(despesasTotaisResumo)],
+      ["Saldo Final", formatCurrency(saldoFinalResumo)],
     ],
-    theme: "grid",
-    headStyles: { fillColor: [44, 62, 80] },
-    columnStyles: { 1: { halign: "right" } },
+    theme: "plain",
+    styles: { fontSize: 10, cellPadding: 4 },
+    columnStyles: { 1: { halign: "right", fontStyle: "bold" } },
+    didDrawCell: (data) => {
+      if (data.column.index === 0) {
+        doc.setFillColor(...COLOR_GRAY);
+        doc.rect(data.cell.x, data.cell.y + 1, 1.2, data.cell.height - 2, "F");
+      }
+      if (data.row.index === 2 && data.column.index === 1) {
+        doc.setTextColor(
+          saldoFinalResumo >= 0 ? 39 : 231,
+          saldoFinalResumo >= 0 ? 174 : 76,
+          saldoFinalResumo >= 0 ? 96 : 60,
+        );
+      }
+    },
   });
-
   currentY = doc.lastAutoTable.finalY + 10;
 
   // --- SEÇÃO: ANÁLISE DE DESPESAS ---
-  const despesasDoMesParaAnalise = transacoes.filter(
-    (t) => t.tipo === CONSTS.TIPO_TRANSACAO.DESPESA,
-  );
-  const calcularSubtotaisAnalise = (cat) => {
-    const d = despesasDoMesParaAnalise.filter((t) => t.categoria === cat);
-    return {
-      unica: d
-        .filter((t) => t.frequencia === CONSTS.FREQUENCIA.UNICA)
-        .reduce((s, t) => s + t.valor, 0),
-      recorrente: d
-        .filter((t) => t.frequencia === CONSTS.FREQUENCIA.RECORRENTE)
-        .reduce((s, t) => s + t.valor, 0),
-      parcelada: d
-        .filter((t) => t.frequencia === CONSTS.FREQUENCIA.PARCELADA)
-        .reduce((s, t) => s + t.valor, 0),
-    };
+  currentY = drawSectionHeader("Análise de Despesas", currentY);
+  const calcAnalise = (cat) => {
+    const d = transacoes.filter(
+      (t) => t.tipo === CONSTS.TIPO_TRANSACAO.DESPESA && t.categoria === cat,
+    );
+    const u = d
+      .filter((t) => t.frequencia === CONSTS.FREQUENCIA.UNICA)
+      .reduce((s, t) => s + t.valor, 0);
+    const r = d
+      .filter((t) => t.frequencia === CONSTS.FREQUENCIA.RECORRENTE)
+      .reduce((s, t) => s + t.valor, 0);
+    const p = d
+      .filter((t) => t.frequencia === CONSTS.FREQUENCIA.PARCELADA)
+      .reduce((s, t) => s + t.valor, 0);
+    return { u, r, p, total: u + r + p };
   };
 
-  const subsOrdAnalise = calcularSubtotaisAnalise(
-    CONSTS.CATEGORIA_DESPESA.ORDINARIA,
-  );
-  const subsCartaoAnalise = calcularSubtotaisAnalise(
-    CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO,
-  );
-  const somaSubsOrd = Object.values(subsOrdAnalise).reduce((a, b) => a + b, 0);
-  const somaSubsCartao = Object.values(subsCartaoAnalise).reduce(
-    (a, b) => a + b,
-    0,
-  );
+  const aOrd = calcAnalise(CONSTS.CATEGORIA_DESPESA.ORDINARIA);
+  const aCartao = calcAnalise(CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO);
 
   doc.autoTable({
     startY: currentY,
-    head: [
-      [
-        "ANÁLISE DE DESPESAS",
-        "ÚNICA",
-        "RECORRENTE",
-        "PARCELADA",
-        "TOTAL (% SALÁRIO)",
-      ],
-    ],
+    head: [["", "ÚNICAS", "RECORRENTES", "PARCELADAS", "TOTAL"]], // Cabeçalho da 1ª coluna removido
     body: [
       [
-        "Gastos Ordinários",
-        formatCurrency(subsOrdAnalise.unica),
-        formatCurrency(subsOrdAnalise.recorrente),
-        formatCurrency(subsOrdAnalise.parcelada),
-        `${formatCurrency(somaSubsOrd)} (${((somaSubsOrd / (totalReceitas || 1)) * 100).toFixed(1)}%)`,
+        "Ordinárias",
+        formatCurrency(aOrd.u),
+        formatCurrency(aOrd.r),
+        formatCurrency(aOrd.p),
+        formatCurrency(aOrd.total),
       ],
       [
         "Cartão de Crédito",
-        formatCurrency(subsCartaoAnalise.unica),
-        formatCurrency(subsCartaoAnalise.recorrente),
-        formatCurrency(subsCartaoAnalise.parcelada),
-        `${formatCurrency(somaSubsCartao)} (${((somaSubsCartao / (totalReceitas || 1)) * 100).toFixed(1)}%)`,
+        formatCurrency(aCartao.u),
+        formatCurrency(aCartao.r),
+        formatCurrency(aCartao.p),
+        formatCurrency(aCartao.total),
       ],
     ],
-    theme: "grid",
-    headStyles: { fillColor: [52, 73, 94] },
+    theme: "plain",
+    headStyles: {
+      fontStyle: "bold",
+      textColor: [100, 100, 100],
+      halign: "right",
+    },
+    styles: { fontSize: 9, cellPadding: 4 },
     columnStyles: {
+      0: { halign: "left" },
       1: { halign: "right" },
       2: { halign: "right" },
       3: { halign: "right" },
-      4: { halign: "right" },
+      4: { halign: "right", fontStyle: "bold" },
+    },
+    didDrawCell: (data) => {
+      if (data.section === "body" && data.column.index === 0) {
+        doc.setFillColor(...COLOR_GRAY);
+        doc.rect(data.cell.x, data.cell.y + 1, 1.2, data.cell.height - 2, "F");
+      }
     },
   });
-
   currentY = doc.lastAutoTable.finalY + 10;
 
-  // SEÇÃO 1: RECEITAS
+  // --- SEÇÃO: ANÁLISE DE ORÇAMENTOS ---
+  currentY = drawSectionHeader("Análise de Orçamentos", currentY);
   doc.autoTable({
     startY: currentY,
-    head: [["1. RECEITAS", "VALOR"]],
-    body: [
-      ...receitas.map((r) => [r.nome, formatCurrency(r.valor)]),
-      [
-        {
-          content: "TOTAL RECEITAS",
-          styles: { fontStyle: "bold", fillColor: [240, 240, 240] },
-        },
-        {
-          content: formatCurrency(totalReceitas),
-          styles: {
-            fontStyle: "bold",
-            halign: "right",
-            fillColor: [240, 240, 240],
-          },
-        },
-      ],
-    ],
-    theme: "striped",
-    headStyles: { fillColor: [39, 174, 96] },
-    columnStyles: { 1: { halign: "right" } },
-  });
-
-  currentY = doc.lastAutoTable.finalY + 10;
-
-  // SEÇÃO 2: ORÇAMENTOS
-  doc.autoTable({
-    startY: currentY,
-    head: [["2. PLANEJAMENTO (ORÇAMENTOS)", "PREVISTO", "GASTO", "SALDO"]],
+    head: [["", "PREVISTO", "GASTO", "SALDO"]], // Cabeçalho da 1ª coluna removido
     body: [
       ...dadosOrcamentos,
       [
-        {
-          content: "TOTAIS",
-          styles: { fontStyle: "bold", fillColor: [240, 240, 240] },
-        },
-        {
-          content: formatCurrency(totalPrevistoOrcamentos),
-          styles: {
-            fontStyle: "bold",
-            halign: "right",
-            fillColor: [240, 240, 240],
-          },
-        },
-        {
-          content: formatCurrency(totalGastoRealOrcamentos),
-          styles: {
-            fontStyle: "bold",
-            halign: "right",
-            fillColor: [240, 240, 240],
-          },
-        },
-        {
-          content: formatCurrency(
-            totalPrevistoOrcamentos - totalGastoRealOrcamentos,
-          ),
-          styles: {
-            fontStyle: "bold",
-            halign: "right",
-            fillColor: [240, 240, 240],
-          },
-        },
+        { content: "TOTAIS", styles: { fontStyle: "bold" } },
+        formatCurrency(totalPrevistoOrcamentos),
+        formatCurrency(totalGastoRealOrcamentos),
+        formatCurrency(totalPrevistoOrcamentos - totalGastoRealOrcamentos),
       ],
     ],
-    theme: "grid",
-    headStyles: { fillColor: [52, 152, 219] },
-    styles: { fontSize: 9 },
+    theme: "plain",
+    headStyles: {
+      fontStyle: "bold",
+      textColor: [100, 100, 100],
+      halign: "right",
+    },
+    styles: { fontSize: 9, cellPadding: 3.5 },
     columnStyles: {
+      0: { halign: "left" },
       1: { halign: "right" },
       2: { halign: "right" },
-      3: { halign: "right" },
+      3: { halign: "right", fontStyle: "bold" },
+    },
+    didDrawCell: (data) => {
+      if (data.section === "body" && data.column.index === 0) {
+        doc.setFillColor(...COLOR_GRAY);
+        doc.rect(data.cell.x, data.cell.y + 1, 1.2, data.cell.height - 2, "F");
+      }
+    },
+  });
+  currentY = doc.lastAutoTable.finalY + 10;
+
+  // --- SEÇÃO: RECEITAS (DETALHADO) ---
+  currentY = drawSectionHeader("Receitas", currentY);
+  doc.autoTable({
+    startY: currentY - 5, // Ajuste para subir a lista para perto do título
+    showHead: false, // Remove completamente a linha do cabeçalho
+    body:
+      receitas.length > 0
+        ? receitas.map((r) => [r.nome, formatCurrency(r.valor)])
+        : [["Nenhuma receita registrada", "-"]],
+    theme: "plain",
+    styles: { fontSize: 9, cellPadding: 3 },
+    columnStyles: {
+      0: { halign: "left" },
+      1: { halign: "right", fontStyle: "bold" },
+    },
+    didDrawCell: (data) => {
+      if (data.section === "body" && data.column.index === 0) {
+        doc.setFillColor(...COLOR_GRAY);
+        doc.rect(data.cell.x, data.cell.y + 1, 1.2, data.cell.height - 2, "F");
+      }
+    },
+  });
+  currentY = doc.lastAutoTable.finalY + 10;
+
+  // --- SEÇÃO: DESPESAS (DETALHADO) ---
+  currentY = drawSectionHeader("Despesas", currentY);
+
+  // Sub-tabela: Ordinárias
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  doc.text("ORDINÁRIAS", margin, currentY);
+  currentY += 4;
+
+  const despesasOrd = transacoes.filter(
+    (t) =>
+      t.tipo === CONSTS.TIPO_TRANSACAO.DESPESA &&
+      t.categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA,
+  );
+  const totalOrdLocal = despesasOrd.reduce((s, t) => s + t.valor, 0);
+
+  doc.autoTable({
+    startY: currentY,
+    showHead: false,
+    body:
+      despesasOrd.length > 0
+        ? [
+            ...despesasOrd.map((d) => [d.nome, formatCurrency(d.valor)]),
+            [
+              { content: "TOTAL", styles: { fontStyle: "bold" } },
+              formatCurrency(totalOrdLocal),
+            ],
+          ]
+        : [["Nenhuma despesa ordinária", "-"]],
+    theme: "plain",
+    styles: { fontSize: 8.5, cellPadding: 2.5 },
+    columnStyles: {
+      0: { halign: "left" },
+      1: { halign: "right", fontStyle: "bold" },
+    },
+    didDrawCell: (data) => {
+      if (data.section === "body" && data.column.index === 0) {
+        doc.setFillColor(...COLOR_GRAY);
+        doc.rect(data.cell.x, data.cell.y + 1, 1.2, data.cell.height - 2, "F");
+      }
     },
   });
 
-  currentY = doc.lastAutoTable.finalY + 10;
+  currentY = doc.lastAutoTable.finalY + 8;
 
-  // SEÇÃO 3: DESPESAS ORDINÁRIAS
+  // Sub-tabela: Cartão de Crédito (Resumo por Fatura)
+  doc.setFont("helvetica", "bold");
+  doc.text("CARTÃO DE CRÉDITO", margin, currentY);
+  currentY += 4;
+
+  let totalFaturasResumo = 0;
+  const dadosCartoesResumo = state.cartoes
+    .filter((c) => !c.deletado || transacoes.some((t) => t.cartaoId === c.id))
+    .map((cartao) => {
+      const totalGasto = transacoes
+        .filter((t) => t.cartaoId === cartao.id)
+        .reduce((s, t) => s + t.valor, 0);
+      const ajustes = calcularTotalAjustes(cartao.id, mesAno);
+      const valorFinal = totalGasto - ajustes;
+      if (totalGasto > 0) {
+        totalFaturasResumo += valorFinal;
+        return [`Fatura ${cartao.nome}`, formatCurrency(valorFinal)];
+      }
+      return null;
+    })
+    .filter((row) => row !== null);
+
   doc.autoTable({
     startY: currentY,
-    head: [["3. DESPESAS ORDINÁRIAS", "FREQ.", "VALOR"]],
-    body: [
-      ...despesasOrd.map((d) => [
-        d.nome,
-        d.frequencia,
-        formatCurrency(d.valor),
-      ]),
-      [
-        {
-          content: "TOTAL ORDINÁRIAS",
-          colSpan: 2,
-          styles: { fontStyle: "bold", fillColor: [240, 240, 240] },
-        },
-        {
-          content: formatCurrency(totalOrd),
-          styles: {
-            fontStyle: "bold",
-            halign: "right",
-            fillColor: [240, 240, 240],
-          },
-        },
-      ],
-    ],
-    theme: "striped",
-    headStyles: { fillColor: [142, 68, 173] },
-    columnStyles: { 2: { halign: "right" } },
+    showHead: false,
+    body:
+      dadosCartoesResumo.length > 0
+        ? [
+            ...dadosCartoesResumo,
+            [
+              { content: "TOTAL", styles: { fontStyle: "bold" } },
+              formatCurrency(totalFaturasResumo),
+            ],
+          ]
+        : [["Nenhuma despesa de cartão", "-"]],
+    theme: "plain",
+    styles: { fontSize: 8.5, cellPadding: 2.5 },
+    columnStyles: {
+      0: { halign: "left" },
+      1: { halign: "right", fontStyle: "bold" },
+    },
+    didDrawCell: (data) => {
+      if (data.section === "body" && data.column.index === 0) {
+        doc.setFillColor(...COLOR_GRAY);
+        doc.rect(data.cell.x, data.cell.y + 1, 1.2, data.cell.height - 2, "F");
+      }
+    },
   });
 
-  currentY = doc.lastAutoTable.finalY + 10;
-
-  // SEÇÃO 4: CARTÕES
-  if (dadosCartoes.length > 0) {
-    doc.autoTable({
-      startY: currentY,
-      head: [["4. CARTÕES DE CRÉDITO", "TOTAL"]],
-      body: [
-        ...dadosCartoes,
-        [
-          {
-            content: "TOTAL CARTÕES",
-            styles: { fontStyle: "bold", fillColor: [240, 240, 240] },
-          },
-          {
-            content: formatCurrency(totalFaturas),
-            styles: {
-              fontStyle: "bold",
-              halign: "right",
-              fillColor: [240, 240, 240],
-            },
-          },
-        ],
-      ],
-      theme: "striped",
-      headStyles: { fillColor: [230, 126, 34] },
-      columnStyles: { 1: { halign: "right" } },
-    });
-    currentY = doc.lastAutoTable.finalY + 15;
-  }
-
-  // Rodapé
-  doc.setFontSize(9);
-  doc.setTextColor(149, 165, 166);
+  // Rodapé final
+  const finalY = Math.max(doc.lastAutoTable.finalY + 15, 280);
+  doc.setFontSize(8);
+  doc.setTextColor(150, 150, 150);
+  doc.setFont("helvetica", "italic");
   doc.text(
-    `Backup gerado em: ${new Date().toLocaleString("pt-BR")} | Finan - Controle Financeiro Pessoal`,
+    `Gerado em: ${new Date().toLocaleString("pt-BR")} | Finan PWA - Planejamento e Fluxo de Caixa`,
     margin,
-    currentY,
+    finalY,
   );
 
   doc.save(`Finan_Extrato_${mesAno}.pdf`);
