@@ -302,11 +302,15 @@ export async function gerarExtratoMensalPDF() {
   doc.text("ORDINÁRIAS", margin, currentY);
   currentY += 4;
 
-  const despesasOrd = transacoes.filter(
-    (t) =>
-      t.tipo === CONSTS.TIPO_TRANSACAO.DESPESA &&
-      t.categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA,
-  );
+  // Filtra e ordena as ordinárias por valor decrescente
+  const despesasOrd = transacoes
+    .filter(
+      (t) =>
+        t.tipo === CONSTS.TIPO_TRANSACAO.DESPESA &&
+        t.categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA,
+    )
+    .sort((a, b) => b.valor - a.valor);
+
   const totalOrdLocal = despesasOrd.reduce((s, t) => s + t.valor, 0);
 
   doc.autoTable({
@@ -343,8 +347,8 @@ export async function gerarExtratoMensalPDF() {
   doc.text("CARTÃO DE CRÉDITO", margin, currentY);
   currentY += 4;
 
-  let totalFaturasResumo = 0;
-  const dadosCartoesResumo = state.cartoes
+  // Mapeia os dados das faturas, mantendo o valor numérico para ordenação
+  const resumoFaturasLista = state.cartoes
     .filter((c) => !c.deletado || transacoes.some((t) => t.cartaoId === c.id))
     .map((cartao) => {
       const totalGasto = transacoes
@@ -352,21 +356,28 @@ export async function gerarExtratoMensalPDF() {
         .reduce((s, t) => s + t.valor, 0);
       const ajustes = calcularTotalAjustes(cartao.id, mesAno);
       const valorFinal = totalGasto - ajustes;
-      if (totalGasto > 0) {
-        totalFaturasResumo += valorFinal;
-        return [`Fatura ${cartao.nome}`, formatCurrency(valorFinal)];
-      }
-      return null;
+      return totalGasto > 0
+        ? { nome: `Fatura ${cartao.nome}`, valor: valorFinal }
+        : null;
     })
-    .filter((row) => row !== null);
+    .filter((item) => item !== null)
+    .sort((a, b) => b.valor - a.valor); // Ordena as faturas por valor decrescente
+
+  const totalFaturasResumo = resumoFaturasLista.reduce(
+    (s, item) => s + item.valor,
+    0,
+  );
 
   doc.autoTable({
     startY: currentY,
     showHead: false,
     body:
-      dadosCartoesResumo.length > 0
+      resumoFaturasLista.length > 0
         ? [
-            ...dadosCartoesResumo,
+            ...resumoFaturasLista.map((item) => [
+              item.nome,
+              formatCurrency(item.valor),
+            ]),
             [
               { content: "TOTAL", styles: { fontStyle: "bold" } },
               formatCurrency(totalFaturasResumo),
