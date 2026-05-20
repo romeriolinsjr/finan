@@ -119,7 +119,7 @@ export function popularModalRelatorio(date) {
           <div class="relatorio-item-analise"><span>Únicas</span> <strong>${formatCurrency(subtotaisOrd.unica)}</strong></div>
           <div class="relatorio-item-analise"><span>Recorrentes</span> <strong>${formatCurrency(subtotaisOrd.recorrente)}</strong></div>
           <div class="relatorio-item-analise"><span>Parceladas</span> <strong>${formatCurrency(subtotaisOrd.parcelada)}</strong></div>
-          <div class="relatorio-item-analise" style="border-top: 1px solid #eee; margin-top: 5px; padding-top: 5px; font-weight: bold;">
+          <div class="relatorio-item-analise" style="font-weight: bold; margin-top: 15px; border-left-color: #3498db;">
             <span>Total</span> <strong>${formatCurrency(totalGastoRealOrdinario)}</strong>
           </div>
         </div>
@@ -128,7 +128,7 @@ export function popularModalRelatorio(date) {
           <div class="relatorio-item-analise"><span>Únicas</span> <strong>${formatCurrency(subtotaisCartao.unica)}</strong></div>
           <div class="relatorio-item-analise"><span>Recorrentes</span> <strong>${formatCurrency(subtotaisCartao.recorrente)}</strong></div>
           <div class="relatorio-item-analise"><span>Parceladas</span> <strong>${formatCurrency(subtotaisCartao.parcelada)}</strong></div>
-          <div class="relatorio-item-analise" style="border-top: 1px solid #eee; margin-top: 5px; padding-top: 5px; font-weight: bold;">
+          <div class="relatorio-item-analise" style="font-weight: bold; margin-top: 15px; border-left-color: #3498db;">
             <span>Total</span> <strong>${formatCurrency(totalGastoRealCartao)}</strong>
           </div>
         </div>
