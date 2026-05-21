@@ -1461,8 +1461,14 @@ body.modal-aberto {
   }
 
   .modal-content {
-    width: 95%;
-    padding: 20px 15px;
+    width: 98%; /* Aumenta a largura do modal no celular */
+    padding: 15px 5px; /* Reduz o padding lateral do modal */
+  }
+
+  /* Reduz o padding interno do corpo do modal para ganhar espaço lateral */
+  .modal-body {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
   }
 
   .modal-footer {
@@ -1873,8 +1879,31 @@ body.modal-aberto {
 }
 
 @media (max-width: 768px) {
+  .tracker-cycle-card {
+    padding: 10px; /* Reduz o padding interno do card do ciclo */
+  }
+
   .weeks-grid {
     grid-template-columns: 1fr 1fr; /* Duas colunas no mobile */
+    gap: 6px; /* Reduz o espaço entre os baldes das semanas */
+  }
+
+  /* Ajustes finos nos baldes das semanas para telas pequenas */
+  .week-bucket {
+    padding: 8px !important; /* Compacta o conteúdo interno do balde */
+  }
+
+  .week-title {
+    font-size: 0.7em !important; /* Diminui a fonte do título/porcentagem */
+    gap: 2px;
+  }
+
+  .week-value {
+    font-size: 0.95em !important; /* Diminui o valor monetário */
+  }
+
+  .week-footer {
+    font-size: 0.65em !important; /* Diminui o texto da meta */
   }
 
   .tracker-cycle-header {
