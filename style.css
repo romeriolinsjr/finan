@@ -1759,6 +1759,27 @@ body.modal-aberto {
   font-size: 1.2em;
 }
 
+.tracker-header-meta {
+  text-align: right;
+}
+
+.tracker-header-meta .meta-label {
+  font-weight: bold;
+  font-size: 1.1em;
+}
+
+.tracker-summary-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.tracker-summary-total {
+  font-size: 1.1em;
+  font-weight: 600;
+}
+
 .weeks-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -1909,7 +1930,18 @@ body.modal-aberto {
   .tracker-cycle-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: 10px;
+    gap: 5px;
+  }
+
+  .tracker-header-meta {
+    text-align: left; /* Alinha "Meta" à esquerda no celular */
+    width: 100%;
+  }
+
+  .tracker-summary-header {
+    flex-direction: column; /* Empilha "Resumo" e "Gasto Total" no celular */
+    align-items: flex-start;
+    gap: 5px;
   }
 }
 

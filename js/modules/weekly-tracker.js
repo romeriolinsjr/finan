@@ -182,8 +182,8 @@ function construirHTMLCiclo(ciclo, index, totalCiclos) {
         </h3>
         <small>${dataInic.toLocaleDateString("pt-BR")} até ${dataFim.toLocaleDateString("pt-BR")} (${totalDias} dias)</small>
       </div>
-      <div style="text-align: right;">
-        <span style="font-weight: bold; font-size: 1.1em;">Meta: ${formatCurrency(ciclo.metaTotal)}</span><br>
+      <div class="tracker-header-meta">
+        <span class="meta-label">Meta: ${formatCurrency(ciclo.metaTotal)}</span><br>
         <small>${formatCurrency(metaDiaria)}/dia | ${formatCurrency(metaSemanal)}/sem</small>
       </div>
     </div>
@@ -229,9 +229,9 @@ function construirHTMLCiclo(ciclo, index, totalCiclos) {
     </div>
 
     <div class="tracker-items-summary">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+      <div class="tracker-summary-header">
         <strong>Resumo do Ciclo</strong>
-        <span style="font-size:1.1em; color:${totalCicloAteAgora > ciclo.metaTotal ? "#e74c3c" : "#27ae60"}">
+        <span class="tracker-summary-total" style="color:${totalCicloAteAgora > ciclo.metaTotal ? "#e74c3c" : "#27ae60"}">
           Gasto Total: ${formatCurrency(totalCicloAteAgora)} (${pctMensal}%)
         </span>
       </div>
