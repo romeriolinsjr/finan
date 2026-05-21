@@ -97,31 +97,82 @@ function construirHTMLCiclo(ciclo, index, totalCiclos) {
   const valorBaseDoCiclo = parseFloat(ciclo.valorInicial) || 0;
   const totalCicloAteAgora = valorBaseDoCiclo + totalGastoNovasCompras;
 
-  let acumulado = totalCicloAteAgora;
-  const semanas = [
-    { nome: "Semana 1", limite: metaSemanal, valor: 0 },
-    { nome: "Semana 2", limite: metaSemanal, valor: 0 },
-    { nome: "Semana 3", limite: metaSemanal, valor: 0 },
-    { nome: "Semana 4", limite: metaSemanal, valor: 0 },
-    {
-      nome: "Semana 5",
-      limite: Math.max(0, ciclo.metaTotal - metaSemanal * 4),
-      valor: 0,
-    },
-  ];
+  // --- GERAÇÃO DINÂMICA DE SEMANAS (REGRA DO RESTO) ---
+  const semanas = [];
+  let diasRestantesParaProcessar = totalDias;
+  let contadorSemana = 1;
 
+  while (diasRestantesParaProcessar > 0) {
+    const diasDestaSemana = Math.min(7, diasRestantesParaProcessar);
+    const limiteDestaSemana = diasDestaSemana * metaDiaria;
+
+    semanas.push({
+      nome: `Semana ${contadorSemana}`,
+      limite: limiteDestaSemana,
+      valor: 0,
+      dias: diasDestaSemana,
+    });
+
+    diasRestantesParaProcessar -= diasDestaSemana;
+    contadorSemana++;
+  }
+
+  // Distribuição Waterfall (Balde Transbordante)
+  let acumulado = totalCicloAteAgora;
   semanas.forEach((s) => {
     if (acumulado > 0) {
       const valorParaEstaSemana = Math.min(acumulado, s.limite);
       s.valor = valorParaEstaSemana;
       acumulado -= valorParaEstaSemana;
     }
+    // Se estourar a meta total do ciclo, o excesso acumula na última semana
+    else if (acumulado > 0 && s.nome === `Semana ${semanas.length}`) {
+      s.valor += acumulado;
+      acumulado = 0;
+    }
   });
+  // Tratamento de estouro: se após passar por todas as semanas ainda sobrar acumulado
+  if (acumulado > 0) {
+    semanas[semanas.length - 1].valor += acumulado;
+  }
 
   const pctMensal = (
     (totalCicloAteAgora / (ciclo.metaTotal || 1)) *
     100
   ).toFixed(1);
+
+  // --- NOVO: LÓGICA DE FEEDBACK DE IMPACTO (CRONOGRAMA) ---
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+
+  let diasDecorridos = 0;
+  if (hoje >= dataInic) {
+    const diffHoje = hoje - dataInic;
+    diasDecorridos = Math.min(
+      Math.ceil(diffHoje / (1000 * 60 * 60 * 24)) + 1,
+      totalDias,
+    );
+  }
+
+  const gastoEsperadoAteHoje = metaDiaria * diasDecorridos;
+  const diferencaDoPrevisto = totalCicloAteAgora - gastoEsperadoAteHoje;
+  const statusMensagem =
+    totalCicloAteAgora > gastoEsperadoAteHoje
+      ? `<span style="color:#e74c3c">acima do previsto (${formatCurrency(Math.abs(diferencaDoPrevisto))})</span>`
+      : `<span style="color:#27ae60">dentro do limite (${formatCurrency(Math.abs(diferencaDoPrevisto))} de folga)</span>`;
+
+  const infoImpactoHTML =
+    diasDecorridos > 0
+      ? `
+    <div class="tracker-impact-box" style="background: #fdfefe; border: 1px solid #e0e0e0; border-left: 5px solid #3498db; padding: 12px; margin-bottom: 20px; border-radius: 6px; font-size: 0.95em; line-height: 1.5;">
+      • Você está no <strong>${diasDecorridos}º dia</strong> do ciclo.<br>
+      • O previsto de gastos até hoje era de <strong>${formatCurrency(gastoEsperadoAteHoje)}</strong> (${((gastoEsperadoAteHoje / ciclo.metaTotal) * 100).toFixed(1)}%).<br>
+      • Seu gasto real até hoje é de <strong>${formatCurrency(totalCicloAteAgora)}</strong> (${pctMensal}%).<br>
+      • Você está ${statusMensagem}.
+    </div>
+  `
+      : "";
+  // --- FIM DA NOVA LÓGICA ---
 
   container.innerHTML = `
     <div class="tracker-cycle-header">
@@ -137,23 +188,40 @@ function construirHTMLCiclo(ciclo, index, totalCiclos) {
       </div>
     </div>
 
+    ${infoImpactoHTML}
+
     <div class="weeks-grid">
       ${semanas
-        .map((s) => {
+        .map((s, i) => {
           const pctSemana =
             s.limite > 0 ? ((s.valor / s.limite) * 100).toFixed(0) : 0;
           let statusClass = "status-normal";
           if (pctSemana >= 100) statusClass = "status-danger";
           else if (pctSemana >= 80) statusClass = "status-warning";
 
+          // Identifica se esta é a semana cronológica atual
+          const indiceSemanaAtual = Math.min(
+            Math.floor((diasDecorridos - 1) / 7),
+            semanas.length - 1,
+          );
+          const eASemanaAtual = i === indiceSemanaAtual && diasDecorridos > 0;
+
+          // Estilo de destaque para a semana atual (Passo 3: Estilização)
+          const estiloDestaque = eASemanaAtual
+            ? "border-left: 5px solid #3498db; background-color: #f0f7ff; box-shadow: 0 2px 8px rgba(52, 152, 219, 0.15);"
+            : "border-left: 5px solid #bdc3c7;";
+
           return `
-          <div class="week-bucket ${s.valor > 0 && s.valor < s.limite ? "active" : ""}">
-            <div class="week-title"><span>${s.nome}</span><span>${pctSemana}%</span></div>
-            <div class="week-value">${formatCurrency(s.valor)}</div>
-            <div class="progress-bar-container">
-              <div class="progress-bar-fill ${statusClass}" style="width: ${Math.min(pctSemana, 100)}%"></div>
+          <div class="week-bucket" style="${estiloDestaque} padding: 12px; border-radius: 6px; margin-bottom: 5px;">
+            <div class="week-title" style="display: flex; justify-content: space-between; font-size: 0.85em; color: #7f8c8d; margin-bottom: 5px;">
+              <span style="font-weight: bold; ${eASemanaAtual ? "color: #3498db;" : ""}">${s.nome}${eASemanaAtual ? " (ATUAL)" : ""}</span>
+              <span style="font-weight: bold;">${pctSemana}%</span>
             </div>
-            <div class="week-footer">Limite: ${formatCurrency(s.limite)}</div>
+            <div class="week-value" style="font-size: 1.1em; font-weight: 600; margin-bottom: 8px;">${formatCurrency(s.valor)}</div>
+            <div class="progress-bar-container" style="height: 8px; background: #e9ecef; border-radius: 4px; overflow: hidden; margin-bottom: 5px;">
+              <div class="progress-bar-fill ${statusClass}" style="width: ${Math.min(pctSemana, 100)}%; height: 100%;"></div>
+            </div>
+            <div class="week-footer" style="font-size: 0.75em; color: #95a5a6; text-align: right;">Meta: ${formatCurrency(s.limite)}</div>
           </div>
         `;
         })
