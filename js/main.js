@@ -636,6 +636,11 @@ document.addEventListener("DOMContentLoaded", () => {
         cards.popularModalDetalhesFatura(cId, mAno);
       }
 
+      // REATIVIDADE: Se o gerenciador de cartões estiver aberto ao fundo, atualiza os totais
+      if (elements.modalGerenciarCartoes.style.display === "flex") {
+        cards.renderizarListaCartoesCadastrados();
+      }
+
       // Força a atualização da lista na tela inicial e do resumo financeiro
       ui.renderizarTransacoesDoMes();
 
@@ -849,7 +854,7 @@ document.addEventListener("DOMContentLoaded", () => {
         cards.popularModalDetalhesFatura,
       );
     } else if (e.target.closest(".btn-add-despesa-cartao")) {
-      ui.fecharModalEspecifico(elements.modalGerenciarCartoes);
+      // PADRONIZAÇÃO: Não fechamos mais o gerenciador, permitindo o empilhamento do modal
       trans.abrirModalDespesaCartaoRapida(
         cartaoId,
         nome,
@@ -899,7 +904,7 @@ document.addEventListener("DOMContentLoaded", () => {
   elements.btnAddDespesaFromFatura.addEventListener("click", () => {
     const id = elements.btnAddDespesaFromFatura.dataset.cartaoId;
     const nome = elements.btnAddDespesaFromFatura.dataset.cartaoNome;
-    ui.fecharModalEspecifico(elements.modalDetalhesFaturaCartao);
+    // PADRONIZAÇÃO: Não fechamos mais os detalhes da fatura, para permitir conferência imediata após o save
     trans.abrirModalDespesaCartaoRapida(
       id,
       nome,
@@ -985,9 +990,23 @@ document.addEventListener("DOMContentLoaded", () => {
   elements.btnMenuOrcamentos.addEventListener("click", () =>
     ui.abrirModalEspecifico(elements.modalOrcamentos, null, "orcamentos", {
       renderizarListaOrcamentos: budgets.renderizarListaOrcamentos,
-      resetFormOrcamento: budgets.resetFormOrcamento, // ADICIONADO
     }),
   );
+
+  // Novo: Abre o modal de cadastro/edição (Padronizado com Cartões)
+  elements.btnAbrirModalCadastroOrcamento.addEventListener("click", () => {
+    ui.fecharModalEspecifico(elements.modalOrcamentos);
+    elements.modalCadastrarOrcamento.dataset.returnTo = "modalOrcamentos";
+    ui.abrirModalEspecifico(
+      elements.modalCadastrarOrcamento,
+      null,
+      "orcamentoCadastroEdicao", // Nome para o seletor de reset no ui.js
+      {
+        resetFormOrcamento: budgets.resetFormOrcamento,
+      },
+    );
+  });
+
   // Dispara a escolha de escopo ao salvar um orçamento
   elements.btnSalvarOrcamento.addEventListener("click", () => {
     const id = elements.orcamentoEditIdInput.value;
@@ -1045,9 +1064,19 @@ document.addEventListener("DOMContentLoaded", () => {
       // Re-sincroniza a memória com o banco
       await garantirDadosDoMes(mesAnoAtual);
 
-      // Fecha os modais envolvidos
+      const returnTo = elements.modalCadastrarOrcamento.dataset.returnTo;
+      elements.modalCadastrarOrcamento.dataset.returnTo = "";
+
+      // Fecha os modais de formulário e confirmação
       ui.fecharModalEspecifico(elements.modalConfirmarEscopoOrcamento);
-      ui.fecharModalEspecifico(elements.modalOrcamentos);
+      ui.fecharModalEspecifico(elements.modalCadastrarOrcamento);
+
+      // Se deve retornar ao gerenciador, reabre ele com a lista atualizada
+      if (returnTo === "modalOrcamentos") {
+        ui.abrirModalEspecifico(elements.modalOrcamentos, null, "orcamentos", {
+          renderizarListaOrcamentos: budgets.renderizarListaOrcamentos,
+        });
+      }
 
       // Atualiza visualmente a tela inicial e o resumo
       ui.renderizarTransacoesDoMes();
@@ -1071,7 +1100,18 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!id) return;
 
     if (button.classList.contains("btn-edit-orcamento")) {
-      budgets.preencherModalEdicaoOrcamento(id);
+      ui.fecharModalEspecifico(elements.modalOrcamentos);
+      elements.modalCadastrarOrcamento.dataset.returnTo = "modalOrcamentos";
+
+      ui.abrirModalEspecifico(
+        elements.modalCadastrarOrcamento,
+        id,
+        "orcamentoCadastroEdicao",
+        {
+          resetFormOrcamento: budgets.resetFormOrcamento,
+          preencherModalEdicaoOrcamento: budgets.preencherModalEdicaoOrcamento,
+        },
+      );
     } else if (button.classList.contains("btn-delete-orcamento")) {
       const orcamento = state.orcamentos.find((o) => o.id === id);
       if (!orcamento) return;

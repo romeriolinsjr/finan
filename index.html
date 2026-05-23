@@ -522,40 +522,75 @@
           <span class="close-button" data-modal-id="modalOrcamentos">×</span>
         </div>
         <div class="modal-body">
-          <input type="hidden" id="orcamentoEditId" />
-          <div class="orcamento-form">
-            <input
-              type="text"
-              id="nomeOrcamento"
-              placeholder="Nome (Ex: Supermercado)"
-            />
-            <input
-              type="number"
-              id="valorOrcamento"
-              step="0.01"
-              placeholder="Valor (R$)"
-            />
-            <input
-              type="number"
-              id="diaOrcamento"
-              min="1"
-              max="31"
-              placeholder="Dia"
-            />
-            <button id="btnSalvarOrcamento" class="btn-primary">Salvar</button>
-          </div>
-          <hr />
-          <h3>Orçamentos Cadastrados</h3>
           <ul id="listaOrcamentos">
             <!-- Orçamentos via JS -->
           </ul>
         </div>
         <div class="modal-footer">
+          <button id="btnAbrirModalCadastroOrcamento" class="btn-primary">
+            Cadastrar Novo Orçamento
+          </button>
           <button
             class="btn-secondary close-button-footer"
             data-modal-id="modalOrcamentos"
           >
             Fechar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- NOVO: Modal Cadastrar/Editar Orçamento (Padronizado com Cartões) -->
+    <div id="modalCadastrarOrcamento" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="modalFormOrcamentoTitulo">Cadastrar Novo Orçamento</h2>
+          <span class="close-button" data-modal-id="modalCadastrarOrcamento"
+            >×</span
+          >
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="orcamentoEditId" />
+          <div>
+            <label for="nomeOrcamento">Nome do Orçamento:</label>
+            <input
+              type="text"
+              id="nomeOrcamento"
+              placeholder="Ex: Supermercado"
+              required
+            />
+          </div>
+          <div>
+            <label for="valorOrcamento">Valor Planejado (R$):</label>
+            <input
+              type="number"
+              id="valorOrcamento"
+              step="0.01"
+              placeholder="0,00"
+              required
+            />
+          </div>
+          <div>
+            <label for="diaOrcamento">Dia de Vencimento/Referência:</label>
+            <input
+              type="number"
+              id="diaOrcamento"
+              min="1"
+              max="31"
+              placeholder="Ex: 10"
+              required
+            />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button
+            class="btn-secondary close-button-footer"
+            data-modal-id="modalCadastrarOrcamento"
+          >
+            Cancelar
+          </button>
+          <button id="btnSalvarOrcamento" class="btn-primary">
+            Salvar Orçamento
           </button>
         </div>
       </div>

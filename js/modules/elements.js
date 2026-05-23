@@ -127,6 +127,11 @@ export const elements = {
   quickAddFeedback: document.getElementById("quickAddFeedback"),
   modalOrcamentos: document.getElementById("modalOrcamentos"),
   modalOrcamentoTitulo: document.getElementById("modalOrcamentoTitulo"),
+  btnAbrirModalCadastroOrcamento: document.getElementById(
+    "btnAbrirModalCadastroOrcamento",
+  ),
+  modalCadastrarOrcamento: document.getElementById("modalCadastrarOrcamento"),
+  modalFormOrcamentoTitulo: document.getElementById("modalFormOrcamentoTitulo"),
   orcamentoEditIdInput: document.getElementById("orcamentoEditId"),
   nomeOrcamentoInput: document.getElementById("nomeOrcamento"),
   valorOrcamentoInput: document.getElementById("valorOrcamento"),

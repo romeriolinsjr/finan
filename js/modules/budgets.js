@@ -130,8 +130,13 @@ export function preencherModalEdicaoOrcamento(orcamentoId) {
   elements.nomeOrcamentoInput.value = orcamento.nome;
   elements.valorOrcamentoInput.value = orcamento.valor;
   elements.diaOrcamentoInput.value = orcamento.dia;
-  elements.modalOrcamentoTitulo.textContent = "Editar Orçamento";
-  elements.btnSalvarOrcamento.textContent = "Salvar Alterações";
+
+  if (elements.modalFormOrcamentoTitulo) {
+    elements.modalFormOrcamentoTitulo.textContent = "Editar Orçamento";
+  }
+  if (elements.btnSalvarOrcamento) {
+    elements.btnSalvarOrcamento.textContent = "Salvar Alterações";
+  }
 }
 
 export async function handleFecharAbrirOrcamento(button) {
@@ -160,8 +165,13 @@ export function resetFormOrcamento() {
   elements.nomeOrcamentoInput.value = "";
   elements.valorOrcamentoInput.value = "";
   elements.diaOrcamentoInput.value = "";
-  elements.modalOrcamentoTitulo.textContent = "Gerenciar Orçamentos";
-  elements.btnSalvarOrcamento.textContent = "Salvar";
+
+  if (elements.modalFormOrcamentoTitulo) {
+    elements.modalFormOrcamentoTitulo.textContent = "Cadastrar Novo Orçamento";
+  }
+  if (elements.btnSalvarOrcamento) {
+    elements.btnSalvarOrcamento.textContent = "Salvar Orçamento";
+  }
 }
 
 export async function alternarTodosOrcamentosDoMes() {

@@ -157,9 +157,15 @@ export function abrirModalEspecifico(
     if (callbacks.renderizarListaCartoesCadastrados)
       callbacks.renderizarListaCartoesCadastrados();
   } else if (tipoModal === "orcamentos") {
-    if (callbacks.resetFormOrcamento) callbacks.resetFormOrcamento();
     if (callbacks.renderizarListaOrcamentos)
       callbacks.renderizarListaOrcamentos();
+  } else if (tipoModal === "orcamentoCadastroEdicao") {
+    state.isOrcamentoEditMode = !!idParaEditar;
+    if (callbacks.resetFormOrcamento) callbacks.resetFormOrcamento();
+    if (state.isOrcamentoEditMode && callbacks.preencherModalEdicaoOrcamento) {
+      elements.orcamentoEditIdInput.value = idParaEditar;
+      callbacks.preencherModalEdicaoOrcamento(idParaEditar);
+    }
   } else if (tipoModal === "relatorios") {
     state.reportDate = new Date(state.currentDate);
     if (callbacks.popularModalRelatorio)
@@ -197,16 +203,12 @@ export function fecharModalEspecifico(modalElement) {
     case "modalDetalhesFaturaCartao":
       state.currentFaturaDate = null;
       break;
-    case "modalOrcamentos":
+    case "modalCadastrarOrcamento":
       if (elements.orcamentoEditIdInput)
         elements.orcamentoEditIdInput.value = "";
       if (elements.nomeOrcamentoInput) elements.nomeOrcamentoInput.value = "";
       if (elements.valorOrcamentoInput) elements.valorOrcamentoInput.value = "";
       if (elements.diaOrcamentoInput) elements.diaOrcamentoInput.value = "";
-      if (elements.modalOrcamentoTitulo)
-        elements.modalOrcamentoTitulo.textContent = "Gerenciar Orçamentos";
-      if (elements.btnSalvarOrcamento)
-        elements.btnSalvarOrcamento.textContent = "Salvar";
       break;
   }
 }
