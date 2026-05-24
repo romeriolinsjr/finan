@@ -81,14 +81,37 @@ function construirHTMLCiclo(ciclo, index, totalCiclos) {
   const metaDiaria = ciclo.metaTotal / totalDias;
   const metaSemanal = metaDiaria * 7;
 
-  // FILTRAGEM CORRETA: Exibe TODOS os itens que possuem vínculo explícito com este ciclo,
-  // independentemente do mês de referência estar carregado no cache da tela inicial.
-  const transacoesDoCiclo = state.transacoes.filter((t) => {
-    const vinculo = state.votosTracker.find(
-      (v) => v.transacaoId === t.id && v.cicloId === ciclo.id,
-    );
-    return !!vinculo;
-  });
+  // FILTRAGEM CORRETA: Itens vinculados e ordenados por cadastro (Mais recentes no topo)
+  const transacoesDoCiclo = state.transacoes
+    .filter((t) => {
+      const vinculo = state.votosTracker.find(
+        (v) => v.transacaoId === t.id && v.cicloId === ciclo.id,
+      );
+      return !!vinculo;
+    })
+    .sort((a, b) => {
+      const getVal = (item) => {
+        if (!item.criadoEm) return 0;
+        // Converte Timestamp do Firebase ou número (ms) para valor comparável
+        if (item.criadoEm.seconds) return item.criadoEm.seconds * 1000;
+        return Number(item.criadoEm) || 0;
+      };
+
+      const valA = getVal(a);
+      const valB = getVal(b);
+
+      // 1. Prioridade: Quem tem data de criação (novos) fica no topo.
+      // Compras antigas (sem o campo) descem para a base da lista.
+      if (valA === 0 && valB > 0) return 1;
+      if (valB === 0 && valA > 0) return -1;
+
+      // 2. Se ambos têm data, ordena do mais recente para o mais antigo
+      if (valB !== valA) return valB - valA;
+
+      // 3. Desempate: Se foram criados no mesmo milissegundo (comum em lotes/parcelados),
+      // usamos a ordem alfabética para evitar que a lista fique "pulando".
+      return (a.nome || "").localeCompare(b.nome || "");
+    });
 
   const totalGastoNovasCompras = transacoesDoCiclo.reduce(
     (s, t) => s + (Number(t.valor) || 0),
@@ -146,32 +169,40 @@ function construirHTMLCiclo(ciclo, index, totalCiclos) {
   hoje.setHours(0, 0, 0, 0);
 
   let diasDecorridos = 0;
-  if (hoje >= dataInic) {
+  let statusDiaTexto = "";
+
+  if (hoje < dataInic) {
+    // Caso o ciclo ainda não tenha começado
+    const diffFutura = dataInic - hoje;
+    const diasParaComecar = Math.ceil(diffFutura / (1000 * 60 * 60 * 24));
+    statusDiaTexto = `O ciclo começa em <strong>${diasParaComecar} dia(s)</strong>.`;
+    diasDecorridos = 0;
+  } else {
+    // Caso o ciclo já esteja em andamento ou tenha terminado
     const diffHoje = hoje - dataInic;
     diasDecorridos = Math.min(
       Math.ceil(diffHoje / (1000 * 60 * 60 * 24)) + 1,
       totalDias,
     );
+    statusDiaTexto = `Você está no <strong>${diasDecorridos}º dia</strong> do ciclo.`;
   }
 
   const gastoEsperadoAteHoje = metaDiaria * diasDecorridos;
   const diferencaDoPrevisto = totalCicloAteAgora - gastoEsperadoAteHoje;
+
   const statusMensagem =
     totalCicloAteAgora > gastoEsperadoAteHoje
       ? `<span style="color:#e74c3c">acima do previsto (${formatCurrency(Math.abs(diferencaDoPrevisto))})</span>`
       : `<span style="color:#27ae60">dentro do limite (${formatCurrency(Math.abs(diferencaDoPrevisto))} de folga)</span>`;
 
-  const infoImpactoHTML =
-    diasDecorridos > 0
-      ? `
+  const infoImpactoHTML = `
     <div class="tracker-impact-box" style="background: #fdfefe; border: 1px solid #e0e0e0; border-left: 5px solid #3498db; padding: 12px; margin-bottom: 20px; border-radius: 6px; font-size: 0.95em; line-height: 1.5;">
-      • Você está no <strong>${diasDecorridos}º dia</strong> do ciclo.<br>
-      • O previsto de gastos até hoje era de <strong>${formatCurrency(gastoEsperadoAteHoje)}</strong> (${((gastoEsperadoAteHoje / ciclo.metaTotal) * 100).toFixed(1)}%).<br>
+      • ${statusDiaTexto}<br>
+      • O previsto de gastos até hoje era de <strong>${formatCurrency(gastoEsperadoAteHoje)}</strong> (${((gastoEsperadoAteHoje / (ciclo.metaTotal || 1)) * 100).toFixed(1)}%).<br>
       • Seu gasto real até hoje é de <strong>${formatCurrency(totalCicloAteAgora)}</strong> (${pctMensal}%).<br>
       • Você está ${statusMensagem}.
     </div>
-  `
-      : "";
+  `;
   // --- FIM DA NOVA LÓGICA ---
 
   container.innerHTML = `

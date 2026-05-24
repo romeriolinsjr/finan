@@ -597,9 +597,14 @@ export async function adicionarNovasTransacoes(dados) {
     .doc(state.currentUser.uid)
     .collection("votos_tracker");
 
+  const agora = Date.now();
   transacoesParaAdicionar.forEach((t, index) => {
     const d = { ...t };
     delete d.nomeBase;
+
+    // Injeta a data de criação. Para séries, adiciona 1ms por parcela para garantir ordem no lote.
+    d.criadoEm = agora + index;
+
     const newTransRef = ref.doc();
     batch.set(newTransRef, d);
 
@@ -700,7 +705,12 @@ export async function adicionarNovaDividaTerceiro(dados) {
     .collection("users")
     .doc(state.currentUser.uid)
     .collection("dividasTerceiros");
-  lista.forEach((d) => batch.set(ref.doc(), d));
+
+  const agora = Date.now();
+  lista.forEach((d, index) => {
+    const dadoComTimestamp = { ...d, criadoEm: agora + index };
+    batch.set(ref.doc(), dadoComTimestamp);
+  });
   try {
     await batch.commit();
     return true;
