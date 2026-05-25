@@ -285,6 +285,7 @@ function construirHTMLCiclo(ciclo, index, totalCiclos) {
                   ? `<button class="btn-transfer" data-trans-id="${t.id}" data-current-ciclo="${ciclo.id}" title="Mover para outro ciclo">⇄</button>`
                   : ""
               }
+              <button class="btn-remove-item-tracker" data-trans-id="${t.id}" title="Remover apenas deste acompanhamento">✖</button>
             </div>
           </div>
         `,
@@ -422,5 +423,31 @@ export async function encerrarCiclo(cicloId) {
   } catch (e) {
     console.error("Erro ao encerrar/apagar ciclo:", e);
     alert("Ocorreu um erro ao tentar excluir o ciclo do banco de dados.");
+  }
+}
+
+/**
+ * Remove o vínculo de uma transação específica com o Tracker.
+ * A transação permanece intacta no Finan.
+ */
+export async function removerItemDoTracker(transacaoId) {
+  if (!state.currentUser) return;
+  if (
+    !confirm(
+      "Remover esta compra do acompanhamento semanal? (A transação original não será excluída)",
+    )
+  )
+    return;
+
+  const ref = db
+    .collection("users")
+    .doc(state.currentUser.uid)
+    .collection("votos_tracker");
+
+  try {
+    await ref.doc(transacaoId).delete();
+    await registrarUltimaAlteracao();
+  } catch (e) {
+    console.error("Erro ao remover item do tracker:", e);
   }
 }

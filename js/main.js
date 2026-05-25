@@ -1703,9 +1703,14 @@ document.addEventListener("DOMContentLoaded", () => {
   if (elements.containerCiclosTracker) {
     elements.containerCiclosTracker.addEventListener("click", (e) => {
       const btnTransfer = e.target.closest(".btn-transfer");
+      const btnRemove = e.target.closest(".btn-remove-item-tracker");
+
       if (btnTransfer) {
         const { transId, currentCiclo } = btnTransfer.dataset;
         tracker.transferirItem(transId, currentCiclo);
+      } else if (btnRemove) {
+        const { transId } = btnRemove.dataset;
+        tracker.removerItemDoTracker(transId);
       }
     });
   }
