@@ -421,8 +421,15 @@ export async function executarSoftDeleteCartao(
     await batch.commit();
     await registrarUltimaAlteracao();
 
-    // 4. ATUALIZAÇÃO DA MEMÓRIA LOCAL (Crucial para o cálculo do saldo)
-    // Removemos do state.transacoes local as compras que foram excluídas do banco
+    // 4. ATUALIZAÇÃO DA MEMÓRIA LOCAL
+    // A. Atualiza o status do cartão no estado para sumir do gerenciador e ganhar a tag na home
+    const cartaoIndex = state.cartoes.findIndex((c) => c.id === cartaoId);
+    if (cartaoIndex > -1) {
+      state.cartoes[cartaoIndex].deletado = true;
+      state.cartoes[cartaoIndex].dataExclusao = dataCorte;
+    }
+
+    // B. Remove do state.transacoes local as compras que foram excluídas do banco
     state.transacoes = state.transacoes.filter(
       (t) => !(t.cartaoId === cartaoId && t.mesAnoReferencia >= dataCorte),
     );

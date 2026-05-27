@@ -358,6 +358,14 @@ document.addEventListener("DOMContentLoaded", () => {
       }),
     );
 
+    // ESCUTA DE CARTÕES (Garante reatividade em tempo real na exclusão/edição)
+    state.activeUnsubscribers.push(
+      userRef.collection("cartoes").onSnapshot((s) => {
+        state.cartoes = s.docs.map((d) => ({ ...d.data(), id: d.id }));
+        update();
+      }),
+    );
+
     // 2. ESCUTA DE ORÇAMENTOS
     state.activeUnsubscribers.push(
       userRef.collection("orcamentos").onSnapshot((s) => {
@@ -1522,7 +1530,11 @@ document.addEventListener("DOMContentLoaded", () => {
         cartaoId,
         dataCorte,
         ui.fecharModalEspecifico,
-        ui.renderizarTransacoesDoMes,
+        () => {
+          ui.renderizarTransacoesDoMes();
+          // NOVO: Atualiza a lista de cartões no modal de gerenciamento imediatamente
+          cards.renderizarListaCartoesCadastrados();
+        },
       );
       elements.btnConfirmarSoftDeleteCartao.disabled = false;
       elements.btnConfirmarSoftDeleteCartao.textContent = "Confirmar e Excluir";
