@@ -244,7 +244,7 @@ export async function gerarExtratoMensalPDF() {
     body: [
       ...dadosOrcamentos,
       [
-        { content: "TOTAIS", styles: { fontStyle: "bold" } },
+        { content: "TOTAL", styles: { fontStyle: "bold" } },
         formatCurrency(totalPrevistoOrcamentos),
         formatCurrency(totalGastoRealOrcamentos),
         formatCurrency(totalPrevistoOrcamentos - totalGastoRealOrcamentos),
@@ -279,7 +279,13 @@ export async function gerarExtratoMensalPDF() {
     showHead: false, // Remove completamente a linha do cabeçalho
     body:
       receitas.length > 0
-        ? receitas.map((r) => [r.nome, formatCurrency(r.valor)])
+        ? [
+            ...receitas.map((r) => [r.nome, formatCurrency(r.valor)]),
+            [
+              { content: "TOTAL", styles: { fontStyle: "bold" } },
+              formatCurrency(totalReceitas),
+            ],
+          ]
         : [["Nenhuma receita registrada", "-"]],
     theme: "plain",
     styles: { fontSize: 9, cellPadding: 3 },
