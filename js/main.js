@@ -469,7 +469,10 @@ document.addEventListener("DOMContentLoaded", () => {
       elements.searchInput.value = "";
       elements.clearSearchBtn.classList.remove("visible");
     }
+    // Fix: Seta o dia para 1 antes de mudar o mês para evitar o bug do dia 31
+    state.currentDate.setDate(1);
     state.currentDate.setMonth(state.currentDate.getMonth() - 1);
+
     const mesAno = utils.getMesAnoChave(state.currentDate);
     await garantirDadosDoMes(mesAno);
     ui.updateMonthDisplay(ui.renderizarTransacoesDoMes);
@@ -480,7 +483,10 @@ document.addEventListener("DOMContentLoaded", () => {
       elements.searchInput.value = "";
       elements.clearSearchBtn.classList.remove("visible");
     }
+    // Fix: Seta o dia para 1 antes de mudar o mês para evitar o bug do dia 31
+    state.currentDate.setDate(1);
     state.currentDate.setMonth(state.currentDate.getMonth() + 1);
+
     const mesAno = utils.getMesAnoChave(state.currentDate);
     await garantirDadosDoMes(mesAno);
     ui.updateMonthDisplay(ui.renderizarTransacoesDoMes);
@@ -498,7 +504,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Novo: Botão voltar para o mês atual (OTIMIZADO)
   elements.btnGoToToday.addEventListener("click", async () => {
-    state.currentDate = new Date();
+    const hoje = new Date();
+    // Fix: Forçamos o dia 1 para garantir navegação estável a partir de hoje
+    hoje.setDate(1);
+    state.currentDate = hoje;
+
     const mesAno = utils.getMesAnoChave(state.currentDate);
     await garantirDadosDoMes(mesAno);
     ui.updateMonthDisplay(ui.renderizarTransacoesDoMes);
