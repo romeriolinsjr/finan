@@ -1207,6 +1207,12 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  if (elements.btnQuickAddOrdinary) {
+    elements.btnQuickAddOrdinary.addEventListener("click", () => {
+      trans.abrirModalDespesaOrdinariaRapida(ui.abrirModalEspecifico);
+    });
+  }
+
   // Terceiros
   elements.btnDespesasTerceiros.addEventListener("click", () =>
     ui.abrirModalEspecifico(elements.modalMenuTerceiros),

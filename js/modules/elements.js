@@ -6,6 +6,7 @@ export const elements = {
   prevMonthBtn: document.getElementById("prevMonthBtn"),
   nextMonthBtn: document.getElementById("nextMonthBtn"),
   monthPicker: document.getElementById("monthPicker"),
+  btnQuickAddOrdinary: document.getElementById("btnQuickAddOrdinary"),
   btnGoToToday: document.getElementById("btnGoToToday"),
   btnDownloadPDF: document.getElementById("btnDownloadPDF"),
   btnFecharTodosOrcamentos: document.getElementById("btnFecharTodosOrcamentos"),

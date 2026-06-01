@@ -888,3 +888,34 @@ export async function atualizarStatusPago(
     console.error(e);
   }
 }
+
+/**
+ * Atalho rápido para abrir o modal padrão de transação já configurado para Despesa Ordinária
+ */
+export function abrirModalDespesaOrdinariaRapida(callbackAbrirModal) {
+  // 1. Garante que estamos no modo de criação e não de terceiros
+  state.isEditMode = false;
+  state.editingTransactionId = null;
+  state.isQuickAddMode = false;
+  state.isModoTerceiros = false;
+
+  // 2. Reseta o modal para o estado limpo original
+  resetModalNovaTransacao();
+
+  // 3. Preenche os campos de atalho
+  elements.tipoTransacaoSelect.value = "despesa";
+  elements.categoriaDespesa.value = "ordinaria";
+
+  // 4. ESSENCIAL: Dispara manualmente a atualização da visibilidade (cascata)
+  // Isso garante que os campos de Valor, Data e o botão Salvar apareçam corretamente
+  atualizarVisibilidadeFormulario();
+
+  // 5. Mantém o título padrão para confirmar que é o mesmo modal, mas com um sufixo de ajuda
+  elements.modalHeaderNovaTransacao.textContent = "Nova Transação (Pix/Débito)";
+
+  // 6. Abre o modal usando o motor oficial do ui.js
+  callbackAbrirModal(elements.modalNovaTransacao, null, "transacao");
+
+  // 7. Coloca o foco no nome para agilizar a digitação
+  setTimeout(() => elements.nomeTransacaoInput.focus(), 100);
+}

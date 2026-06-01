@@ -1712,6 +1712,26 @@ body.modal-aberto {
   font-size: 18px !important;
 }
 
+.btn-quick-ord {
+  background-color: #e67e22 !important; /* Laranja para destaque */
+  border: none !important;
+  border-radius: 4px !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 36px !important;
+  padding: 0 15px !important;
+  font-weight: bold !important;
+  color: white !important;
+  transition: background 0.3s !important;
+  font-size: 18px !important;
+}
+
+.btn-quick-ord:hover {
+  background-color: #d35400 !important;
+}
+
 .btn-today:hover {
   background-color: #2980b9 !important;
 }
