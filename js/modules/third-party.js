@@ -110,13 +110,21 @@ export function renderizarDividasDoMes() {
     // LÓGICA NOVA: Calcula o total específico desta pessoa no mês
     const totalPessoa = grupo.dividas.reduce((soma, d) => soma + d.valor, 0);
 
-    const tituloPessoa = document.createElement("h4");
-    // TÍTULO ATUALIZADO: Nome da Pessoa + Total individual
-    tituloPessoa.textContent = `${grupo.nomePessoa} — Subtotal: ${formatCurrency(totalPessoa)}`;
+    // Verifica se TODAS as dívidas deste grupo já estão reembolsadas para marcar o checkbox mestre
+    const todasReembolsadas = grupo.dividas.every((d) => d.reembolsado);
 
-    tituloPessoa.style.cssText =
-      "padding: 10px 15px 5px; margin: 15px 0 5px; background-color: #e9ecef; border-radius: 4px; display: flex; justify-content: space-between;";
-    listaUl.appendChild(tituloPessoa);
+    const headerPessoa = document.createElement("div");
+    headerPessoa.style.cssText =
+      "padding: 10px 15px; margin: 15px 0 5px; background-color: #e9ecef; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;";
+
+    headerPessoa.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <input type="checkbox" class="master-checkbox-pessoa" data-pessoa-id="${grupo.dividas[0].pessoaId}" ${todasReembolsadas ? "checked" : ""} style="transform: scale(1.2); cursor: pointer;" title="Marcar/Desmarcar todas desta pessoa">
+            <h4 style="margin: 0; font-size: 1em; color: #2c3e50;">${grupo.nomePessoa}</h4>
+        </div>
+        <span style="font-weight: bold; color: #2c3e50; font-size: 0.95em;">Subtotal: ${formatCurrency(totalPessoa)}</span>
+    `;
+    listaUl.appendChild(headerPessoa);
 
     // Ordena as dívidas desta pessoa por valor decrescente para manter a lista estável
     const dividasOrdenadas = [...grupo.dividas].sort(
@@ -520,5 +528,40 @@ export async function excluirPessoa(pessoaId) {
     } catch (error) {
       console.error("Erro ao excluir pessoa:", error);
     }
+  }
+}
+
+/**
+ * Atualiza o status de reembolso de TODAS as dívidas de uma pessoa no mês visualizado.
+ */
+export async function atualizarReembolsoEmLote(pessoaId, novoStatus) {
+  if (!state.currentUser) return;
+  const mesAno = getMesAnoChave(state.dividasTerceirosDate);
+
+  try {
+    // Filtra as dívidas no banco que pertencem à pessoa no mês específico
+    const querySnapshot = await db
+      .collection("users")
+      .doc(state.currentUser.uid)
+      .collection("dividasTerceiros")
+      .where("pessoaId", "==", pessoaId)
+      .where("mesAnoReferencia", "==", mesAno)
+      .get();
+
+    if (querySnapshot.empty) return;
+
+    const batch = db.batch();
+    querySnapshot.docs.forEach((doc) => {
+      batch.update(doc.ref, { reembolsado: novoStatus });
+    });
+
+    await batch.commit();
+    // A reatividade (onSnapshot) no main.js cuidará de redesenhar a tela
+    console.log(
+      `Reembolso em lote para ${pessoaId} (Status: ${novoStatus}) concluído.`,
+    );
+  } catch (error) {
+    console.error("Erro ao atualizar reembolso em lote:", error);
+    alert("Erro ao atualizar as dívidas em lote.");
   }
 }

@@ -1254,8 +1254,17 @@ document.addEventListener("DOMContentLoaded", () => {
     third.renderizarDividasDoMes();
   });
   elements.listaDividasTerceirosUl.addEventListener("click", (e) => {
+    // Caso o clique seja no Checkbox Mestre (por pessoa)
+    if (e.target.classList.contains("master-checkbox-pessoa")) {
+      const pessoaId = e.target.dataset.pessoaId;
+      third.atualizarReembolsoEmLote(pessoaId, e.target.checked);
+      return;
+    }
+
+    // Caso o clique seja em um checkbox individual ou botões de ação
     const id =
       e.target.dataset.dividaId || e.target.closest("button")?.dataset.dividaId;
+
     if (e.target.type === "checkbox")
       third.atualizarStatusReembolso(id, e.target.checked);
     else if (e.target.closest(".btn-delete-divida")) {
