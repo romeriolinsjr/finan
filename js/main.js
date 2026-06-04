@@ -604,10 +604,16 @@ document.addEventListener("DOMContentLoaded", () => {
       const d = third.obterDadosFormularioTerceiros();
       if (await third.adicionarNovaDividaTerceiro(d)) {
         alert("Dívida cadastrada com sucesso!");
+
+        const returnTo = elements.modalNovaTransacao.dataset.returnTo;
+        elements.modalNovaTransacao.dataset.returnTo = "";
+
         ui.fecharModalEspecifico(elements.modalNovaTransacao);
-        // NOVO: Se o modal de consulta estiver aberto, atualiza a lista dele
-        if (elements.modalConsultarTerceiros.style.display === "flex") {
+
+        // PADRONIZAÇÃO: Se veio da consulta, reabre a consulta atualizada
+        if (returnTo === "modalConsultarTerceiros") {
           third.renderizarDividasDoMes();
+          ui.abrirModalEspecifico(elements.modalConsultarTerceiros);
         }
       }
       return;
@@ -1218,15 +1224,15 @@ document.addEventListener("DOMContentLoaded", () => {
     ui.abrirModalEspecifico(elements.modalMenuTerceiros),
   );
   elements.btnAbrirCadastroTerceiros.addEventListener("click", () => {
-    ui.fecharModalEspecifico(elements.modalMenuTerceiros);
+    // PADRONIZAÇÃO: Fecha o modal de consulta e marca o retorno para ele
+    ui.fecharModalEspecifico(elements.modalConsultarTerceiros);
+    elements.modalNovaTransacao.dataset.returnTo = "modalConsultarTerceiros";
 
-    // NOVO: Limpa o estado de edição
     state.isEditMode = false;
     state.editingTransactionId = null;
     state.editingSerieId = null;
 
     state.isModoTerceiros = true;
-    // NOVO: Popula os seletores (incluindo pessoas) antes de abrir
     trans.popularSeletoresFixos();
     ui.abrirModalEspecifico(elements.modalNovaTransacao, null, "transacao", {
       resetModalNovaTransacao: trans.resetModalNovaTransacao,
