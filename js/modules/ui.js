@@ -633,8 +633,14 @@ export function abrirModalDetalhesSerie(serieId, callbackAbrir) {
   if (transacoesDaSerie.length === 0) return;
   const primeiraTransacao = transacoesDaSerie[0];
   const nomeBase = primeiraTransacao.nome.replace(/\s\(\d+\/\d+\)$/, "");
-  elements.modalDetalhesSerieTitulo.textContent = `Detalhes: ${nomeBase}`;
-  elements.listaDetalhesSerieUl.innerHTML = "";
+
+  if (elements.modalDetalhesSerieTitulo) {
+    elements.modalDetalhesSerieTitulo.textContent = `Detalhes: ${nomeBase}`;
+  }
+
+  if (elements.listaDetalhesSerieUl) {
+    elements.listaDetalhesSerieUl.innerHTML = "";
+  }
   transacoesDaSerie.forEach((t) => {
     const li = document.createElement("li");
     const [ano, mes] = t.mesAnoReferencia.split("-");

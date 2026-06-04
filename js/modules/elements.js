@@ -19,6 +19,7 @@ export const elements = {
   clearSearchBtn: document.getElementById("clearSearchBtn"),
   btnDeepSearch: document.getElementById("btnDeepSearch"),
   modalDetalhesSerie: document.getElementById("modalDetalhesSerie"),
+  modalDetalhesSerieTitulo: document.getElementById("modalDetalhesSerieTitulo"),
   listaDetalhesSerieUl: document.getElementById("listaDetalhesSerie"),
   btnDespesasTerceiros: document.getElementById("btnDespesasTerceiros"),
   modalMenuTerceiros: document.getElementById("modalMenuTerceiros"),
