@@ -122,7 +122,7 @@ export function renderizarDividasDoMes() {
             <input type="checkbox" class="master-checkbox-pessoa" data-pessoa-id="${grupo.dividas[0].pessoaId}" ${todasReembolsadas ? "checked" : ""} style="transform: scale(1.2); cursor: pointer;" title="Marcar/Desmarcar todas desta pessoa">
             <h4 style="margin: 0; font-size: 1em; color: #2c3e50;">${grupo.nomePessoa}</h4>
         </div>
-        <span style="font-weight: bold; color: #2c3e50; font-size: 0.95em;">Subtotal: ${formatCurrency(totalPessoa)}</span>
+        <span style="font-weight: bold; color: #2c3e50; font-size: 0.95em;">Total: ${formatCurrency(totalPessoa)}</span>
     `;
     listaUl.appendChild(headerPessoa);
 
