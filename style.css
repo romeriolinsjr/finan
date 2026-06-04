@@ -1477,6 +1477,11 @@ body.modal-aberto {
     gap: 10px;
   }
 
+  /* NOVO: Impede a inversão de botões especificamente no menu de Terceiros */
+  #modalMenuTerceiros .modal-footer {
+    flex-direction: column;
+  }
+
   .modal-footer button {
     width: 100%;
     margin-right: 0;
