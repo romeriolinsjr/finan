@@ -472,10 +472,22 @@ export async function atualizarTransacaoExistente(dados) {
         .doc(state.editingTransactionId);
       await transRef.update(dadosParaAtualizar);
 
-      // LÓGICA DE CAPTURA NA EDIÇÃO:
-      // Se o usuário editou uma compra antiga e ela é Cartão, vincula ao Tracker para que apareça lá
+      // LÓGICA DE CAPTURA NA EDIÇÃO (BLINDADA):
+      // Vincula ao Tracker apenas se for compra ÚNICA ou a 1ª PARCELA de uma série.
+      const itemOriginal = state.transacoes.find(
+        (t) => t.id === state.editingTransactionId,
+      );
+      const ehUnica =
+        !itemOriginal.frequencia ||
+        itemOriginal.frequencia === CONSTS.FREQUENCIA.UNICA;
+      const ehPrimeiraParcela =
+        itemOriginal.frequencia === CONSTS.FREQUENCIA.PARCELADA &&
+        itemOriginal.parcelaAtual === 1;
+
       if (
-        dadosParaAtualizar.categoria === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO
+        dadosParaAtualizar.categoria ===
+          CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO &&
+        (ehUnica || ehPrimeiraParcela)
       ) {
         const ciclosAtivos = state.ciclosTracker
           .filter((c) => c.status === "ativo")
