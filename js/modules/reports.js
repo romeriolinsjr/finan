@@ -116,18 +116,30 @@ export function popularModalRelatorio(date) {
       <div class="relatorio-grid-analise">
         <div class="relatorio-sub-secao">
           <h4>Ordinárias</h4>
-          <div class="relatorio-item-analise"><span>Únicas</span> <strong>${formatCurrency(subtotaisOrd.unica)}</strong></div>
-          <div class="relatorio-item-analise"><span>Recorrentes</span> <strong>${formatCurrency(subtotaisOrd.recorrente)}</strong></div>
-          <div class="relatorio-item-analise"><span>Parceladas</span> <strong>${formatCurrency(subtotaisOrd.parcelada)}</strong></div>
+          <div class="relatorio-item-analise clicavel" data-cat="${CONSTS.CATEGORIA_DESPESA.ORDINARIA}" data-freq="${CONSTS.FREQUENCIA.UNICA}">
+            <span>Únicas</span> <strong>${formatCurrency(subtotaisOrd.unica)}</strong>
+          </div>
+          <div class="relatorio-item-analise clicavel" data-cat="${CONSTS.CATEGORIA_DESPESA.ORDINARIA}" data-freq="${CONSTS.FREQUENCIA.RECORRENTE}">
+            <span>Recorrentes</span> <strong>${formatCurrency(subtotaisOrd.recorrente)}</strong>
+          </div>
+          <div class="relatorio-item-analise clicavel" data-cat="${CONSTS.CATEGORIA_DESPESA.ORDINARIA}" data-freq="${CONSTS.FREQUENCIA.PARCELADA}">
+            <span>Parceladas</span> <strong>${formatCurrency(subtotaisOrd.parcelada)}</strong>
+          </div>
           <div class="relatorio-item-analise" style="font-weight: bold; margin-top: 15px; border-left-color: #3498db;">
             <span>Total</span> <strong>${formatCurrency(totalGastoRealOrdinario)}</strong>
           </div>
         </div>
         <div class="relatorio-sub-secao">
           <h4>Cartão de Crédito</h4>
-          <div class="relatorio-item-analise"><span>Únicas</span> <strong>${formatCurrency(subtotaisCartao.unica)}</strong></div>
-          <div class="relatorio-item-analise"><span>Recorrentes</span> <strong>${formatCurrency(subtotaisCartao.recorrente)}</strong></div>
-          <div class="relatorio-item-analise"><span>Parceladas</span> <strong>${formatCurrency(subtotaisCartao.parcelada)}</strong></div>
+          <div class="relatorio-item-analise clicavel" data-cat="${CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO}" data-freq="${CONSTS.FREQUENCIA.UNICA}">
+            <span>Únicas</span> <strong>${formatCurrency(subtotaisCartao.unica)}</strong>
+          </div>
+          <div class="relatorio-item-analise clicavel" data-cat="${CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO}" data-freq="${CONSTS.FREQUENCIA.RECORRENTE}">
+            <span>Recorrentes</span> <strong>${formatCurrency(subtotaisCartao.recorrente)}</strong>
+          </div>
+          <div class="relatorio-item-analise clicavel" data-cat="${CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO}" data-freq="${CONSTS.FREQUENCIA.PARCELADA}">
+            <span>Parceladas</span> <strong>${formatCurrency(subtotaisCartao.parcelada)}</strong>
+          </div>
           <div class="relatorio-item-analise" style="font-weight: bold; margin-top: 15px; border-left-color: #3498db;">
             <span>Total</span> <strong>${formatCurrency(totalGastoRealCartao)}</strong>
           </div>
@@ -180,4 +192,46 @@ export function popularModalRelatorio(date) {
 
   document.getElementById("relatorio-secao-analise-orcamentos").innerHTML =
     `<section class="relatorio-secao"><h3>Análise de Orçamentos</h3><div class="relatorio-orcamento-lista">${orcamentosHTML}</div><div class="relatorio-orcamento-total"><span>TOTAIS</span><div class="orcamento-valores"><small>Prev: ${formatCurrency(totalPrevistoOrcamentos)}</small><small>Gasto: ${formatCurrency(totalGastoOrcamentos)}</small><strong>Saldo: ${formatCurrency(totalPrevistoOrcamentos - totalGastoOrcamentos)}</strong></div></div></section>`;
+}
+
+/**
+ * Abre o modal de detalhamento para uma categoria e frequência específica do relatório.
+ */
+export function abrirDetalhesFiltroRelatorio(
+  categoria,
+  frequencia,
+  date,
+  callbackAbrir,
+) {
+  const mesAno = getMesAnoChave(date);
+  const labelCat =
+    categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA ? "Ordinárias" : "Cartão";
+  const labelFreq = frequencia.charAt(0).toUpperCase() + frequencia.slice(1);
+
+  elements.detalhesFiltroRelatorioTitulo.textContent = `${labelCat}: ${labelFreq}s`;
+  elements.listaDetalhesFiltroRelatorioUl.innerHTML = "";
+
+  const itens = state.transacoes
+    .filter(
+      (t) =>
+        t.mesAnoReferencia === mesAno &&
+        t.categoria === categoria &&
+        t.frequencia === frequencia,
+    )
+    .sort((a, b) => b.valor - a.valor);
+
+  if (itens.length === 0) {
+    elements.listaDetalhesFiltroRelatorioUl.innerHTML =
+      "<li>Nenhum item encontrado.</li>";
+  } else {
+    itens.forEach((item) => {
+      const li = document.createElement("li");
+      li.style.cssText =
+        "display:flex; justify-content:space-between; padding:10px 5px; border-bottom:1px solid #eee;";
+      li.innerHTML = `<span>${item.nome}</span><strong>${formatCurrency(item.valor)}</strong>`;
+      elements.listaDetalhesFiltroRelatorioUl.appendChild(li);
+    });
+  }
+
+  callbackAbrir(elements.modalDetalhesFiltroRelatorio);
 }

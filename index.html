@@ -936,6 +936,33 @@
         </div>
       </div>
     </div>
+
+    <!-- NOVO: Modal Detalhes do Filtro (Drill-down do Relatório) -->
+    <div id="modalDetalhesFiltroRelatorio" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="detalhesFiltroRelatorioTitulo">Itens do Relatório</h2>
+          <span
+            class="close-button"
+            data-modal-id="modalDetalhesFiltroRelatorio"
+            >×</span
+          >
+        </div>
+        <div class="modal-body">
+          <ul id="listaDetalhesFiltroRelatorio" class="lista-detalhes-limpa">
+            <!-- Injetado via JS -->
+          </ul>
+        </div>
+        <div class="modal-footer">
+          <button
+            class="btn-secondary close-button-footer"
+            data-modal-id="modalDetalhesFiltroRelatorio"
+          >
+            Fechar
+          </button>
+        </div>
+      </div>
+    </div>
     <!-- Modal para Confirmar Ação em Série -->
     <div id="modalConfirmarAcaoSerie" class="modal">
       <div class="modal-content">

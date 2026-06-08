@@ -2014,3 +2014,17 @@ body.modal-aberto {
     width: 100%; /* Botões ocupam largura total no celular para facilitar o clique */
   }
 }
+
+.relatorio-item-analise.clicavel {
+  cursor: pointer;
+  transition:
+    background-color 0.2s,
+    transform 0.1s;
+}
+.relatorio-item-analise.clicavel:hover {
+  background-color: #eef2f7 !important;
+  transform: scale(1.01);
+}
+.relatorio-item-analise.clicavel:active {
+  transform: scale(0.99);
+}

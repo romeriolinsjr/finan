@@ -170,6 +170,15 @@ export const elements = {
   relatorioCorpo: document.getElementById("relatorioCorpo"),
   btnRelatorioAnterior: document.getElementById("btnRelatorioAnterior"),
   btnRelatorioProximo: document.getElementById("btnRelatorioProximo"),
+  modalDetalhesFiltroRelatorio: document.getElementById(
+    "modalDetalhesFiltroRelatorio",
+  ),
+  detalhesFiltroRelatorioTitulo: document.getElementById(
+    "detalhesFiltroRelatorioTitulo",
+  ),
+  listaDetalhesFiltroRelatorioUl: document.getElementById(
+    "listaDetalhesFiltroRelatorio",
+  ),
   modalAuth: document.getElementById("modalAuth"),
   modalAuthTitulo: document.getElementById("modalAuthTitulo"),
   authFeedback: document.getElementById("authFeedback"),

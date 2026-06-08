@@ -1376,6 +1376,20 @@ document.addEventListener("DOMContentLoaded", () => {
     reports.popularModalRelatorio(state.reportDate);
   });
 
+  // Interatividade Drill-down nos Relatórios
+  elements.relatorioCorpo.addEventListener("click", (e) => {
+    const itemClicavel = e.target.closest(".relatorio-item-analise.clicavel");
+    if (itemClicavel) {
+      const { cat, freq } = itemClicavel.dataset;
+      reports.abrirDetalhesFiltroRelatorio(
+        cat,
+        freq,
+        state.reportDate,
+        ui.abrirModalEspecifico,
+      );
+    }
+  });
+
   // --- NOVO: Gerenciamento de Pessoas ---
   elements.btnAbrirConsultaPessoas.addEventListener("click", () => {
     ui.fecharModalEspecifico(elements.modalMenuTerceiros);
