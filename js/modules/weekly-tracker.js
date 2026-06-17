@@ -74,10 +74,11 @@ function construirHTMLCiclo(ciclo, index, totalCiclos) {
   container.className = "tracker-cycle-card";
   container.style.marginBottom = "25px";
 
-  const dataInic = new Date(ciclo.dataInicio + "T12:00:00");
-  const dataFim = new Date(ciclo.dataFim + "T12:00:00");
+  // Garantimos que data de início e fim sejam tratadas na meia-noite local para cálculos precisos
+  const dataInic = new Date(ciclo.dataInicio + "T00:00:00");
+  const dataFim = new Date(ciclo.dataFim + "T00:00:00");
   const diffTime = Math.abs(dataFim - dataInic);
-  const totalDias = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+  const totalDias = Math.round(diffTime / (1000 * 60 * 60 * 24)) + 1;
   const metaDiaria = ciclo.metaTotal / totalDias;
   const metaSemanal = metaDiaria * 7;
 
@@ -171,19 +172,20 @@ function construirHTMLCiclo(ciclo, index, totalCiclos) {
   let diasDecorridos = 0;
   let statusDiaTexto = "";
 
-  if (hoje < dataInic) {
-    // Caso o ciclo ainda não tenha começado
+  if (hoje > dataFim) {
+    // Caso 1: Ciclo encerrado (Hoje é posterior à data de fim)
+    statusDiaTexto = "<strong>Este ciclo está encerrado.</strong>";
+    diasDecorridos = totalDias;
+  } else if (hoje < dataInic) {
+    // Caso 2: Ciclo futuro (Hoje é anterior à data de início)
     const diffFutura = dataInic - hoje;
-    const diasParaComecar = Math.ceil(diffFutura / (1000 * 60 * 60 * 24));
+    const diasParaComecar = Math.round(diffFutura / (1000 * 60 * 60 * 24));
     statusDiaTexto = `O ciclo começa em <strong>${diasParaComecar} dia(s)</strong>.`;
     diasDecorridos = 0;
   } else {
-    // Caso o ciclo já esteja em andamento ou tenha terminado
+    // Caso 3: Ciclo em andamento
     const diffHoje = hoje - dataInic;
-    diasDecorridos = Math.min(
-      Math.ceil(diffHoje / (1000 * 60 * 60 * 24)) + 1,
-      totalDias,
-    );
+    diasDecorridos = Math.floor(diffHoje / (1000 * 60 * 60 * 24)) + 1;
     statusDiaTexto = `Você está no <strong>${diasDecorridos}º dia</strong> do ciclo.`;
   }
 
