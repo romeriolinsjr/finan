@@ -300,19 +300,16 @@ function construirHTMLCiclo(ciclo, index, totalCiclos) {
     </div>
 
     <div class="tracker-items-summary">
-      <div class="tracker-summary-header">
-        <strong>Resumo do Ciclo</strong>
-        <span class="tracker-summary-total" style="color:${totalCicloAteAgora > ciclo.metaTotal ? "#e74c3c" : "#27ae60"}">
-          Gasto Total: ${formatCurrency(totalCicloAteAgora)} (${pctMensal}%)
-        </span>
+      <div style="margin-bottom: 15px; border-bottom: 1px solid #f1f2f6; padding-bottom: 8px;">
+        <strong style="color: #2c3e50; font-size: 1.1em;">Resumo do Ciclo</strong>
       </div>
       
-      <div class="tracker-item-row" style="background:#f1f2f6; border-left:4px solid #34495e;">
+      <div class="tracker-item-row" style="background:#f1f2f6; border-left:4px solid #34495e; margin-bottom: 15px;">
         <span>VALOR INICIAL (Parcelas Antigas/Fixos)</span>
         <strong>${formatCurrency(valorBaseDoCiclo)}</strong>
       </div>
 
-      <div id="lista-itens-ciclo-${ciclo.id}" style="margin-top:10px;">
+      <div id="lista-itens-ciclo-${ciclo.id}">
         ${transacoesDoCiclo
           .map(
             (t) => `
