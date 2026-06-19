@@ -39,40 +39,36 @@ export async function renderizarTracker() {
     });
   }
 
-  // 2. Limpeza Total do Modal antes de desenhar
+  // 2. Limpeza Total
   container.innerHTML = "";
   if (elements.trackerTabsContainer) {
     elements.trackerTabsContainer.innerHTML = "";
-    elements.trackerTabsContainer.style.display = "none"; // Oculta por padrão
+    elements.trackerTabsContainer.style.display = "none";
   }
 
   const ciclosAtivos = state.ciclosTracker
     .filter((c) => c.status === "ativo")
     .sort((a, b) => new Date(a.dataInicio) - new Date(b.dataInicio));
 
-  // 3. Caso: Nenhum Ciclo Ativo
   if (ciclosAtivos.length === 0) {
     state.trackerActiveTabIndex = null;
     container.innerHTML = `
       <div style="text-align:center; padding:40px; color:#7f8c8d;">
         <p>Nenhum ciclo de acompanhamento ativo.</p>
-        <button class="btn-tracker-main" onclick="window.trackerMod.abrirNovoCiclo()" style="margin-top:15px;">Abrir Novo Ciclo</button>
+        <button class="btn-tracker-main" onclick="window.trackerMod.abrirNovoCiclo()" style="margin-top:15px; border:none;">Abrir Novo Ciclo</button>
       </div>`;
     return;
   }
 
-  // 4. Caso: Múltiplos Ciclos (Abas)
   if (ciclosAtivos.length > 1) {
     if (
       state.trackerActiveTabIndex === null ||
       state.trackerActiveTabIndex >= ciclosAtivos.length
     ) {
-      state.trackerActiveTabIndex = 1; // Padrão: Ciclo Corrente
+      state.trackerActiveTabIndex = 1;
     }
-
     const nav = document.createElement("div");
     nav.className = "tracker-tabs-nav";
-
     ciclosAtivos.forEach((ciclo, idx) => {
       const btn = document.createElement("button");
       btn.className = `tracker-tab-btn ${state.trackerActiveTabIndex === idx ? "active" : ""}`;
@@ -83,73 +79,79 @@ export async function renderizarTracker() {
       };
       nav.appendChild(btn);
     });
-
     if (elements.trackerTabsContainer) {
       elements.trackerTabsContainer.style.display = "flex";
       elements.trackerTabsContainer.appendChild(nav);
     }
-
     const cicloParaMostrar = ciclosAtivos[state.trackerActiveTabIndex];
-    const htmlCiclo = construirHTMLCiclo(
-      cicloParaMostrar,
-      state.trackerActiveTabIndex,
-      ciclosAtivos.length,
+    container.appendChild(
+      construirHTMLCiclo(
+        cicloParaMostrar,
+        state.trackerActiveTabIndex,
+        ciclosAtivos.length,
+      ),
     );
-    container.appendChild(htmlCiclo);
   } else {
-    // 5. Caso: Apenas 1 Ciclo
     state.trackerActiveTabIndex = 0;
-    const htmlCiclo = construirHTMLCiclo(ciclosAtivos[0], 0, 1);
-    container.appendChild(htmlCiclo);
+    container.appendChild(construirHTMLCiclo(ciclosAtivos[0], 0, 1));
   }
 }
 
 /**
- * Constrói o HTML e calcula a lógica de transbordo (Waterfall).
+ * Constrói o HTML e aplica lógica de tempo e cores inteligentes baseadas em RECUPERABILIDADE.
  */
 function construirHTMLCiclo(ciclo, index, totalCiclos) {
   const container = document.createElement("div");
   container.className = "tracker-cycle-card";
   container.style.marginBottom = "25px";
 
-  // Garantimos que data de início e fim sejam tratadas na meia-noite local para cálculos precisos
+  // --- 1. CONSTANTES E CRONOLOGIA (Topo) ---
   const dataInic = new Date(ciclo.dataInicio + "T00:00:00");
   const dataFim = new Date(ciclo.dataFim + "T00:00:00");
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+
   const diffTime = Math.abs(dataFim - dataInic);
   const totalDias = Math.round(diffTime / (1000 * 60 * 60 * 24)) + 1;
   const metaDiaria = ciclo.metaTotal / totalDias;
-  const metaSemanal = metaDiaria * 7;
 
-  // FILTRAGEM CORRETA: Itens vinculados e ordenados por cadastro (Mais recentes no topo)
+  let diasDecorridos = 0;
+  let statusDiaTexto = "";
+
+  if (hoje > dataFim) {
+    statusDiaTexto = "<strong>Este ciclo está encerrado.</strong>";
+    diasDecorridos = totalDias;
+  } else if (hoje < dataInic) {
+    const diffFutura = dataInic - hoje;
+    const diasParaComecar = Math.round(diffFutura / (1000 * 60 * 60 * 24));
+    statusDiaTexto = `O ciclo começa em <strong>${diasParaComecar} dia(s)</strong>.`;
+    diasDecorridos = 0;
+  } else {
+    const diffHoje = hoje - dataInic;
+    diasDecorridos = Math.floor(diffHoje / (1000 * 60 * 60 * 24)) + 1;
+    statusDiaTexto = `Você está no <strong>${diasDecorridos}º dia</strong> do ciclo.`;
+  }
+
+  // --- 2. PROCESSAMENTO DE TRANSAÇÕES ---
   const transacoesDoCiclo = state.transacoes
-    .filter((t) => {
-      const vinculo = state.votosTracker.find(
+    .filter((t) =>
+      state.votosTracker.some(
         (v) => v.transacaoId === t.id && v.cicloId === ciclo.id,
-      );
-      return !!vinculo;
-    })
+      ),
+    )
     .sort((a, b) => {
       const getVal = (item) => {
         if (!item.criadoEm) return 0;
-        // Converte Timestamp do Firebase ou número (ms) para valor comparável
         if (item.criadoEm.seconds) return item.criadoEm.seconds * 1000;
         return Number(item.criadoEm) || 0;
       };
-
-      const valA = getVal(a);
-      const valB = getVal(b);
-
-      // 1. Prioridade: Quem tem data de criação (novos) fica no topo.
-      // Compras antigas (sem o campo) descem para a base da lista.
+      const valA = getVal(a),
+        valB = getVal(b);
       if (valA === 0 && valB > 0) return 1;
       if (valB === 0 && valA > 0) return -1;
-
-      // 2. Se ambos têm data, ordena do mais recente para o mais antigo
-      if (valB !== valA) return valB - valA;
-
-      // 3. Desempate: Se foram criados no mesmo milissegundo (comum em lotes/parcelados),
-      // usamos a ordem alfabética para evitar que a lista fique "pulando".
-      return (a.nome || "").localeCompare(b.nome || "");
+      return valB !== valA
+        ? valB - valA
+        : (a.nome || "").localeCompare(b.nome || "");
     });
 
   const totalGastoNovasCompras = transacoesDoCiclo.reduce(
@@ -158,93 +160,74 @@ function construirHTMLCiclo(ciclo, index, totalCiclos) {
   );
   const valorBaseDoCiclo = parseFloat(ciclo.valorInicial) || 0;
   const totalCicloAteAgora = valorBaseDoCiclo + totalGastoNovasCompras;
-
-  // --- GERAÇÃO DINÂMICA DE SEMANAS (REGRA DO RESTO) ---
-  const semanas = [];
-  let diasRestantesParaProcessar = totalDias;
-  let contadorSemana = 1;
-
-  while (diasRestantesParaProcessar > 0) {
-    const diasDestaSemana = Math.min(7, diasRestantesParaProcessar);
-    const limiteDestaSemana = diasDestaSemana * metaDiaria;
-
-    semanas.push({
-      nome: `Semana ${contadorSemana}`,
-      limite: limiteDestaSemana,
-      valor: 0,
-      dias: diasDestaSemana,
-    });
-
-    diasRestantesParaProcessar -= diasDestaSemana;
-    contadorSemana++;
-  }
-
-  // Distribuição Waterfall (Balde Transbordante)
-  let acumulado = totalCicloAteAgora;
-  semanas.forEach((s) => {
-    if (acumulado > 0) {
-      const valorParaEstaSemana = Math.min(acumulado, s.limite);
-      s.valor = valorParaEstaSemana;
-      acumulado -= valorParaEstaSemana;
-    }
-    // Se estourar a meta total do ciclo, o excesso acumula na última semana
-    else if (acumulado > 0 && s.nome === `Semana ${semanas.length}`) {
-      s.valor += acumulado;
-      acumulado = 0;
-    }
-  });
-  // Tratamento de estouro: se após passar por todas as semanas ainda sobrar acumulado
-  if (acumulado > 0) {
-    semanas[semanas.length - 1].valor += acumulado;
-  }
-
   const pctMensal = (
     (totalCicloAteAgora / (ciclo.metaTotal || 1)) *
     100
   ).toFixed(1);
 
-  // --- NOVO: LÓGICA DE FEEDBACK DE IMPACTO (CRONOGRAMA) ---
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
+  // --- 3. MOTOR DE RECUPERABILIDADE (Lógica solicitada pelo usuário) ---
+  const previstoAteHoje = metaDiaria * diasDecorridos;
+  const excessoTotal = totalCicloAteAgora - previstoAteHoje;
+  const faltaParaMeta = Math.max(0, ciclo.metaTotal - totalCicloAteAgora);
 
-  let diasDecorridos = 0;
-  let statusDiaTexto = "";
+  let corSaudeCiclo = "status-normal"; // Verde
 
-  if (hoje > dataFim) {
-    // Caso 1: Ciclo encerrado (Hoje é posterior à data de fim)
-    statusDiaTexto = "<strong>Este ciclo está encerrado.</strong>";
-    diasDecorridos = totalDias;
-  } else if (hoje < dataInic) {
-    // Caso 2: Ciclo futuro (Hoje é anterior à data de início)
-    const diffFutura = dataInic - hoje;
-    const diasParaComecar = Math.round(diffFutura / (1000 * 60 * 60 * 24));
-    statusDiaTexto = `O ciclo começa em <strong>${diasParaComecar} dia(s)</strong>.`;
-    diasDecorridos = 0;
-  } else {
-    // Caso 3: Ciclo em andamento
-    const diffHoje = hoje - dataInic;
-    diasDecorridos = Math.floor(diffHoje / (1000 * 60 * 60 * 24)) + 1;
-    statusDiaTexto = `Você está no <strong>${diasDecorridos}º dia</strong> do ciclo.`;
+  if (totalCicloAteAgora > ciclo.metaTotal) {
+    corSaudeCiclo = "status-danger"; // Estouro absoluto do mês
+  } else if (excessoTotal > 0) {
+    // Regra: Se o excesso for maior que 25% do que ainda falta gastar, fica Vermelho.
+    // Caso contrário, Amarelo.
+    const limiteManobra = faltaParaMeta * 0.25;
+    corSaudeCiclo =
+      excessoTotal > limiteManobra ? "status-danger" : "status-warning";
   }
 
-  const gastoEsperadoAteHoje = metaDiaria * diasDecorridos;
-  const diferencaDoPrevisto = totalCicloAteAgora - gastoEsperadoAteHoje;
+  // --- 4. GERAÇÃO DE SEMANAS E DISTRIBUIÇÃO ---
+  const semanas = [];
+  let dRestantesProc = totalDias;
+  while (dRestantesProc > 0) {
+    const dSemana = Math.min(7, dRestantesProc);
+    semanas.push({
+      nome: `Semana ${semanas.length + 1}`,
+      limite: dSemana * metaDiaria,
+      valor: 0,
+      dias: dSemana,
+    });
+    dRestantesProc -= dSemana;
+  }
 
-  const statusMensagem =
-    totalCicloAteAgora > gastoEsperadoAteHoje
-      ? `<span style="color:#e74c3c">acima do previsto (${formatCurrency(Math.abs(diferencaDoPrevisto))})</span>`
-      : `<span style="color:#27ae60">dentro do limite (${formatCurrency(Math.abs(diferencaDoPrevisto))} de folga)</span>`;
+  let acumuladoGasto = totalCicloAteAgora;
+  semanas.forEach((s, idx) => {
+    if (acumuladoGasto > 0) {
+      const vSemana = Math.min(acumuladoGasto, s.limite);
+      s.valor = vSemana;
+      acumuladoGasto -= vSemana;
+    }
+    // Estouro aloca no último balde
+    if (idx === semanas.length - 1 && acumuladoGasto > 0)
+      s.valor += acumuladoGasto;
+
+    // A cor da barra segue a saúde global do ciclo se houver gasto na semana
+    s.statusClass = s.valor > 0 ? corSaudeCiclo : "status-normal";
+  });
+
+  // --- 5. QUADRO DE IMPACTO ---
+  const difP = totalCicloAteAgora - previstoAteHoje;
+  const statusM =
+    totalCicloAteAgora > previstoAteHoje
+      ? `<span style="color:#e74c3c">acima do previsto (${formatCurrency(Math.abs(difP))})</span>`
+      : `<span style="color:#27ae60">dentro do limite (${formatCurrency(Math.abs(difP))} de folga)</span>`;
 
   const infoImpactoHTML = `
     <div class="tracker-impact-box" style="background: #fdfefe; border: 1px solid #e0e0e0; border-left: 5px solid #3498db; padding: 12px; margin-bottom: 20px; border-radius: 6px; font-size: 0.95em; line-height: 1.5;">
       • ${statusDiaTexto}<br>
-      • O previsto de gastos até hoje era de <strong>${formatCurrency(gastoEsperadoAteHoje)}</strong> (${((gastoEsperadoAteHoje / (ciclo.metaTotal || 1)) * 100).toFixed(1)}%).<br>
+      • A previsão de gastos até hoje é de <strong>${formatCurrency(previstoAteHoje)}</strong> (${((previstoAteHoje / (ciclo.metaTotal || 1)) * 100).toFixed(1)}%).<br>
       • Seu gasto real até hoje é de <strong>${formatCurrency(totalCicloAteAgora)}</strong> (${pctMensal}%).<br>
-      • Você está ${statusMensagem}.
+      • Você está ${statusM}.
     </div>
   `;
-  // --- FIM DA NOVA LÓGICA ---
 
+  // --- 6. RENDERIZAÇÃO DO CARD ---
   container.innerHTML = `
     <div class="tracker-cycle-header">
       <div>
@@ -255,60 +238,57 @@ function construirHTMLCiclo(ciclo, index, totalCiclos) {
       </div>
       <div class="tracker-header-meta">
         <span class="meta-label">Meta: ${formatCurrency(ciclo.metaTotal)}</span><br>
-        <small>${formatCurrency(metaDiaria)}/dia | ${formatCurrency(metaSemanal)}/sem</small>
+        <small>${formatCurrency(metaDiaria)}/dia | ${formatCurrency(metaDiaria * 7)}/sem</small>
       </div>
     </div>
-
     ${infoImpactoHTML}
-
     <div class="weeks-grid">
       ${semanas
         .map((s, i) => {
-          const pctSemana =
-            s.limite > 0 ? ((s.valor / s.limite) * 100).toFixed(0) : 0;
-          let statusClass = "status-normal";
-          if (pctSemana >= 100) statusClass = "status-danger";
-          else if (pctSemana >= 80) statusClass = "status-warning";
+          const pS = s.limite > 0 ? ((s.valor / s.limite) * 100).toFixed(0) : 0;
+          const iniS = i * 7;
+          const dPassS =
+            diasDecorridos > iniS ? Math.min(diasDecorridos - iniS, s.dias) : 0;
 
-          // Identifica se esta é a semana cronológica atual
-          const indiceSemanaAtual = Math.min(
+          let hT =
+            '<div class="time-bar-container" title="Progresso do tempo na semana">';
+          for (let d = 1; d <= s.dias; d++)
+            hT += `<div class="time-segment ${d <= dPassS ? "past" : ""}"></div>`;
+          hT += "</div>";
+
+          const idxSAtual = Math.min(
             Math.floor((diasDecorridos - 1) / 7),
             semanas.length - 1,
           );
-          const eASemanaAtual = i === indiceSemanaAtual && diasDecorridos > 0;
-
-          // Estilo de destaque para a semana atual (Passo 3: Estilização)
-          const estiloDestaque = eASemanaAtual
-            ? "border-left: 5px solid #3498db; background-color: #f0f7ff; box-shadow: 0 2px 8px rgba(52, 152, 219, 0.15);"
+          const eAS = i === idxSAtual && diasDecorridos > 0;
+          const eD = eAS
+            ? "border-left: 5px solid #3498db; background-color: #f0f7ff;"
             : "border-left: 5px solid #bdc3c7;";
 
           return `
-          <div class="week-bucket" style="${estiloDestaque} padding: 12px; border-radius: 6px; margin-bottom: 5px;">
+          <div class="week-bucket" style="${eD} padding: 12px; border-radius: 6px; margin-bottom: 5px;">
             <div class="week-title" style="display: flex; justify-content: space-between; font-size: 0.85em; color: #7f8c8d; margin-bottom: 5px;">
-              <span style="font-weight: bold; ${eASemanaAtual ? "color: #3498db;" : ""}">${s.nome}${eASemanaAtual ? " (ATUAL)" : ""}</span>
-              <span style="font-weight: bold;">${pctSemana}%</span>
+              <span style="font-weight: bold; ${eAS ? "color: #3498db;" : ""}">${s.nome}${eAS ? " (ATUAL)" : ""}</span>
+              <span style="font-weight: bold;">${pS}%</span>
             </div>
             <div class="week-value" style="font-size: 1.1em; font-weight: 600; margin-bottom: 8px;">${formatCurrency(s.valor)}</div>
+            ${hT}
             <div class="progress-bar-container" style="height: 8px; background: #e9ecef; border-radius: 4px; overflow: hidden; margin-bottom: 5px;">
-              <div class="progress-bar-fill ${statusClass}" style="width: ${Math.min(pctSemana, 100)}%; height: 100%;"></div>
+              <div class="progress-bar-fill ${s.statusClass}" style="width: ${Math.min(pS, 100)}%; height: 100%;"></div>
             </div>
             <div class="week-footer" style="font-size: 0.75em; color: #95a5a6; text-align: right;">Meta: ${formatCurrency(s.limite)}</div>
-          </div>
-        `;
+          </div>`;
         })
         .join("")}
     </div>
-
     <div class="tracker-items-summary">
       <div style="margin-bottom: 15px; border-bottom: 1px solid #f1f2f6; padding-bottom: 8px;">
         <strong style="color: #2c3e50; font-size: 1.1em;">Resumo do Ciclo</strong>
       </div>
-      
       <div class="tracker-item-row" style="background:#f1f2f6; border-left:4px solid #34495e; margin-bottom: 15px;">
         <span>VALOR INICIAL (Parcelas Antigas/Fixos)</span>
         <strong>${formatCurrency(valorBaseDoCiclo)}</strong>
       </div>
-
       <div id="lista-itens-ciclo-${ciclo.id}">
         ${transacoesDoCiclo
           .map(
@@ -317,20 +297,14 @@ function construirHTMLCiclo(ciclo, index, totalCiclos) {
             <span>${t.nome}</span>
             <div class="tracker-item-actions">
               <strong>${formatCurrency(t.valor)}</strong>
-              ${
-                totalCiclos > 1
-                  ? `<button class="btn-transfer" data-trans-id="${t.id}" data-current-ciclo="${ciclo.id}" title="Mover para outro ciclo">⇄</button>`
-                  : ""
-              }
+              ${totalCiclos > 1 ? `<button class="btn-transfer" data-trans-id="${t.id}" data-current-ciclo="${ciclo.id}" title="Mover para outro ciclo">⇄</button>` : ""}
               <button class="btn-remove-item-tracker" data-trans-id="${t.id}" title="Remover apenas deste acompanhamento">✖</button>
             </div>
-          </div>
-        `,
+          </div>`,
           )
           .join("")}
       </div>
     </div>
-
     <div class="tracker-card-footer">
        <button class="btn-tracker-main btn-tracker-alt" onclick="window.trackerMod.abrirNovoCiclo()">Abrir Novo Ciclo</button>
        <button class="btn-warning btn-tracker-alt" onclick="window.trackerMod.abrirConfig('${ciclo.id}')">Editar Datas/Meta</button>
@@ -338,38 +312,29 @@ function construirHTMLCiclo(ciclo, index, totalCiclos) {
        <button class="btn-danger btn-tracker-alt" onclick="window.trackerMod.encerrarCiclo('${ciclo.id}')">Encerrar Ciclo</button>
     </div>
   `;
-
   return container;
 }
 
-/**
- * Salva ou Atualiza um ciclo com status garantido.
- */
 export async function salvarConfigCiclo(dados) {
   if (!state.currentUser) return;
   const ref = db
     .collection("users")
     .doc(state.currentUser.uid)
     .collection("ciclos_tracker");
-
   try {
     if (dados.id) {
       await ref.doc(dados.id).update({
         dataInicio: dados.dataInicio,
         dataFim: dados.dataFim,
         metaTotal: dados.metaTotal,
-        status: "ativo", // Garante que o status se mantém ativo na edição
+        status: "ativo",
       });
     } else {
-      // Bloqueio de segurança: impede ter mais de 2 ciclos ativos ao mesmo tempo
       const ativos = state.ciclosTracker.filter((c) => c.status === "ativo");
       if (ativos.length >= 2) {
-        alert(
-          "Você já possui 2 ciclos ativos (Principal e Transição). Encerre o mais antigo antes de abrir um novo.",
-        );
+        alert("Você já possui 2 ciclos ativos. Encerre um antes.");
         return false;
       }
-
       await ref.add({
         dataInicio: dados.dataInicio,
         dataFim: dados.dataFim,
@@ -382,25 +347,23 @@ export async function salvarConfigCiclo(dados) {
     await registrarUltimaAlteracao();
     return true;
   } catch (e) {
-    console.error("Erro ao salvar ciclo:", e);
+    console.error(e);
     return false;
   }
 }
 
 export async function transferirItem(transacaoId, cicloAtualId) {
   if (!state.currentUser) return;
-  const outrosCiclos = state.ciclosTracker.filter(
+  const outros = state.ciclosTracker.filter(
     (c) => c.id !== cicloAtualId && c.status === "ativo",
   );
-  if (outrosCiclos.length === 0) return;
-
-  const novoCicloId = outrosCiclos[0].id;
+  if (outros.length === 0) return;
   const ref = db
     .collection("users")
     .doc(state.currentUser.uid)
     .collection("votos_tracker");
   try {
-    await ref.doc(transacaoId).set({ transacaoId, cicloId: novoCicloId });
+    await ref.doc(transacaoId).set({ transacaoId, cicloId: outros[0].id });
     await registrarUltimaAlteracao();
   } catch (e) {
     console.error(e);
@@ -422,70 +385,40 @@ export async function salvarValorInicial(cicloId, valor) {
   }
 }
 
-/**
- * Exclui definitivamente um ciclo e todos os seus vínculos de transações.
- */
 export async function encerrarCiclo(cicloId) {
   if (
     !confirm(
-      "Tem certeza que deseja encerrar e APAGAR este ciclo? Esta ação não pode ser desfeita e removerá o acompanhamento das compras vinculadas.",
+      "Tem certeza que deseja encerrar e APAGAR este ciclo? Esta ação removerá o acompanhamento das compras vinculadas.",
     )
   )
     return;
-
   const userRef = db.collection("users").doc(state.currentUser.uid);
   const batch = db.batch();
-
   try {
-    // 1. Referência do documento do ciclo
-    const cicloRef = userRef.collection("ciclos_tracker").doc(cicloId);
-    batch.delete(cicloRef);
-
-    // 2. Busca e remove todos os vínculos (votos) associados a este ciclo específico
+    batch.delete(userRef.collection("ciclos_tracker").doc(cicloId));
     const votosSnap = await userRef
       .collection("votos_tracker")
       .where("cicloId", "==", cicloId)
       .get();
-
-    votosSnap.forEach((doc) => {
-      batch.delete(doc.ref);
-    });
-
-    // 3. Executa a limpeza em lote
+    votosSnap.forEach((doc) => batch.delete(doc.ref));
     await batch.commit();
     await registrarUltimaAlteracao();
-
-    console.log(
-      `Ciclo ${cicloId} e seus ${votosSnap.size} vínculos foram excluídos com sucesso.`,
-    );
   } catch (e) {
-    console.error("Erro ao encerrar/apagar ciclo:", e);
-    alert("Ocorreu um erro ao tentar excluir o ciclo do banco de dados.");
+    console.error(e);
   }
 }
 
-/**
- * Remove o vínculo de uma transação específica com o Tracker.
- * A transação permanece intacta no Finan.
- */
 export async function removerItemDoTracker(transacaoId) {
   if (!state.currentUser) return;
-  if (
-    !confirm(
-      "Remover esta compra do acompanhamento semanal? (A transação original não será excluída)",
-    )
-  )
-    return;
-
+  if (!confirm("Remover esta compra do acompanhamento semanal?")) return;
   const ref = db
     .collection("users")
     .doc(state.currentUser.uid)
     .collection("votos_tracker");
-
   try {
     await ref.doc(transacaoId).delete();
     await registrarUltimaAlteracao();
   } catch (e) {
-    console.error("Erro ao remover item do tracker:", e);
+    console.error(e);
   }
 }

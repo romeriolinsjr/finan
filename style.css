@@ -2095,3 +2095,27 @@ body.modal-aberto {
     padding: 10px 5px;
   }
 }
+
+/* Estilos para a Linha de Tempo Segmentada no Tracker */
+.time-bar-container {
+  display: flex;
+  gap: 3px;
+  height: 6px;
+  margin-bottom: 6px; /* Espaço para a barra de gasto que vem abaixo */
+}
+
+.time-segment {
+  flex: 1;
+  background-color: #e9ecef; /* Dia que ainda não passou (cinza claro) */
+  border-radius: 2px;
+  transition: background-color 0.3s ease;
+}
+
+.time-segment.past {
+  background-color: #3498db; /* Dia que já passou ou hoje (azul) */
+}
+
+.time-segment.today {
+  background-color: #2c3e50; /* Destaque opcional para o dia atual, se desejar */
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.2);
+}
