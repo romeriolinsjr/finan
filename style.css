@@ -1973,11 +1973,23 @@ body.modal-aberto {
 /* Estilização Padronizada dos Botões do Tracker */
 .btn-tracker-main {
   background-color: #27ae60 !important;
-  padding: 12px 30px !important;
-  font-size: 1.1em !important;
+  padding: 10px 18px !important; /* Igual aos outros botões do rodapé */
+  font-size: 0.95em !important; /* Igual aos outros botões do rodapé */
   font-weight: 600 !important;
-  border-radius: 8px !important;
+  border-radius: 6px !important;
   box-shadow: 0 4px 6px rgba(39, 174, 96, 0.2);
+  cursor: pointer !important;
+  color: white !important;
+  border: none !important;
+  transition: opacity 0.2s;
+}
+
+.btn-tracker-main:hover {
+  opacity: 0.9;
+}
+
+.btn-tracker-main:hover {
+  opacity: 0.9;
 }
 
 .tracker-card-footer {
@@ -1996,7 +2008,7 @@ body.modal-aberto {
   font-weight: 500 !important;
   border-radius: 6px !important;
   border: none !important;
-  cursor: pointer;
+  cursor: pointer !important;
   transition: opacity 0.2s;
 }
 
@@ -2007,6 +2019,28 @@ body.modal-aberto {
 .btn-danger {
   background-color: #e74c3c !important;
   color: white !important;
+}
+
+.btn-warning {
+  background-color: #f1c40f !important;
+  color: #2c3e50 !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+}
+
+.btn-warning {
+  background-color: #f1c40f !important;
+  color: #2c3e50 !important;
+  font-weight: 600 !important;
+}
+
+.btn-warning {
+  background-color: #f1c40f !important;
+  color: #2c3e50 !important; /* Texto escuro para contraste no amarelo */
+}
+
+.btn-warning:hover {
+  background-color: #f39c12 !important;
 }
 
 @media (max-width: 500px) {
@@ -2027,4 +2061,37 @@ body.modal-aberto {
 }
 .relatorio-item-analise.clicavel:active {
   transform: scale(0.99);
+}
+/* Estilos para as Abas do Weekly Tracker */
+.tracker-tabs-nav {
+  display: flex;
+  gap: 10px;
+  border-bottom: 2px solid #eee;
+  padding-bottom: 10px;
+}
+
+.tracker-tab-btn {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  background: #f8f9fa;
+  color: #7f8c8d;
+  cursor: pointer;
+  border-radius: 8px 8px 0 0;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  border-bottom: 3px solid transparent;
+}
+
+.tracker-tab-btn.active {
+  background: #e1f5fe;
+  color: #3498db;
+  border-bottom: 3px solid #3498db;
+}
+
+@media (max-width: 768px) {
+  .tracker-tab-btn {
+    font-size: 0.85em;
+    padding: 10px 5px;
+  }
 }

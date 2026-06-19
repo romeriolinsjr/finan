@@ -31,4 +31,5 @@ export const state = {
   // WEEKLY TRACKER:
   ciclosTracker: [], // Armazena os ciclos ativos (Ciclo 1 e Ciclo 2)
   votosTracker: [], // Armazena as atribuições manuais de transações a ciclos específicos
+  trackerActiveTabIndex: null, // Controla qual aba de ciclo está visível (0 ou 1)
 };

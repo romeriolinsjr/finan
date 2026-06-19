@@ -1790,5 +1790,20 @@ document.addEventListener("DOMContentLoaded", () => {
       ui.abrirModalEspecifico(elements.modalValorInicialCiclo);
     },
     encerrarCiclo: (id) => tracker.encerrarCiclo(id),
+    abrirNovoCiclo: () => {
+      const ativos = state.ciclosTracker.filter((c) => c.status === "ativo");
+      if (ativos.length >= 2) {
+        alert(
+          "Você já possui 2 ciclos ativos (Principal e Transição). Encerre o mais antigo antes de abrir um novo.",
+        );
+        return;
+      }
+      elements.cicloEditIdInput.value = "";
+      elements.dataInicioCicloInput.value = "";
+      elements.dataFimCicloInput.value = "";
+      elements.metaCicloInput.value = "";
+      elements.modalConfigCicloTitulo.textContent = "Abrir Novo Ciclo";
+      ui.abrirModalEspecifico(elements.modalConfigCiclo);
+    },
   };
 }); // Fim do DOMContentLoaded

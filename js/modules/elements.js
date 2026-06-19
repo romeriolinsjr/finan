@@ -240,6 +240,7 @@ export const elements = {
   modalWeeklyTracker: document.getElementById("modalWeeklyTracker"),
   weeklyTrackerTitulo: document.getElementById("weeklyTrackerTitulo"),
   btnAbrirNovoCiclo: document.getElementById("btnAbrirNovoCiclo"),
+  trackerTabsContainer: document.getElementById("trackerTabsContainer"),
   containerCiclosTracker: document.getElementById("containerCiclosTracker"),
 
   // Modal de Configuração de Ciclo

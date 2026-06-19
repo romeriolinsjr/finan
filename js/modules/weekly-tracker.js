@@ -17,27 +17,20 @@ export async function renderizarTracker() {
     elements.containerCiclosTracker;
   if (!container) return;
 
-  // 1. Busca todos os IDs de transações vinculados aos ciclos ativos
+  // 1. Sincronização de Transações
   const transacoesIdsNecessarias = state.votosTracker.map((v) => v.transacaoId);
-
-  // 2. Verifica se temos todas as transações na memória. Se não, busca as faltantes.
   const idsFaltantes = transacoesIdsNecessarias.filter(
     (id) => !state.transacoes.some((t) => t.id === id),
   );
 
   if (idsFaltantes.length > 0 && state.currentUser) {
-    console.log(
-      `Weekly Tracker: Carregando ${idsFaltantes.length} transações fora do cache...`,
-    );
     const userRef = db
       .collection("users")
       .doc(state.currentUser.uid)
       .collection("transacoes");
-
-    // O Firestore limita 'in' a 10 itens por vez. Vamos buscar um por um para garantir integridade.
-    const promessas = idsFaltantes.map((id) => userRef.doc(id).get());
-    const snapshots = await Promise.all(promessas);
-
+    const snapshots = await Promise.all(
+      idsFaltantes.map((id) => userRef.doc(id).get()),
+    );
     snapshots.forEach((snap) => {
       if (snap.exists) {
         const data = snap.data();
@@ -46,24 +39,69 @@ export async function renderizarTracker() {
     });
   }
 
+  // 2. Limpeza Total do Modal antes de desenhar
   container.innerHTML = "";
+  if (elements.trackerTabsContainer) {
+    elements.trackerTabsContainer.innerHTML = "";
+    elements.trackerTabsContainer.style.display = "none"; // Oculta por padrão
+  }
 
   const ciclosAtivos = state.ciclosTracker
     .filter((c) => c.status === "ativo")
     .sort((a, b) => new Date(a.dataInicio) - new Date(b.dataInicio));
 
+  // 3. Caso: Nenhum Ciclo Ativo
   if (ciclosAtivos.length === 0) {
-    container.innerHTML = `<div style="text-align:center; padding:40px; color:#7f8c8d;">
+    state.trackerActiveTabIndex = null;
+    container.innerHTML = `
+      <div style="text-align:center; padding:40px; color:#7f8c8d;">
         <p>Nenhum ciclo de acompanhamento ativo.</p>
-        <p style="font-size:0.8em;">Clique em "Abrir Novo Ciclo" para começar.</p>
+        <button class="btn-tracker-main" onclick="window.trackerMod.abrirNovoCiclo()" style="margin-top:15px;">Abrir Novo Ciclo</button>
       </div>`;
     return;
   }
 
-  ciclosAtivos.forEach((ciclo, index) => {
-    const htmlCiclo = construirHTMLCiclo(ciclo, index, ciclosAtivos.length);
+  // 4. Caso: Múltiplos Ciclos (Abas)
+  if (ciclosAtivos.length > 1) {
+    if (
+      state.trackerActiveTabIndex === null ||
+      state.trackerActiveTabIndex >= ciclosAtivos.length
+    ) {
+      state.trackerActiveTabIndex = 1; // Padrão: Ciclo Corrente
+    }
+
+    const nav = document.createElement("div");
+    nav.className = "tracker-tabs-nav";
+
+    ciclosAtivos.forEach((ciclo, idx) => {
+      const btn = document.createElement("button");
+      btn.className = `tracker-tab-btn ${state.trackerActiveTabIndex === idx ? "active" : ""}`;
+      btn.textContent = idx === 0 ? "Ciclo de Transição" : "Ciclo Corrente";
+      btn.onclick = () => {
+        state.trackerActiveTabIndex = idx;
+        renderizarTracker();
+      };
+      nav.appendChild(btn);
+    });
+
+    if (elements.trackerTabsContainer) {
+      elements.trackerTabsContainer.style.display = "flex";
+      elements.trackerTabsContainer.appendChild(nav);
+    }
+
+    const cicloParaMostrar = ciclosAtivos[state.trackerActiveTabIndex];
+    const htmlCiclo = construirHTMLCiclo(
+      cicloParaMostrar,
+      state.trackerActiveTabIndex,
+      ciclosAtivos.length,
+    );
     container.appendChild(htmlCiclo);
-  });
+  } else {
+    // 5. Caso: Apenas 1 Ciclo
+    state.trackerActiveTabIndex = 0;
+    const htmlCiclo = construirHTMLCiclo(ciclosAtivos[0], 0, 1);
+    container.appendChild(htmlCiclo);
+  }
 }
 
 /**
@@ -297,8 +335,9 @@ function construirHTMLCiclo(ciclo, index, totalCiclos) {
     </div>
 
     <div class="tracker-card-footer">
-       <button class="btn-secondary btn-tracker-alt" onclick="window.trackerMod.abrirConfig('${ciclo.id}')">Editar Datas/Meta</button>
-       <button class="btn-secondary btn-tracker-alt" onclick="window.trackerMod.abrirValorInicial('${ciclo.id}', ${ciclo.valorInicial || 0})">Ajustar Valor Inicial</button>
+       <button class="btn-tracker-main btn-tracker-alt" onclick="window.trackerMod.abrirNovoCiclo()">Abrir Novo Ciclo</button>
+       <button class="btn-warning btn-tracker-alt" onclick="window.trackerMod.abrirConfig('${ciclo.id}')">Editar Datas/Meta</button>
+       <button class="btn-primary btn-tracker-alt" onclick="window.trackerMod.abrirValorInicial('${ciclo.id}', ${ciclo.valorInicial || 0})">Ajustar Valor Inicial</button>
        <button class="btn-danger btn-tracker-alt" onclick="window.trackerMod.encerrarCiclo('${ciclo.id}')">Encerrar Ciclo</button>
     </div>
   `;
