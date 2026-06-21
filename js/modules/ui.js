@@ -311,6 +311,10 @@ export function criarElementoFatura(item, actionsDiv) {
     ? '<span class="status-excluido" style="background: #95a5a6; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.75em; margin-left: 5px;">Excluído</span>'
     : "";
 
+  const seloConferida = item.isConferida
+    ? '<span class="status-conferida" style="background: #3498db; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.75em; margin-left: 5px;">Conferida</span>'
+    : "";
+
   const btnAjusteHTML = item.isDeletado
     ? ""
     : `<button class="btn-vencimento-adjust ${item.vencimentoNoMesSeguinte ? "ativo" : ""}" data-cartao-id="${item.cartaoId}" title="Ajustar mês de vencimento">🗓️</button>`;
@@ -326,7 +330,7 @@ export function criarElementoFatura(item, actionsDiv) {
   return `<label class="transaction-main-info" for="fatura-check-${item.cartaoId}">
                     <input type="checkbox" id="fatura-check-${item.cartaoId}" class="fatura-checkbox" data-cartao-id="${item.cartaoId}" data-mes-ano-fatura="${item.mesAnoReferencia}" ${item.paga ? "checked" : ""}>
                     <div class="transaction-name-category">
-                        <span class="transaction-name">${item.nome}${seloExcluido}</span>
+                        <span class="transaction-name">${item.nome}${seloExcluido}${seloConferida}</span>
                         <span class="transaction-category">(Fatura do Cartão)</span>
                     </div>
                 </label>
@@ -480,6 +484,11 @@ export function renderizarTransacoesDoMes() {
       fatura.diaVencimentoFatura,
     );
     const totalAjustes = calcularTotalAjustes(fatura.cartaoId, mesAnoAtual);
+    // Verifica se esta fatura foi marcada como conferida pelo usuário
+    const isConferida = state.faturasConferidas.some(
+      (f) => f.cartaoId === fatura.cartaoId && f.mesAno === mesAnoAtual,
+    );
+
     itensParaRenderizar.push({
       id: fatura.cartaoId,
       tipoDisplay: CONSTS.TIPO_RENDERIZACAO.FATURA,
@@ -492,6 +501,7 @@ export function renderizarTransacoesDoMes() {
       mesAnoReferencia: mesAnoAtual,
       vencimentoNoMesSeguinte: fatura.vencimentoNoMesSeguinte,
       isDeletado: fatura.isDeletado,
+      isConferida: isConferida, // Injeta o status de conferência
     });
   });
 

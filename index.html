@@ -760,6 +760,11 @@
                   border-radius: 4px;
                 "
               />
+
+              <p>
+                <strong>Vencimento da Fatura:</strong>
+                <span id="faturaCartaoDataVencimento">DD/MM/AAAA</span>
+              </p>
               <p
                 id="resultadoDiferenca"
                 style="
@@ -771,12 +776,35 @@
                 "
               ></p>
             </div>
-          </div>
 
-          <p>
-            <strong>Vencimento da Fatura:</strong>
-            <span id="faturaCartaoDataVencimento">DD/MM/AAAA</span>
-          </p>
+            <!-- NOVO: Registro de Conferência Finalizada -->
+            <div
+              style="
+                margin-top: 15px;
+                padding-top: 10px;
+                border-top: 1px dashed #ced4da;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+              "
+            >
+              <input
+                type="checkbox"
+                id="checkFaturaConferida"
+                style="transform: scale(1.2); cursor: pointer"
+              />
+              <label
+                for="checkFaturaConferida"
+                style="
+                  margin: 0;
+                  font-weight: bold;
+                  color: #2c3e50;
+                  cursor: pointer;
+                "
+                >Fatura conferida com o banco</label
+              >
+            </div>
+          </div>
           <h3>Lista de Compras:</h3>
           <ul id="listaComprasFaturaCartao"></ul>
         </div>

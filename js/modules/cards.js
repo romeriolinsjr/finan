@@ -119,6 +119,14 @@ export function popularModalDetalhesFatura(cartaoId, mesAnoFatura) {
     totalEsperado.toString(),
   );
 
+  // NOVO: Verifica se esta fatura específica está marcada como conferida no estado global
+  if (elements.checkFaturaConferida) {
+    const isConferida = state.faturasConferidas.some(
+      (f) => f.cartaoId === cartaoId && f.mesAno === mesAnoFatura,
+    );
+    elements.checkFaturaConferida.checked = isConferida;
+  }
+
   if (elements.faturaCartaoTotalValor) {
     elements.faturaCartaoTotalValor.textContent =
       formatCurrency(minhaParteLiquida);
@@ -445,5 +453,34 @@ export async function executarSoftDeleteCartao(
   } catch (error) {
     console.error("Erro ao executar soft delete:", error);
     alert("Ocorreu um erro ao excluir o cartão.");
+  }
+}
+
+/**
+ * Salva ou remove o status de conferência de uma fatura no Firebase.
+ */
+export async function atualizarStatusConferenciaFatura(
+  cartaoId,
+  mesAno,
+  status,
+) {
+  if (!state.currentUser) return;
+
+  const ref = db
+    .collection("users")
+    .doc(state.currentUser.uid)
+    .collection("faturasConferidas");
+
+  const docId = `${cartaoId}_${mesAno}`;
+
+  try {
+    if (status) {
+      await ref.doc(docId).set({ cartaoId, mesAno, conferidoEm: new Date() });
+    } else {
+      await ref.doc(docId).delete();
+    }
+    await registrarUltimaAlteracao();
+  } catch (error) {
+    console.error("Erro ao atualizar status de conferência:", error);
   }
 }

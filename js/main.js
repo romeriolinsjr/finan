@@ -178,7 +178,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     try {
-      const [tSnap, cSnap, oSnap, ofSnap, aSnap, dSnap, pSnap] =
+      const [tSnap, cSnap, oSnap, ofSnap, aSnap, dSnap, pSnap, fcSnap] =
         await Promise.all([
           userCollections
             .collection("transacoes")
@@ -193,6 +193,7 @@ document.addEventListener("DOMContentLoaded", () => {
           userCollections.collection("ajustesFatura").get(),
           userCollections.collection("dividasTerceiros").get(),
           userCollections.collection("pessoas").get(),
+          userCollections.collection("faturasConferidas").get(), // NOVO
         ]);
 
       state.transacoes = tSnap.docs.map((doc) => ({
@@ -218,6 +219,10 @@ document.addEventListener("DOMContentLoaded", () => {
       }));
       state.pessoas = pSnap.docs.map((doc) => ({ ...doc.data(), id: doc.id }));
       state.pessoas.sort((a, b) => a.nome.localeCompare(b.nome));
+      state.faturasConferidas = fcSnap.docs.map((doc) => ({
+        ...doc.data(),
+        id: doc.id,
+      })); // NOVO
 
       // 1. Migração de Legados (caso não existam orçamentos com mês)
       const orcsComMes = state.orcamentos.filter((o) => o.mesAnoReferencia);
@@ -410,6 +415,17 @@ document.addEventListener("DOMContentLoaded", () => {
         if (elements.modalGerenciarPessoas.style.display === "flex") {
           third.renderizarListaPessoas();
         }
+      }),
+    );
+
+    // ESCUTA DE FATURAS CONFERIDAS (Selo de Conferência)
+    state.activeUnsubscribers.push(
+      userRef.collection("faturasConferidas").onSnapshot((s) => {
+        state.faturasConferidas = s.docs.map((d) => ({
+          ...d.data(),
+          id: d.id,
+        }));
+        update();
       }),
     );
 
@@ -945,6 +961,18 @@ document.addEventListener("DOMContentLoaded", () => {
       ui.abrirModalEspecifico,
     ),
   );
+
+  // NOVO: Ouvinte para o checkbox de "Fatura Conferida"
+  if (elements.checkFaturaConferida) {
+    elements.checkFaturaConferida.addEventListener("change", (e) => {
+      const cartaoId = elements.faturaCartaoNomeTitulo.dataset.cartaoId;
+      const mesAno = elements.faturaCartaoNomeTitulo.dataset.mesAno;
+      const status = e.target.checked;
+      if (cartaoId && mesAno) {
+        cards.atualizarStatusConferenciaFatura(cartaoId, mesAno, status);
+      }
+    });
+  }
   elements.listaComprasFaturaCartaoUl.addEventListener("click", (e) => {
     if (e.target.closest(".btn-skip-parcela")) {
       const b = e.target.closest(".btn-skip-parcela");

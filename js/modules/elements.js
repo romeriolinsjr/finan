@@ -214,6 +214,7 @@ export const elements = {
   inputValorBanco: document.getElementById("inputValorBanco"),
   resultadoDiferenca: document.getElementById("resultadoDiferenca"),
   faturaCartaoTotalValor: document.getElementById("faturaCartaoTotalValor"),
+  checkFaturaConferida: document.getElementById("checkFaturaConferida"),
   modalConfirmarEscopoOrcamento: document.getElementById(
     "modalConfirmarEscopoOrcamento",
   ),
