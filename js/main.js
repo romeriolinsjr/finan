@@ -1247,33 +1247,31 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Terceiros
-  elements.btnDespesasTerceiros.addEventListener("click", () =>
-    ui.abrirModalEspecifico(elements.modalMenuTerceiros),
-  );
-  elements.btnAbrirCadastroTerceiros.addEventListener("click", () => {
-    // PADRONIZAÇÃO: Fecha o modal de consulta e marca o retorno para ele
-    ui.fecharModalEspecifico(elements.modalConsultarTerceiros);
-    elements.modalNovaTransacao.dataset.returnTo = "modalConsultarTerceiros";
-
-    state.isEditMode = false;
-    state.editingTransactionId = null;
-    state.editingSerieId = null;
-
-    state.isModoTerceiros = true;
-    trans.popularSeletoresFixos();
-    ui.abrirModalEspecifico(elements.modalNovaTransacao, null, "transacao", {
-      resetModalNovaTransacao: trans.resetModalNovaTransacao,
-      preencherModalParaEdicao: trans.preencherModalParaEdicao,
-    });
-  });
-  elements.btnAbrirConsultaTerceiros.addEventListener("click", () => {
-    ui.fecharModalEspecifico(elements.modalMenuTerceiros);
+  // Terceiros: Atalho Direto para Consulta de Dívidas
+  elements.btnDespesasTerceiros.addEventListener("click", () => {
     state.dividasTerceirosDate = new Date(state.currentDate);
     third.renderizarDividasDoMes();
     ui.abrirModalEspecifico(elements.modalConsultarTerceiros);
   });
-  // REINSERIDO: Ouvintes das setas de navegação de Dívidas de Terceiros
+
+  // Cadastro de Nova Dívida a partir da Consulta
+  if (elements.btnAbrirCadastroTerceiros) {
+    elements.btnAbrirCadastroTerceiros.addEventListener("click", () => {
+      ui.fecharModalEspecifico(elements.modalConsultarTerceiros);
+      elements.modalNovaTransacao.dataset.returnTo = "modalConsultarTerceiros";
+      state.isEditMode = false;
+      state.editingTransactionId = null;
+      state.editingSerieId = null;
+      state.isModoTerceiros = true;
+      trans.popularSeletoresFixos();
+      ui.abrirModalEspecifico(elements.modalNovaTransacao, null, "transacao", {
+        resetModalNovaTransacao: trans.resetModalNovaTransacao,
+        preencherModalParaEdicao: trans.preencherModalParaEdicao,
+      });
+    });
+  }
+
+  // Navegação de Meses nas Dívidas
   elements.btnTerceirosAnterior.addEventListener("click", () => {
     state.dividasTerceirosDate.setMonth(
       state.dividasTerceirosDate.getMonth() - 1,
@@ -1287,24 +1285,32 @@ document.addEventListener("DOMContentLoaded", () => {
     );
     third.renderizarDividasDoMes();
   });
+
+  // Clique na Lista de Dívidas (Checkbox Mestre, Individual e Ações)
   elements.listaDividasTerceirosUl.addEventListener("click", (e) => {
-    // Caso o clique seja no Checkbox Mestre (por pessoa)
+    // 1. Checkbox Mestre (Por pessoa)
     if (e.target.classList.contains("master-checkbox-pessoa")) {
+      e.stopPropagation();
       const pessoaId = e.target.dataset.pessoaId;
       third.atualizarReembolsoEmLote(pessoaId, e.target.checked);
       return;
     }
 
-    // Caso o clique seja em um checkbox individual ou botões de ação
     const id =
       e.target.dataset.dividaId || e.target.closest("button")?.dataset.dividaId;
+    if (!id) return;
 
-    if (e.target.type === "checkbox")
+    // 2. Checkbox Individual
+    if (e.target.type === "checkbox") {
       third.atualizarStatusReembolso(id, e.target.checked);
-    else if (e.target.closest(".btn-delete-divida")) {
+      return;
+    }
+
+    // 3. Botões de Ação
+    if (e.target.closest(".btn-delete-divida")) {
       const d = state.dividasTerceiros.find((x) => x.id === id);
-      if (d.frequencia === "unica") third.excluirDividaTerceiroUnica(id);
-      else
+      if (d && d.frequencia === "unica") third.excluirDividaTerceiroUnica(id);
+      else if (d)
         ui.abrirModalConfirmarAcaoSerie(
           id,
           CONSTS.ACAO_SERIE.EXCLUIR,
@@ -1313,20 +1319,21 @@ document.addEventListener("DOMContentLoaded", () => {
         );
     } else if (e.target.closest(".btn-edit-divida")) {
       const d = state.dividasTerceiros.find((x) => x.id === id);
-      if (d.frequencia === "unica")
+      if (d && d.frequencia === "unica") {
         third.abrirModalEdicaoDivida(
           id,
           "unica",
           () => ui.fecharModalEspecifico(elements.modalConsultarTerceiros),
           ui.abrirModalEspecifico,
         );
-      else
+      } else if (d) {
         ui.abrirModalConfirmarAcaoSerie(
           id,
           CONSTS.ACAO_SERIE.EDITAR,
           "dividaTerceiro",
           ui.abrirModalEspecifico,
         );
+      }
     }
   });
   elements.btnSalvarPessoaModal.addEventListener("click", async () => {
@@ -1418,18 +1425,21 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // --- NOVO: Gerenciamento de Pessoas ---
-  elements.btnAbrirConsultaPessoas.addEventListener("click", () => {
-    ui.fecharModalEspecifico(elements.modalMenuTerceiros);
-    ui.abrirModalEspecifico(
-      elements.modalGerenciarPessoas,
-      null,
-      "gerenciarPessoas",
-      {
-        renderizarListaPessoas: third.renderizarListaPessoas,
-      },
-    );
-  });
+  // --- NOVO: Gerenciamento de Pessoas (Ajustado para o novo local no rodapé) ---
+  const btnPessoas = document.getElementById("btnAbrirConsultaPessoas");
+  if (btnPessoas) {
+    btnPessoas.addEventListener("click", () => {
+      ui.fecharModalEspecifico(elements.modalConsultarTerceiros);
+      ui.abrirModalEspecifico(
+        elements.modalGerenciarPessoas,
+        null,
+        "gerenciarPessoas",
+        {
+          renderizarListaPessoas: third.renderizarListaPessoas,
+        },
+      );
+    });
+  }
 
   elements.btnAbrirModalCadastroPessoaDirect.addEventListener("click", () => {
     ui.fecharModalEspecifico(elements.modalGerenciarPessoas);

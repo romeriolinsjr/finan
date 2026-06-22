@@ -107,26 +107,52 @@ export function renderizarDividasDoMes() {
   );
 
   listaOrdenada.forEach((grupo) => {
-    // LÓGICA NOVA: Calcula o total específico desta pessoa no mês
     const totalPessoa = grupo.dividas.reduce((soma, d) => soma + d.valor, 0);
-
-    // Verifica se TODAS as dívidas deste grupo já estão reembolsadas para marcar o checkbox mestre
     const todasReembolsadas = grupo.dividas.every((d) => d.reembolsado);
+    const pessoaId = grupo.dividas[0].pessoaId;
 
+    // Cabeçalho do Grupo (Agora clicável para expandir/recolher)
     const headerPessoa = document.createElement("div");
+    headerPessoa.className = "divida-grupo-header";
     headerPessoa.style.cssText =
-      "padding: 10px 15px; margin: 15px 0 5px; background-color: #e9ecef; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;";
+      "padding: 10px 15px; margin: 15px 0 5px; background-color: #e9ecef; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; cursor: pointer;";
 
     headerPessoa.innerHTML = `
         <div style="display: flex; align-items: center; gap: 10px;">
-            <input type="checkbox" class="master-checkbox-pessoa" data-pessoa-id="${grupo.dividas[0].pessoaId}" ${todasReembolsadas ? "checked" : ""} style="transform: scale(1.2); cursor: pointer;" title="Marcar/Desmarcar todas desta pessoa">
+            <input type="checkbox" class="master-checkbox-pessoa" data-pessoa-id="${pessoaId}" ${todasReembolsadas ? "checked" : ""} style="transform: scale(1.2); cursor: pointer;" title="Marcar/Desmarcar todas desta pessoa">
             <h4 style="margin: 0; font-size: 1em; color: #2c3e50;">${grupo.nomePessoa}</h4>
+            <span class="seta-toggle" style="font-size: 0.8em; transition: transform 0.2s;">▶</span>
         </div>
         <span style="font-weight: bold; color: #2c3e50; font-size: 0.95em;">Total: ${formatCurrency(totalPessoa)}</span>
     `;
+
+    // Container dos Itens (Recolhido por padrão)
+    const containerItens = document.createElement("div");
+    containerItens.className = "divida-grupo-conteudo recolhido";
+    containerItens.style.display = "none";
+    containerItens.id = `grupo-itens-${pessoaId}`;
+
+    // Lógica de Clique no Cabeçalho para Expandir/Recolher
+    headerPessoa.addEventListener("click", (e) => {
+      // Se clicou no checkbox mestre, não faz nada aqui (o main.js resolve)
+      if (e.target.classList.contains("master-checkbox-pessoa")) return;
+
+      const estaRecolhido = containerItens.classList.contains("recolhido");
+      const seta = headerPessoa.querySelector(".seta-toggle");
+
+      if (estaRecolhido) {
+        containerItens.classList.remove("recolhido");
+        containerItens.style.display = "block";
+        seta.style.transform = "rotate(90deg)";
+      } else {
+        containerItens.classList.add("recolhido");
+        containerItens.style.display = "none";
+        seta.style.transform = "rotate(0deg)";
+      }
+    });
+
     listaUl.appendChild(headerPessoa);
 
-    // Ordena as dívidas desta pessoa por valor decrescente para manter a lista estável
     const dividasOrdenadas = [...grupo.dividas].sort(
       (a, b) => b.valor - a.valor,
     );
@@ -151,8 +177,10 @@ export function renderizarDividasDoMes() {
                     <button class="btn-delete btn-delete-divida" data-divida-id="${divida.id}" title="Excluir">✖</button>
                 </div>
             `;
-      listaUl.appendChild(li);
+      containerItens.appendChild(li);
     });
+
+    listaUl.appendChild(containerItens);
   });
 }
 

@@ -1178,30 +1178,7 @@
 
     <!-- NOVOS MODAIS PARA DESPESAS DE TERCEIROS -->
     <div id="modalMenuTerceiros" class="modal">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h2>Despesas de Terceiros</h2>
-          <span class="close-button" data-modal-id="modalMenuTerceiros">×</span>
-        </div>
-        <div class="modal-body">
-          <p>O que você gostaria de fazer?</p>
-        </div>
-        <div
-          class="modal-footer"
-          style="flex-wrap: wrap; gap: 10px; justify-content: center"
-        >
-          <button id="btnAbrirConsultaTerceiros" class="btn-primary">
-            Consultar Dívidas
-          </button>
-          <button
-            id="btnAbrirConsultaPessoas"
-            class="btn-primary"
-            style="background-color: #34495e"
-          >
-            Consultar Pessoas
-          </button>
-        </div>
-      </div>
+      <!-- Este modal agora é ignorado pelo atalho direto, mas mantido para integridade de IDs se necessário -->
     </div>
 
     <div id="modalConsultarTerceiros" class="modal">
@@ -1228,6 +1205,13 @@
           </ul>
         </div>
         <div class="modal-footer">
+          <button
+            id="btnAbrirConsultaPessoas"
+            class="btn-primary"
+            style="background-color: #34495e"
+          >
+            Consultar Pessoas
+          </button>
           <button id="btnAbrirCadastroTerceiros" class="btn-primary">
             Cadastrar Nova Dívida
           </button>
