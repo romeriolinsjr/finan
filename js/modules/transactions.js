@@ -67,6 +67,9 @@ export function atualizarVisibilidadeFormulario() {
 }
 
 export function resetModalNovaTransacao() {
+  // NOVO: Garante que o modo de adição rápida seja resetado para falso por padrão
+  state.isQuickAddMode = false;
+
   // Limpa textos e seletores
   elements.tipoTransacaoSelect.value = "";
   elements.nomeTransacaoInput.value = "";
@@ -590,10 +593,14 @@ export async function adicionarNovasTransacoes(dados) {
       });
     }
   } else {
+    // Se for uma adição rápida (Atalho Pix/Débito) e for despesa ordinária, já nasce paga.
+    const statusInicialPago =
+      state.isQuickAddMode && dados.categoria === "ordinaria" ? true : false;
+
     transacoesParaAdicionar.push({
       ...dados,
       nome: dados.nomeBase,
-      paga: false,
+      paga: statusInicialPago,
       serieId: null,
       mesAnoReferencia: mesAnoBase,
     });
@@ -787,10 +794,12 @@ export function abrirModalDespesaCartaoRapida(
 ) {
   state.isEditMode = false;
   state.editingTransactionId = null;
-  state.isQuickAddMode = true;
 
   // Limpa o modal para o estado inicial
   resetModalNovaTransacao();
+
+  // Ativa o modo rápido após o reset
+  state.isQuickAddMode = true;
 
   // NOVO: Popula as listas de cartões e orçamentos antes de definir os valores
   popularSeletoresFixos();
@@ -908,13 +917,15 @@ export function abrirModalDespesaOrdinariaRapida(callbackAbrirModal) {
   // 1. Garante que estamos no modo de criação e não de terceiros
   state.isEditMode = false;
   state.editingTransactionId = null;
-  state.isQuickAddMode = false;
   state.isModoTerceiros = false;
 
   // 2. Reseta o modal para o estado limpo original
   resetModalNovaTransacao();
 
-  // 3. Preenche os campos de atalho
+  // 3. Ativa o sinalizador de adição rápida (para que a despesa nasça "Paga")
+  state.isQuickAddMode = true;
+
+  // 4. Preenche os campos de atalho
   elements.tipoTransacaoSelect.value = "despesa";
   elements.categoriaDespesa.value = "ordinaria";
 
