@@ -1411,16 +1411,19 @@ document.addEventListener("DOMContentLoaded", () => {
     reports.popularModalRelatorio(state.reportDate);
   });
 
-  // Interatividade Drill-down nos Relatórios
+  // Interatividade Drill-down nos Relatórios (Atualizado para Patrimônio)
   elements.relatorioCorpo.addEventListener("click", (e) => {
     const itemClicavel = e.target.closest(".relatorio-item-analise.clicavel");
     if (itemClicavel) {
-      const { cat, freq } = itemClicavel.dataset;
+      // Captura categoria, frequência OU o novo tipoPatrimonio do dataset do elemento
+      const { cat, freq, tipoPatrimonio } = itemClicavel.dataset;
+
       reports.abrirDetalhesFiltroRelatorio(
         cat,
         freq,
         state.reportDate,
         ui.abrirModalEspecifico,
+        tipoPatrimonio, // Passa o parâmetro de patrimônio para a função lógica
       );
     }
   });
@@ -1687,6 +1690,13 @@ document.addEventListener("DOMContentLoaded", () => {
   elements.categoriaDespesa.addEventListener("change", () => {
     trans.atualizarVisibilidadeFormulario();
   });
+
+  // NOVO: Ouvinte para Patrimônio (PROTEGIDO)
+  if (elements.frequenciaPatrimonio) {
+    elements.frequenciaPatrimonio.addEventListener("change", () => {
+      trans.atualizarVisibilidadeFormulario();
+    });
+  }
 
   elements.frequenciaDespesaOrd.addEventListener("change", () => {
     trans.atualizarVisibilidadeFormulario();

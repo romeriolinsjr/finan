@@ -8,131 +8,159 @@ import {
   registrarUltimaAlteracao,
 } from "./utils.js";
 
-// Função para gerenciar o que aparece ou some no formulário
+// Função para gerenciar o que aparece ou some no formulário (VERSÃO ULTRA-SEGURA)
 export function atualizarVisibilidadeFormulario() {
-  const tipo = elements.tipoTransacaoSelect.value;
-  const categoria = elements.categoriaDespesa.value;
-  const freqOrd = elements.frequenciaDespesaOrd.value;
-  const freqCartao = elements.frequenciaDespesaCartao.value;
+  try {
+    const tipo = elements.tipoTransacaoSelect?.value || "";
+    const categoria = elements.categoriaDespesa?.value || "";
 
-  // Reseta todas as seções primeiro
-  elements.secaoReceita.style.display = "none";
-  elements.secaoCategoriaDespesa.style.display = "none";
-  elements.secaoDespesaOrdinaria.style.display = "none";
-  elements.secaoDespesaCartao.style.display = "none";
-  elements.blocoPessoaTerceiros.style.display = state.isModoTerceiros
-    ? "block"
-    : "none";
+    // 1. Reset inicial (Esconde tudo)
+    const secoes = [
+      elements.secaoReceita,
+      elements.secaoCategoriaDespesa,
+      elements.secaoDespesaOrdinaria,
+      elements.secaoDespesaCartao,
+      elements.secaoPatrimonio,
+      elements.btnSalvarTransacao,
+    ];
 
-  if (tipo === "receita") {
-    elements.secaoReceita.style.display = "block";
-    elements.btnSalvarTransacao.style.display = "inline-block";
-  } else if (tipo === "despesa") {
-    elements.secaoCategoriaDespesa.style.display = "block";
+    secoes.forEach((s) => {
+      if (s) s.style.display = "none";
+    });
 
-    if (categoria === "ordinaria") {
-      elements.secaoDespesaOrdinaria.style.display = "block";
-
-      // Controla a exibição dos campos de parcelamento
-      const isParceladaOrd = freqOrd === "parcelada";
-      elements.containerTipoCadastroOrd.style.display = isParceladaOrd
+    if (elements.blocoPessoaTerceiros) {
+      elements.blocoPessoaTerceiros.style.display = state.isModoTerceiros
         ? "block"
         : "none";
-      elements.camposParceladaOrd.style.display = isParceladaOrd
-        ? "block"
-        : "none";
-
-      elements.btnSalvarTransacao.style.display = "inline-block";
-    } else if (categoria === "cartao_credito") {
-      elements.secaoDespesaCartao.style.display = "block";
-      // Controla a cascata do parcelamento
-      const isParcelada = freqCartao === "parcelada";
-      elements.containerTipoCadastroCartao.style.display = isParcelada
-        ? "block"
-        : "none";
-      elements.camposParcelamentoCartao.style.display = isParcelada
-        ? "block"
-        : "none";
-
-      elements.containerOrcamentoVinculado.style.display = state.isModoTerceiros
-        ? "none"
-        : "block";
-      elements.btnSalvarTransacao.style.display = "inline-block";
-    } else {
-      elements.btnSalvarTransacao.style.display = "none";
     }
-  } else {
-    elements.btnSalvarTransacao.style.display = "none";
+
+    // 2. Lógica de Cascata
+    if (tipo === "receita") {
+      if (elements.secaoReceita) elements.secaoReceita.style.display = "block";
+      if (elements.btnSalvarTransacao)
+        elements.btnSalvarTransacao.style.display = "inline-block";
+    } else if (tipo === "despesa") {
+      if (elements.secaoCategoriaDespesa)
+        elements.secaoCategoriaDespesa.style.display = "block";
+
+      if (categoria === "ordinaria") {
+        if (elements.secaoDespesaOrdinaria)
+          elements.secaoDespesaOrdinaria.style.display = "block";
+        const freqOrd = elements.frequenciaDespesaOrd?.value || "unica";
+        const isParceladaOrd = freqOrd === "parcelada";
+        if (elements.containerTipoCadastroOrd)
+          elements.containerTipoCadastroOrd.style.display = isParceladaOrd
+            ? "block"
+            : "none";
+        if (elements.camposParceladaOrd)
+          elements.camposParceladaOrd.style.display = isParceladaOrd
+            ? "block"
+            : "none";
+        if (elements.btnSalvarTransacao)
+          elements.btnSalvarTransacao.style.display = "inline-block";
+      } else if (categoria === "cartao_credito") {
+        if (elements.secaoDespesaCartao)
+          elements.secaoDespesaCartao.style.display = "block";
+        const freqCartao = elements.frequenciaDespesaCartao?.value || "unica";
+        const isParcelada = freqCartao === "parcelada";
+        if (elements.containerTipoCadastroCartao)
+          elements.containerTipoCadastroCartao.style.display = isParcelada
+            ? "block"
+            : "none";
+        if (elements.camposParcelamentoCartao)
+          elements.camposParcelamentoCartao.style.display = isParcelada
+            ? "block"
+            : "none";
+        if (elements.btnSalvarTransacao)
+          elements.btnSalvarTransacao.style.display = "inline-block";
+      }
+    } else if (tipo === "patrimonio") {
+      if (elements.secaoPatrimonio)
+        elements.secaoPatrimonio.style.display = "block";
+      const freqPat = elements.frequenciaPatrimonio?.value || "unica";
+      const isParceladaPat = freqPat === "parcelada";
+
+      if (elements.containerTipoCadastroPatrimonio)
+        elements.containerTipoCadastroPatrimonio.style.display = isParceladaPat
+          ? "block"
+          : "none";
+      if (elements.camposParceladoPatrimonio)
+        elements.camposParceladoPatrimonio.style.display = isParceladaPat
+          ? "block"
+          : "none";
+
+      if (elements.btnSalvarTransacao)
+        elements.btnSalvarTransacao.style.display = "inline-block";
+    }
+  } catch (error) {
+    console.error("CRITICAL ERROR in atualizarVisibilidadeFormulario:", error);
   }
 }
 
 export function resetModalNovaTransacao() {
-  // NOVO: Garante que o modo de adição rápida seja resetado para falso por padrão
-  state.isQuickAddMode = false;
+  try {
+    state.isQuickAddMode = false;
 
-  // Limpa textos e seletores
-  elements.tipoTransacaoSelect.value = "";
-  elements.nomeTransacaoInput.value = "";
-  elements.tipoTransacaoSelect.disabled = false;
-  elements.nomeTransacaoInput.placeholder = "Ex: Salário, Aluguel";
+    // Campos principais
+    if (elements.tipoTransacaoSelect) {
+      elements.tipoTransacaoSelect.value = "";
+      elements.tipoTransacaoSelect.disabled = false;
+    }
+    if (elements.nomeTransacaoInput) {
+      elements.nomeTransacaoInput.value = "";
+      elements.nomeTransacaoInput.placeholder = "Ex: Salário, Aluguel";
+    }
 
-  // Limpa campos de Receita
-  elements.valorReceita.value = "";
-  elements.dataEntradaReceita.value = new Date().toISOString().split("T")[0];
-  elements.frequenciaReceita.value = "unica";
+    // Reset Receita
+    if (elements.valorReceita) elements.valorReceita.value = "";
+    if (elements.dataEntradaReceita)
+      elements.dataEntradaReceita.value = new Date()
+        .toISOString()
+        .split("T")[0];
+    if (elements.frequenciaReceita) {
+      elements.frequenciaReceita.value = "unica";
+      elements.frequenciaReceita.disabled = false;
+    }
 
-  // Limpa campos de Despesa
-  elements.categoriaDespesa.value = "";
-  elements.categoriaDespesa.disabled = false;
+    // Reset Despesa
+    if (elements.categoriaDespesa) {
+      elements.categoriaDespesa.value = "";
+      elements.categoriaDespesa.disabled = false;
+    }
 
-  // NOVO: Garante que seletores de cartão, orçamento e frequências sejam destravados
-  elements.cartaoDespesa.disabled = false;
-  elements.orcamentoVinculado.disabled = false;
-  elements.frequenciaReceita.disabled = false;
-  elements.frequenciaDespesaOrd.disabled = false;
-  elements.frequenciaDespesaCartao.disabled = false;
+    // Reset Ordinária
+    if (elements.frequenciaDespesaOrd) {
+      elements.frequenciaDespesaOrd.value = "unica";
+      elements.frequenciaDespesaOrd.disabled = false;
+    }
+    if (elements.valorDespesaOrd) elements.valorDespesaOrd.value = "";
+    if (elements.dataVencimentoDespesaOrd)
+      elements.dataVencimentoDespesaOrd.value = new Date()
+        .toISOString()
+        .split("T")[0];
 
-  // Limpa avisos de campos travados (se houver)
-  const notes = elements.modalNovaTransacao.querySelectorAll(
-    ".form-note-injected",
-  );
-  notes.forEach((n) => n.remove());
+    // Reset Patrimônio
+    if (elements.subTipoPatrimonio) elements.subTipoPatrimonio.value = "ativo";
+    if (elements.frequenciaPatrimonio)
+      elements.frequenciaPatrimonio.value = "unica";
+    if (elements.tipoCadastroParcelaPatrimonio)
+      elements.tipoCadastroParcelaPatrimonio.value = "valor_total";
+    if (elements.valorPatrimonio) elements.valorPatrimonio.value = "";
+    if (elements.dataPatrimonio)
+      elements.dataPatrimonio.value = new Date().toISOString().split("T")[0];
 
-  // Ordinária
-  elements.frequenciaDespesaOrd.value = "unica";
-  elements.frequenciaDespesaOrd.disabled = false;
-  elements.valorDespesaOrd.value = "";
-  elements.dataVencimentoDespesaOrd.value = new Date()
-    .toISOString()
-    .split("T")[0];
-  elements.tipoCadastroParcelaOrd.value = "valor_total";
-  elements.qtdParcelasOrd.value = "1"; // Valor padrão para evitar divisão por zero
-  elements.parcelaAtualOrd.value = "1";
+    // Limpa avisos e feedbacks
+    const notes = elements.modalNovaTransacao?.querySelectorAll(
+      ".form-note-injected",
+    );
+    notes?.forEach((n) => n.remove());
+    if (elements.quickAddFeedback)
+      elements.quickAddFeedback.style.display = "none";
 
-  // Cartão
-  elements.frequenciaDespesaCartao.value = "unica";
-  elements.frequenciaDespesaCartao.disabled = false;
-  elements.valorDespesaCartao.value = "";
-  elements.tipoCadastroParcelaCartao.value = "valor_total";
-  elements.qtdParcelasCartao.value = "1"; // Valor padrão para evitar divisão por zero
-  elements.parcelaAtualCartao.value = "1";
-
-  if (elements.quickAddFeedback)
-    elements.quickAddFeedback.style.display = "none";
-
-  // Ajusta títulos
-  if (state.isModoTerceiros) {
-    elements.modalHeaderNovaTransacao.textContent = "Nova Dívida de Terceiro";
-    elements.tipoTransacaoSelect.value = "despesa";
-    elements.tipoTransacaoSelect.disabled = true;
-  } else {
-    elements.modalHeaderNovaTransacao.textContent = state.isEditMode
-      ? "Editar Transação"
-      : "Nova Transação";
+    atualizarVisibilidadeFormulario();
+  } catch (err) {
+    console.error("Erro ao resetar modal:", err);
   }
-
-  // Atualiza visibilidade inicial
-  atualizarVisibilidadeFormulario();
 }
 
 // Função para limpar apenas os valores durante a adição rápida (dentro da fatura)
@@ -185,6 +213,10 @@ export function preencherModalParaEdicao(id) {
     elements.dataEntradaReceita.value = transacao.dataEntrada;
     elements.frequenciaReceita.value = transacao.frequencia;
     elements.frequenciaReceita.disabled = true;
+  } else if (transacao.tipo === "patrimonio") {
+    elements.subTipoPatrimonio.value = transacao.subTipo;
+    elements.valorPatrimonio.value = transacao.valor;
+    elements.dataPatrimonio.value = transacao.dataOperacao;
   } else {
     elements.categoriaDespesa.value = transacao.categoria;
     elements.categoriaDespesa.disabled = true;
@@ -236,6 +268,16 @@ export function obterDadosDoFormulario() {
     dados.valor = parseFloat(elements.valorReceita.value) || 0;
     dados.dataEntrada = elements.dataEntradaReceita.value;
     dados.frequencia = elements.frequenciaReceita.value;
+  } else if (tipo === "patrimonio") {
+    dados.subTipo = elements.subTipoPatrimonio.value;
+    dados.valor = parseFloat(elements.valorPatrimonio.value) || 0;
+    dados.dataOperacao = elements.dataPatrimonio.value;
+    dados.frequencia = elements.frequenciaPatrimonio.value;
+    if (dados.frequencia === "parcelada") {
+      dados.tipoCadastroParcela = elements.tipoCadastroParcelaPatrimonio.value;
+      dados.totalParcelas = parseInt(elements.qtdParcelasPatrimonio.value);
+      dados.parcelaAtual = parseInt(elements.parcelaAtualPatrimonio.value) || 1;
+    }
   } else {
     dados.categoria = elements.categoriaDespesa.value;
     if (dados.categoria === "ordinaria") {
@@ -279,6 +321,10 @@ export function validarDadosDaTransacao(dados) {
     alert("Informe a data.");
     return false;
   }
+  if (dados.tipo === "patrimonio" && !dados.dataOperacao) {
+    alert("Informe a data da operação.");
+    return false;
+  }
   if (dados.categoria === "ordinaria" && !dados.dataVencimento) {
     alert("Informe o vencimento.");
     return false;
@@ -291,7 +337,7 @@ export function validarDadosDaTransacao(dados) {
     dados.frequencia === "parcelada" &&
     (isNaN(dados.totalParcelas) || dados.totalParcelas < 1)
   ) {
-    alert("Quantidade de parcelas inválida.");
+    alert("Informe uma quantidade de parcelas válida.");
     return false;
   }
   return true;
@@ -320,6 +366,8 @@ export async function atualizarTransacaoExistente(dados) {
     valor: dados.valor,
     dataEntrada: dados.dataEntrada || null,
     dataVencimento: dados.dataVencimento || null,
+    dataOperacao: dados.dataOperacao || null,
+    subTipo: dados.subTipo || null,
     categoria: dados.categoria || null,
     cartaoId: dados.cartaoId || null,
     orcamentoId: dados.orcamentoId || null,
@@ -548,9 +596,11 @@ export async function adicionarNovasTransacoes(dados) {
         : 60;
 
     for (let i = 0; i < totalMeses; i++) {
-      let dataRef = new Date(
-        parseDateString(dados.dataEntrada || dados.dataVencimento),
-      );
+      // Ajuste para pegar a data correta conforme o tipo (Receita, Despesa ou Patrimônio)
+      const dataBaseOriginal =
+        dados.dataEntrada || dados.dataVencimento || dados.dataOperacao;
+      let dataRef = new Date(parseDateString(dataBaseOriginal));
+
       dataRef.setMonth(dataRef.getMonth() + i);
       let mesReferenciaObj = new Date(state.currentDate);
       mesReferenciaObj.setMonth(mesReferenciaObj.getMonth() + i);
@@ -575,6 +625,7 @@ export async function adicionarNovasTransacoes(dados) {
       transacoesParaAdicionar.push({
         ...dados,
         serieId,
+        paga: false, // Séries (Patrimônio ou Despesa) nascem desmarcadas para controle
         orcamentoId: orcamentoIdVinculo,
         valor: valorFinal,
         parcelaAtual:
@@ -586,6 +637,9 @@ export async function adicionarNovasTransacoes(dados) {
         dataEntrada: dados.dataEntrada
           ? dataRef.toISOString().split("T")[0]
           : null,
+        dataOperacao: dados.dataOperacao
+          ? dataRef.toISOString().split("T")[0]
+          : null,
         nome:
           dados.frequencia === "parcelada"
             ? `${dados.nomeBase} (${dados.parcelaAtual + i}/${dados.totalParcelas})`
@@ -593,9 +647,13 @@ export async function adicionarNovasTransacoes(dados) {
       });
     }
   } else {
-    // Se for uma adição rápida (Atalho Pix/Débito) e for despesa ordinária, já nasce paga.
+    // Lógica para Transação Única
+    // Se for uma adição rápida (Atalho Pix/Débito) OU se for Patrimônio Único, já nasce pago.
     const statusInicialPago =
-      state.isQuickAddMode && dados.categoria === "ordinaria" ? true : false;
+      (state.isQuickAddMode && dados.categoria === "ordinaria") ||
+      dados.tipo === "patrimonio"
+        ? true
+        : false;
 
     transacoesParaAdicionar.push({
       ...dados,
@@ -627,7 +685,7 @@ export async function adicionarNovasTransacoes(dados) {
     const newTransRef = ref.doc();
     batch.set(newTransRef, d);
 
-    // LÓGICA DE CAPTURA AUTOMÁTICA (Weekly Tracker) - CORRIGIDA
+    // LÓGICA DE CAPTURA AUTOMÁTICA (Weekly Tracker)
     if (
       index === 0 &&
       d.categoria === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO
@@ -652,6 +710,7 @@ export async function adicionarNovasTransacoes(dados) {
     await batch.commit();
     return transacoesParaAdicionar.length;
   } catch (e) {
+    console.error("Erro ao salvar transações:", e);
     return false;
   }
 }

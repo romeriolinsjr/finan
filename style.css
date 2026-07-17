@@ -313,6 +313,10 @@ body.modal-aberto {
   border-left: 5px solid #27ae60;
 }
 
+.transaction-item.patrimonio {
+  border-left: 5px solid #3498db; /* Barra Azul para Patrimônio */
+}
+
 .transaction-item.receita .transaction-name {
   flex-grow: 1;
   font-weight: 500;
@@ -441,12 +445,15 @@ body.modal-aberto {
   color: #f39c12;
 }
 
-.transaction-item.despesa.paga {
+.transaction-item.despesa.paga,
+.transaction-item.patrimonio.paga {
   background-color: #f8f9fa;
   opacity: 0.75;
 }
 .transaction-item.despesa.paga .transaction-name-category .transaction-name,
-.transaction-item.despesa.paga .transaction-value-date .transaction-value {
+.transaction-item.despesa.paga .transaction-value-date .transaction-value,
+.transaction-item.patrimonio.paga .transaction-name-category .transaction-name,
+.transaction-item.patrimonio.paga .transaction-value-date .transaction-value {
   color: #555e68;
 }
 .transaction-item.despesa.paga input[type="checkbox"] {
@@ -990,10 +997,10 @@ body.modal-aberto {
   gap: 15px;
 }
 
-/* NOVO: Força 4 colunas em telas maiores para o grid principal do relatório */
+/* AJUSTADO: Suporte para 5 colunas (incluindo Patrimônio) */
 @media (min-width: 992px) {
   #relatorio-secao-resumo .relatorio-grid {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
   }
 }
 

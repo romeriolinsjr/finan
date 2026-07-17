@@ -184,6 +184,7 @@
                 <option value="">-- Selecione --</option>
                 <option value="receita">Receita</option>
                 <option value="despesa">Despesa</option>
+                <option value="patrimonio">Patrimônio</option>
               </select>
             </div>
             <div>
@@ -258,6 +259,90 @@
               <option value="ordinaria">Ordinária</option>
               <option value="cartao_credito">Cartão de crédito</option>
             </select>
+          </div>
+
+          <!-- BLOCO PATRIMÔNIO (Só aparece se tipo = patrimonio) -->
+          <div
+            id="secaoPatrimonio"
+            style="
+              display: none;
+              margin-top: 15px;
+              padding-top: 15px;
+              border-top: 1px solid #eee;
+            "
+          >
+            <div>
+              <label for="subTipoPatrimonio">Sub-categoria:</label>
+              <select id="subTipoPatrimonio">
+                <option value="ativo">
+                  Formação de Ativos (Investimentos/Reserva)
+                </option>
+                <option value="passivo">
+                  Redução de Passivos (Amortizações/Dívidas)
+                </option>
+              </select>
+            </div>
+            <div style="margin-top: 10px">
+              <label for="frequenciaPatrimonio">Frequência:</label>
+              <select id="frequenciaPatrimonio">
+                <option value="unica">Única</option>
+                <option value="recorrente">Recorrente</option>
+                <option value="parcelada">Parcelada</option>
+              </select>
+            </div>
+
+            <!-- Container para o tipo de cadastro (Valor total vs Parcela) -->
+            <div
+              id="containerTipoCadastroPatrimonio"
+              style="display: none; margin-top: 10px"
+            >
+              <label for="tipoCadastroParcelaPatrimonio">Cadastrar por:</label>
+              <select id="tipoCadastroParcelaPatrimonio">
+                <option value="valor_total">Valor total do aporte</option>
+                <option value="valor_parcela">Valor da parcela/mês</option>
+              </select>
+            </div>
+
+            <!-- Campos de Parcelamento para Patrimônio -->
+            <div
+              id="camposParceladoPatrimonio"
+              style="
+                display: none;
+                background: #f9f9f9;
+                padding: 10px;
+                border-radius: 5px;
+                margin-top: 10px;
+              "
+            >
+              <label for="qtdParcelasPatrimonio">Quantidade de parcelas:</label>
+              <input
+                type="number"
+                id="qtdParcelasPatrimonio"
+                min="1"
+                value="1"
+              />
+              <label for="parcelaAtualPatrimonio">Parcela atual (Nº):</label>
+              <input
+                type="number"
+                id="parcelaAtualPatrimonio"
+                min="1"
+                value="1"
+              />
+            </div>
+
+            <div style="margin-top: 10px">
+              <label for="valorPatrimonio">Valor (R$):</label>
+              <input
+                type="number"
+                id="valorPatrimonio"
+                step="0.01"
+                placeholder="0,00"
+              />
+            </div>
+            <div style="margin-top: 10px">
+              <label for="dataPatrimonio">Data da operação:</label>
+              <input type="date" id="dataPatrimonio" />
+            </div>
           </div>
 
           <!-- BLOCO DESPESA ORDINÁRIA (Só aparece se categoria = ordinaria) -->

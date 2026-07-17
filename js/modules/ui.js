@@ -48,10 +48,16 @@ export function atualizarResumoFinanceiro() {
 
   let receitasTotais = 0;
   let despesasProjetadasTotais = 0;
+  let patrimonioTotal = 0;
 
   // 1. Soma das Receitas
   receitasTotais = transacoesDoMes
     .filter((t) => t.tipo === CONSTS.TIPO_TRANSACAO.RECEITA)
+    .reduce((acc, t) => acc + (Number(t.valor) || 0), 0);
+
+  // 1.1 Soma do Patrimônio (Investimentos e Amortizações)
+  patrimonioTotal = transacoesDoMes
+    .filter((t) => t.tipo === CONSTS.TIPO_TRANSACAO.PATRIMONIO)
     .reduce((acc, t) => acc + (Number(t.valor) || 0), 0);
 
   // Mapeia IDs para lógica de órfãos
@@ -99,7 +105,9 @@ export function atualizarResumoFinanceiro() {
 
   despesasProjetadasTotais -= totalAjustes;
 
-  const saldoFinal = receitasTotais - despesasProjetadasTotais;
+  // O Saldo Final subtrai as despesas de consumo E os aportes em patrimônio
+  const saldoFinal =
+    receitasTotais - despesasProjetadasTotais - patrimonioTotal;
 
   // Atualização Visual
   elements.totalReceitasDisplay.textContent = formatCurrency(receitasTotais);
@@ -242,6 +250,53 @@ export function criarElementoReceita(item, actionsDiv) {
                     )}</span>
                     <span class="transaction-date">Entrada: ${dataFormatada}</span>
                 </div>`;
+}
+
+export function criarElementoPatrimonio(item, actionsDiv) {
+  const isAtivo = item.subTipo === CONSTS.SUBTIPO_PATRIMONIO.ATIVO;
+  const subTipoLabel = isAtivo ? "Ativo" : "Passivo";
+  const icon = isAtivo ? "🏦" : "📉";
+
+  const dataFormatada = item.dataOperacao
+    ? new Date(parseDateString(item.dataOperacao)).toLocaleDateString("pt-BR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      })
+    : "N/D";
+
+  const editButton = document.createElement("button");
+  editButton.className = "btn-edit";
+  editButton.innerHTML = "✎";
+  editButton.title = "Editar";
+  editButton.dataset.id = item.id;
+  actionsDiv.appendChild(editButton);
+
+  const deleteButton = document.createElement("button");
+  deleteButton.className = "btn-delete";
+  deleteButton.innerHTML = "✖";
+  deleteButton.title = "Excluir";
+  deleteButton.dataset.id = item.id;
+  actionsDiv.appendChild(deleteButton);
+
+  let categoriaDisplay = `(Patrimônio - ${subTipoLabel}${
+    item.frequencia === CONSTS.FREQUENCIA.PARCELADA && item.totalParcelas
+      ? ` - ${item.parcelaAtual || "?"}/${item.totalParcelas}`
+      : ""
+  })`;
+
+  return `<label class="transaction-main-info" for="patrimonio-${item.id}">
+            <input type="checkbox" id="patrimonio-${item.id}" data-transaction-id="${item.id}" ${item.paga ? "checked" : ""}>
+            <div class="transaction-name-category">
+                <span class="transaction-name">${item.nome}</span>
+                <span class="transaction-category">${categoriaDisplay}</span>
+            </div>
+          </label>
+          <div class="transaction-value-date">
+              <span class="transaction-value" style="color: #34495e;">${formatCurrency(item.valor)}</span>
+              <span class="transaction-date">Operação: ${dataFormatada}</span>
+              ${item.paga ? '<span class="status-paga">Concluído</span>' : ""}
+          </div>`;
 }
 
 export function criarElementoDespesa(item, actionsDiv) {
@@ -440,6 +495,18 @@ export function renderizarTransacoesDoMes() {
     }),
   );
 
+  // Patrimônio
+  const patrimoniosDoMes = transacoesDoMesVisivel.filter(
+    (t) => t.tipo === CONSTS.TIPO_TRANSACAO.PATRIMONIO,
+  );
+  patrimoniosDoMes.forEach((p) =>
+    itensParaRenderizar.push({
+      ...p,
+      tipoDisplay: CONSTS.TIPO_RENDERIZACAO.PATRIMONIO,
+      dataOrdenacao: parseDateString(p.dataOperacao),
+    }),
+  );
+
   // Faturas de Cartão
   const despesasCartaoDoMes = transacoesDoMesVisivel.filter(
     (t) =>
@@ -553,8 +620,9 @@ export function renderizarTransacoesDoMes() {
   const tipoPrioridade = {
     [CONSTS.TIPO_RENDERIZACAO.RECEITA]: 1,
     [CONSTS.TIPO_RENDERIZACAO.ORCAMENTO]: 2,
-    [CONSTS.TIPO_RENDERIZACAO.DESPESA]: 3,
-    [CONSTS.TIPO_RENDERIZACAO.FATURA]: 3,
+    [CONSTS.TIPO_RENDERIZACAO.PATRIMONIO]: 3, // Patrimônio aparece antes das despesas
+    [CONSTS.TIPO_RENDERIZACAO.DESPESA]: 4,
+    [CONSTS.TIPO_RENDERIZACAO.FATURA]: 4,
   };
   itensParaRenderizar.sort((a, b) => {
     const prioridadeA = tipoPrioridade[a.tipoDisplay];
@@ -604,6 +672,12 @@ export function renderizarTransacoesDoMes() {
         li.classList.add("receita");
         li.dataset.transactionId = item.id;
         detailsDiv.innerHTML = criarElementoReceita(item, actionsDiv);
+        break;
+      case CONSTS.TIPO_RENDERIZACAO.PATRIMONIO:
+        li.classList.add("patrimonio");
+        if (item.paga) li.classList.add("paga");
+        li.dataset.transactionId = item.id;
+        detailsDiv.innerHTML = criarElementoPatrimonio(item, actionsDiv);
         break;
       case CONSTS.TIPO_RENDERIZACAO.DESPESA:
         li.classList.add("despesa");

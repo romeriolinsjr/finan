@@ -28,7 +28,11 @@ export function popularModalRelatorio(date) {
   }
 
   elements.relatorioCorpo.innerHTML =
-    '<div id="relatorio-secao-resumo"></div><div id="relatorio-secao-analise-despesas"></div><div id="relatorio-secao-analise-orcamentos"></div>';
+    '<div id="relatorio-secao-resumo"></div>' +
+    '<div id="relatorio-secao-analise-patrimonio"></div>' +
+    '<div id="relatorio-secao-analise-despesas"></div>' +
+    '<div id="relatorio-secao-analise-orcamentos"></div>';
+
   const transacoesDoMes = state.transacoes.filter(
     (t) => t.mesAnoReferencia === mesAno,
   );
@@ -38,6 +42,28 @@ export function popularModalRelatorio(date) {
   const totalReceitas = transacoesDoMes
     .filter((t) => t.tipo === CONSTS.TIPO_TRANSACAO.RECEITA)
     .reduce((total, t) => total + t.valor, 0);
+
+  // Cálculos de Patrimônio
+  const totalAtivos = transacoesDoMes
+    .filter(
+      (t) =>
+        t.tipo === CONSTS.TIPO_TRANSACAO.PATRIMONIO &&
+        t.subTipo === CONSTS.SUBTIPO_PATRIMONIO.ATIVO,
+    )
+    .reduce((s, t) => s + t.valor, 0);
+
+  const totalPassivos = transacoesDoMes
+    .filter(
+      (t) =>
+        t.tipo === CONSTS.TIPO_TRANSACAO.PATRIMONIO &&
+        t.subTipo === CONSTS.SUBTIPO_PATRIMONIO.PASSIVO,
+    )
+    .reduce((s, t) => s + t.valor, 0);
+
+  const totalPatrimonio = totalAtivos + totalPassivos;
+  const taxaInvestimento =
+    totalReceitas > 0 ? (totalPatrimonio / totalReceitas) * 100 : 0;
+
   const activeBudgetIds = state.orcamentos.map((o) => o.id);
 
   const totalGastoRealCartao = despesasDoMes
@@ -81,11 +107,17 @@ export function popularModalRelatorio(date) {
   const totalAjustesDoMes = state.ajustesFatura
     .filter((a) => a.mesAnoReferencia === mesAno)
     .reduce((s, a) => s + a.valor, 0);
+
+  // Saldo Real e Final agora subtraem o Patrimônio (Dinheiro que saiu do caixa)
   const saldoReal =
     totalReceitas -
-    (totalGastoRealCartao + totalGastoRealOrdinario - totalAjustesDoMes);
+    (totalGastoRealCartao + totalGastoRealOrdinario - totalAjustesDoMes) -
+    totalPatrimonio;
+
   const saldoFinal =
-    totalReceitas - (somaDespesasProjetadas - totalAjustesDoMes);
+    totalReceitas -
+    (somaDespesasProjetadas - totalAjustesDoMes) -
+    totalPatrimonio;
 
   // --- RESTAURANDO SEÇÃO ORIGINAL: Análise de Despesas ---
   const calcularSubtotais = (categoria) => {
@@ -149,12 +181,38 @@ export function popularModalRelatorio(date) {
 
   document.getElementById("relatorio-secao-analise-despesas").innerHTML =
     analiseDespesasHTML;
-  // --- FIM DA RESTAURAÇÃO ---
+
+  // --- NOVA SEÇÃO: Análise de Patrimônio ---
+  const analisePatrimonioHTML = `
+    <section class="relatorio-secao">
+      <h3>Análise de Patrimônio</h3>
+      <div class="relatorio-grid-analise">
+        <div class="relatorio-sub-secao" style="grid-column: span 2;">
+          <div class="relatorio-item-analise clicavel" data-tipo-patrimonio="${CONSTS.SUBTIPO_PATRIMONIO.ATIVO}">
+            <span>Formação de Ativos</span> <strong>${formatCurrency(totalAtivos)}</strong>
+          </div>
+          <div class="relatorio-item-analise clicavel" data-tipo-patrimonio="${CONSTS.SUBTIPO_PATRIMONIO.PASSIVO}">
+            <span>Redução de Passivos</span> <strong>${formatCurrency(totalPassivos)}</strong>
+          </div>
+          <div class="relatorio-item-analise" style="font-weight: bold; margin-top: 15px; border-left-color: #27ae60;">
+            <span>Total Investido</span> <strong>${formatCurrency(totalPatrimonio)}</strong>
+          </div>
+          <div class="relatorio-item-analise" style="font-weight: bold; margin-top: 5px; border-left-color: #f1c40f;">
+            <span>Taxa de Investimento</span> <strong>${taxaInvestimento.toFixed(1)}%</strong>
+          </div>
+        </div>
+      </div>
+    </section>`;
+
+  document.getElementById("relatorio-secao-analise-patrimonio").innerHTML =
+    analisePatrimonioHTML;
+  // --- FIM DA NOVA SEÇÃO ---
 
   document.getElementById("relatorio-secao-resumo").innerHTML =
     `<section class="relatorio-secao"><h3>Resumo Geral</h3><div class="relatorio-grid">
     <div class="relatorio-item"><span>Receitas Totais</span><strong class="valor-receita">${formatCurrency(totalReceitas)}</strong></div>
     <div class="relatorio-item"><span>Despesas Totais</span><strong class="valor-despesa">${formatCurrency(somaDespesasProjetadas - totalAjustesDoMes)}</strong></div>
+    <div class="relatorio-item"><span>Patrimônio</span><strong style="color: #3498db;">${formatCurrency(totalPatrimonio)}</strong></div>
     <div class="relatorio-item"><span>Saldo Final</span><strong style="color:${saldoFinal >= 0 ? "#27ae60" : "#e74c3c"}">${formatCurrency(saldoFinal)}</strong></div>
     <div class="relatorio-item"><span>Saldo Real</span><strong style="color:${saldoReal >= 0 ? "#27ae60" : "#e74c3c"}">${formatCurrency(saldoReal)}</strong></div>
   </div></section>`;
@@ -202,22 +260,43 @@ export function abrirDetalhesFiltroRelatorio(
   frequencia,
   date,
   callbackAbrir,
+  subTipoPatrimonio = null, // Novo parâmetro opcional
 ) {
   const mesAno = getMesAnoChave(date);
-  const labelCat =
-    categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA ? "Ordinárias" : "Cartão";
-  const labelFreq = frequencia.charAt(0).toUpperCase() + frequencia.slice(1);
+  let labelTitulo = "";
 
-  elements.detalhesFiltroRelatorioTitulo.textContent = `${labelCat}: ${labelFreq}s`;
+  if (subTipoPatrimonio) {
+    labelTitulo =
+      subTipoPatrimonio === CONSTS.SUBTIPO_PATRIMONIO.ATIVO
+        ? "Patrimônio: Ativos"
+        : "Patrimônio: Passivos";
+  } else {
+    const labelCat =
+      categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA
+        ? "Ordinárias"
+        : "Cartão";
+    const labelFreq = frequencia.charAt(0).toUpperCase() + frequencia.slice(1);
+    labelTitulo = `${labelCat}: ${labelFreq}s`;
+  }
+
+  elements.detalhesFiltroRelatorioTitulo.textContent = labelTitulo;
   elements.listaDetalhesFiltroRelatorioUl.innerHTML = "";
 
   const itens = state.transacoes
-    .filter(
-      (t) =>
+    .filter((t) => {
+      if (subTipoPatrimonio) {
+        return (
+          t.mesAnoReferencia === mesAno &&
+          t.tipo === CONSTS.TIPO_TRANSACAO.PATRIMONIO &&
+          t.subTipo === subTipoPatrimonio
+        );
+      }
+      return (
         t.mesAnoReferencia === mesAno &&
         t.categoria === categoria &&
-        t.frequencia === frequencia,
-    )
+        t.frequencia === frequencia
+      );
+    })
     .sort((a, b) => b.valor - a.valor);
 
   if (itens.length === 0) {

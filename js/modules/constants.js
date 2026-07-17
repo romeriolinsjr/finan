@@ -1,5 +1,13 @@
 export const CONSTS = {
-  TIPO_TRANSACAO: { RECEITA: "receita", DESPESA: "despesa" },
+  TIPO_TRANSACAO: {
+    RECEITA: "receita",
+    DESPESA: "despesa",
+    PATRIMONIO: "patrimonio",
+  },
+  SUBTIPO_PATRIMONIO: {
+    ATIVO: "ativo",
+    PASSIVO: "passivo",
+  },
   CATEGORIA_DESPESA: {
     ORDINARIA: "ordinaria",
     CARTAO_CREDITO: "cartao_credito",
@@ -19,6 +27,7 @@ export const CONSTS = {
     DESPESA: "despesa_ordinaria",
     FATURA: "fatura_cartao",
     ORCAMENTO: "orcamento",
+    PATRIMONIO: "patrimonio",
   },
   RECORRENCIA_MESES: 60,
 };

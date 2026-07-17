@@ -62,6 +62,24 @@ export const elements = {
   secaoCategoriaDespesa: document.getElementById("secaoCategoriaDespesa"),
   secaoDespesaOrdinaria: document.getElementById("secaoDespesaOrdinaria"),
   secaoDespesaCartao: document.getElementById("secaoDespesaCartao"),
+  secaoPatrimonio: document.getElementById("secaoPatrimonio"),
+
+  // Campos de Patrimônio
+  subTipoPatrimonio: document.getElementById("subTipoPatrimonio"),
+  frequenciaPatrimonio: document.getElementById("frequenciaPatrimonio"),
+  containerTipoCadastroPatrimonio: document.getElementById(
+    "containerTipoCadastroPatrimonio",
+  ),
+  tipoCadastroParcelaPatrimonio: document.getElementById(
+    "tipoCadastroParcelaPatrimonio",
+  ),
+  camposParceladoPatrimonio: document.getElementById(
+    "camposParceladoPatrimonio",
+  ),
+  qtdParcelasPatrimonio: document.getElementById("qtdParcelasPatrimonio"),
+  parcelaAtualPatrimonio: document.getElementById("parcelaAtualPatrimonio"),
+  valorPatrimonio: document.getElementById("valorPatrimonio"),
+  dataPatrimonio: document.getElementById("dataPatrimonio"),
 
   // Campos de Receita
   valorReceita: document.getElementById("valorReceita"),
