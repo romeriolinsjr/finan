@@ -581,7 +581,13 @@ export async function atualizarTransacaoExistente(dados) {
 export async function adicionarNovasTransacoes(dados) {
   if (!state.currentUser) return false;
   let transacoesParaAdicionar = [];
-  const mesAnoBase = getMesAnoChave(state.currentDate);
+
+  // RESTAURAÇÃO DE LOGICA: Se estivermos no modo de adição rápida via fatura,
+  // usamos o mês que está sendo visualizado no modal da fatura.
+  const mesAnoBase =
+    state.isQuickAddMode && state.currentFaturaDate
+      ? getMesAnoChave(state.currentFaturaDate)
+      : getMesAnoChave(state.currentDate);
 
   const orcamentoOriginal = state.orcamentos.find(
     (o) => o.id === dados.orcamentoId,

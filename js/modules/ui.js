@@ -199,6 +199,8 @@ export function fecharModalEspecifico(modalElement) {
       state.isQuickAddMode = false;
       state.isModoTerceiros = false;
       state.isEditMode = false;
+      // Nota: state.currentFaturaDate NÃO deve ser resetado aqui,
+      // pois o modal de detalhes da fatura ainda pode estar aberto ao fundo.
       state.editingTransactionId = null;
       state.editingSerieId = null;
       if (elements.tipoTransacaoSelect)

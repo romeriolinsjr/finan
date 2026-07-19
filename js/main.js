@@ -652,19 +652,30 @@ document.addEventListener("DOMContentLoaded", () => {
         alert(`Sucesso! A nova série foi registrada para ${s} meses adiante.`);
       }
 
-      const mesVisualizado = utils.getMesAnoChave(state.currentDate);
+      // Identifica qual mês deve ser atualizado no cache
+      const mesHome = utils.getMesAnoChave(state.currentDate);
+      const mesFatura =
+        state.isQuickAddMode && state.currentFaturaDate
+          ? utils.getMesAnoChave(state.currentFaturaDate)
+          : null;
 
-      // NOVO: Limpa o mês atual E TODOS os meses futuros da memória local.
-      // Isso garante que compras parceladas ou recorrentes apareçam ao navegar para frente.
+      const mesParaAtualizar = mesFatura || mesHome;
+
+      // Limpa o cache para garantir que os novos dados venham do Firestore
       state.transacoes = state.transacoes.filter(
-        (t) => t.mesAnoReferencia < mesVisualizado,
+        (t) => t.mesAnoReferencia < mesParaAtualizar,
       );
       state.mesesCarregados = state.mesesCarregados.filter(
-        (m) => m < mesVisualizado,
+        (m) => m < mesParaAtualizar,
       );
 
-      // Baixa novamente os dados apenas do mês que você está vendo agora
-      await garantirDadosDoMes(mesVisualizado);
+      // Baixa novamente os dados do contexto onde a transação foi salva
+      await garantirDadosDoMes(mesParaAtualizar);
+
+      // Se o mês da fatura for diferente do mês da Home, garante que a Home também seja atualizada
+      if (mesFatura && mesFatura !== mesHome) {
+        await garantirDadosDoMes(mesHome);
+      }
 
       // PADRONIZAÇÃO: Sempre fecha o modal após salvar
       ui.fecharModalEspecifico(elements.modalNovaTransacao);
