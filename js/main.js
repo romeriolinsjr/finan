@@ -457,6 +457,30 @@ document.addEventListener("DOMContentLoaded", () => {
       }),
     );
 
+    // 10. ESCUTA PERMANENTE DE MOVIMENTAÇÕES DE PATRIMÔNIO (Garante saldo correto sempre)
+    state.activeUnsubscribers.push(
+      userRef
+        .collection("transacoes")
+        .where("tipo", "==", "patrimonio")
+        .onSnapshot((s) => {
+          const transPatrimonio = s.docs.map((d) => ({
+            ...d.data(),
+            id: d.id,
+          }));
+          // Integra as transações de patrimônio ao estado global, evitando duplicatas
+          const outrasTransacoes = state.transacoes.filter(
+            (t) => t.tipo !== "patrimonio",
+          );
+          state.transacoes = [...outrasTransacoes, ...transPatrimonio];
+          update();
+
+          // Re-renderiza o resumo financeiro para garantir que o saldo da Home esteja ciente dos aportes/resgates
+          if (typeof ui !== "undefined" && ui.atualizarResumoFinanceiro) {
+            ui.atualizarResumoFinanceiro();
+          }
+        }),
+    );
+
     // 7. ESCUTAS DO WEEKLY TRACKER (Persistência e Reatividade)
     state.activeUnsubscribers.push(
       userRef.collection("ciclos_tracker").onSnapshot((s) => {
