@@ -8,13 +8,13 @@ import {
   registrarUltimaAlteracao,
 } from "./utils.js";
 
-// Função para gerenciar o que aparece ou some no formulário (VERSÃO ULTRA-SEGURA)
+// Função para gerenciar o que aparece ou some no formulário (VERSÃO INTEGRAL FASE 2)
 export function atualizarVisibilidadeFormulario() {
   try {
     const tipo = elements.tipoTransacaoSelect?.value || "";
     const categoria = elements.categoriaDespesa?.value || "";
 
-    // 1. Reset inicial (Esconde tudo)
+    // 1. Reset inicial (Esconde todas as seções)
     const secoes = [
       elements.secaoReceita,
       elements.secaoCategoriaDespesa,
@@ -34,7 +34,15 @@ export function atualizarVisibilidadeFormulario() {
         : "none";
     }
 
-    // 2. Lógica de Cascata
+    // Controle do Campo Nome: Esconde se for Patrimônio (usaremos o Select de Sub-categorias)
+    if (elements.nomeTransacaoInput) {
+      const isPatrimonio = tipo === "patrimonio";
+      elements.nomeTransacaoInput.parentElement.style.display = isPatrimonio
+        ? "none"
+        : "block";
+    }
+
+    // 2. Lógica de Cascata por Tipo
     if (tipo === "receita") {
       if (elements.secaoReceita) elements.secaoReceita.style.display = "block";
       if (elements.btnSalvarTransacao)
@@ -93,7 +101,7 @@ export function atualizarVisibilidadeFormulario() {
         elements.btnSalvarTransacao.style.display = "inline-block";
     }
   } catch (error) {
-    console.error("CRITICAL ERROR in atualizarVisibilidadeFormulario:", error);
+    console.error("Erro na visibilidade do formulário:", error);
   }
 }
 
@@ -195,7 +203,7 @@ export function preencherModalParaEdicao(id) {
   const transacao = state.transacoes.find((t) => t.id === id);
   if (!transacao) return;
 
-  // NOVO: Popula os seletores (Cartões/Orçamentos) ANTES de tentar definir os valores
+  // NOVO: Popula os seletores (Cartões/Orçamentos/Patrimônio) ANTES de tentar definir os valores
   popularSeletoresFixos();
 
   const nomeOriginal = transacao.serieId
@@ -214,9 +222,24 @@ export function preencherModalParaEdicao(id) {
     elements.frequenciaReceita.value = transacao.frequencia;
     elements.frequenciaReceita.disabled = true;
   } else if (transacao.tipo === "patrimonio") {
-    elements.subTipoPatrimonio.value = transacao.subTipo;
+    // Fase 2: Preenche os novos campos de Patrimônio
+    if (elements.selectTransacaoPatrimonioSub) {
+      elements.selectTransacaoPatrimonioSub.value =
+        transacao.patrimonioId || "";
+    }
+    if (elements.operacaoPatrimonioSelect) {
+      elements.operacaoPatrimonioSelect.value = transacao.operacao || "aporte";
+    }
+
     elements.valorPatrimonio.value = transacao.valor;
     elements.dataPatrimonio.value = transacao.dataOperacao;
+
+    // Suporte a frequências no Patrimônio
+    elements.frequenciaPatrimonio.value = transacao.frequencia || "unica";
+    if (transacao.frequencia === "parcelada") {
+      elements.qtdParcelasPatrimonio.value = transacao.totalParcelas;
+      elements.parcelaAtualPatrimonio.value = transacao.parcelaAtual;
+    }
   } else {
     elements.categoriaDespesa.value = transacao.categoria;
     elements.categoriaDespesa.disabled = true;
@@ -232,17 +255,10 @@ export function preencherModalParaEdicao(id) {
       }
     } else {
       // Configuração para Cartão de Crédito
-      // Garantimos que os seletores estejam vindo do estado mais atualizado
-      popularSeletoresFixos();
-
       elements.cartaoDespesa.value = transacao.cartaoId;
-      // LIBERADO: Permitimos a troca do cartão para correções de erros de cadastro
       elements.cartaoDespesa.disabled = false;
-
-      // O Orçamento deve ser preenchido mas permanecer editável para correções
       elements.orcamentoVinculado.value = transacao.orcamentoId || "";
       elements.orcamentoVinculado.disabled = false;
-
       elements.frequenciaDespesaCartao.value = transacao.frequencia;
       elements.frequenciaDespesaCartao.disabled = true;
       elements.valorDespesaCartao.value = transacao.valor;
@@ -258,9 +274,9 @@ export function preencherModalParaEdicao(id) {
 }
 
 export function obterDadosDoFormulario() {
-  const tipo = elements.tipoTransacaoSelect.value;
+  const tipo = elements.tipoTransacaoSelect?.value || "";
   const dados = {
-    nomeBase: elements.nomeTransacaoInput.value.trim(),
+    nomeBase: elements.nomeTransacaoInput?.value.trim() || "",
     tipo: tipo,
   };
 
@@ -269,10 +285,20 @@ export function obterDadosDoFormulario() {
     dados.dataEntrada = elements.dataEntradaReceita.value;
     dados.frequencia = elements.frequenciaReceita.value;
   } else if (tipo === "patrimonio") {
-    dados.subTipo = elements.subTipoPatrimonio.value;
+    // Busca a sub-categoria selecionada para herdar o nome
+    const subId = elements.selectTransacaoPatrimonioSub.value;
+    const itemCadastrado = state.patrimonioSubcategorias.find(
+      (s) => s.id === subId,
+    );
+
+    dados.patrimonioId = subId;
+    dados.nomeBase = itemCadastrado ? itemCadastrado.nome : "";
+    dados.operacao = elements.operacaoPatrimonioSelect.value; // Aporte, Resgate ou Ajuste
+
     dados.valor = parseFloat(elements.valorPatrimonio.value) || 0;
     dados.dataOperacao = elements.dataPatrimonio.value;
     dados.frequencia = elements.frequenciaPatrimonio.value;
+
     if (dados.frequencia === "parcelada") {
       dados.tipoCadastroParcela = elements.tipoCadastroParcelaPatrimonio.value;
       dados.totalParcelas = parseInt(elements.qtdParcelasPatrimonio.value);
@@ -309,20 +335,25 @@ export function obterDadosDoFormulario() {
 }
 
 export function validarDadosDaTransacao(dados) {
-  if (!dados.nomeBase) {
-    alert("Informe o nome.");
-    return false;
+  // Validação específica para Patrimônio
+  if (dados.tipo === "patrimonio") {
+    if (!dados.patrimonioId) {
+      alert("Selecione um item (Ativo/Redução) na lista.");
+      return false;
+    }
+  } else {
+    if (!dados.nomeBase) {
+      alert("Informe o nome.");
+      return false;
+    }
   }
+
   if (!dados.valor || dados.valor <= 0) {
     alert("Informe um valor válido.");
     return false;
   }
   if (dados.tipo === "receita" && !dados.dataEntrada) {
     alert("Informe a data.");
-    return false;
-  }
-  if (dados.tipo === "patrimonio" && !dados.dataOperacao) {
-    alert("Informe a data da operação.");
     return false;
   }
   if (dados.categoria === "ordinaria" && !dados.dataVencimento) {
@@ -367,7 +398,8 @@ export async function atualizarTransacaoExistente(dados) {
     dataEntrada: dados.dataEntrada || null,
     dataVencimento: dados.dataVencimento || null,
     dataOperacao: dados.dataOperacao || null,
-    subTipo: dados.subTipo || null,
+    patrimonioId: dados.patrimonioId || null, // Vínculo com a subcategoria
+    operacao: dados.operacao || null, // Aporte, Resgate ou Ajuste
     categoria: dados.categoria || null,
     cartaoId: dados.cartaoId || null,
     orcamentoId: dados.orcamentoId || null,
@@ -581,9 +613,6 @@ export async function atualizarTransacaoExistente(dados) {
 export async function adicionarNovasTransacoes(dados) {
   if (!state.currentUser) return false;
   let transacoesParaAdicionar = [];
-
-  // RESTAURAÇÃO DE LOGICA: Se estivermos no modo de adição rápida via fatura,
-  // usamos o mês que está sendo visualizado no modal da fatura.
   const mesAnoBase =
     state.isQuickAddMode && state.currentFaturaDate
       ? getMesAnoChave(state.currentFaturaDate)
@@ -602,11 +631,9 @@ export async function adicionarNovasTransacoes(dados) {
         : 60;
 
     for (let i = 0; i < totalMeses; i++) {
-      // Ajuste para pegar a data correta conforme o tipo (Receita, Despesa ou Patrimônio)
       const dataBaseOriginal =
         dados.dataEntrada || dados.dataVencimento || dados.dataOperacao;
       let dataRef = new Date(parseDateString(dataBaseOriginal));
-
       dataRef.setMonth(dataRef.getMonth() + i);
       let mesReferenciaObj = new Date(state.currentDate);
       mesReferenciaObj.setMonth(mesReferenciaObj.getMonth() + i);
@@ -631,7 +658,7 @@ export async function adicionarNovasTransacoes(dados) {
       transacoesParaAdicionar.push({
         ...dados,
         serieId,
-        paga: false, // Séries (Patrimônio ou Despesa) nascem desmarcadas para controle
+        paga: false,
         orcamentoId: orcamentoIdVinculo,
         valor: valorFinal,
         parcelaAtual:
@@ -653,13 +680,10 @@ export async function adicionarNovasTransacoes(dados) {
       });
     }
   } else {
-    // Lógica para Transação Única
-    // Se for uma adição rápida (Atalho Pix/Débito) OU se for Patrimônio Único, já nasce pago.
+    // Transação Única
+    // REGRA DE OURO: Apenas despesa via atalho PIX/DÉBITO nasce paga. Patrimônio nasce desmarcado para conferência.
     const statusInicialPago =
-      (state.isQuickAddMode && dados.categoria === "ordinaria") ||
-      dados.tipo === "patrimonio"
-        ? true
-        : false;
+      state.isQuickAddMode && dados.categoria === "ordinaria" ? true : false;
 
     transacoesParaAdicionar.push({
       ...dados,
@@ -684,14 +708,10 @@ export async function adicionarNovasTransacoes(dados) {
   transacoesParaAdicionar.forEach((t, index) => {
     const d = { ...t };
     delete d.nomeBase;
-
-    // Injeta a data de criação. Para séries, adiciona 1ms por parcela para garantir ordem no lote.
     d.criadoEm = agora + index;
-
     const newTransRef = ref.doc();
     batch.set(newTransRef, d);
 
-    // LÓGICA DE CAPTURA AUTOMÁTICA (Weekly Tracker)
     if (
       index === 0 &&
       d.categoria === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO
@@ -699,10 +719,8 @@ export async function adicionarNovasTransacoes(dados) {
       const ciclosAtivos = state.ciclosTracker
         .filter((c) => c.status === "ativo")
         .sort((a, b) => new Date(a.dataInicio) - new Date(b.dataInicio));
-
       const cicloAlvo =
         ciclosAtivos.length > 1 ? ciclosAtivos[1] : ciclosAtivos[0];
-
       if (cicloAlvo) {
         batch.set(trackerRef.doc(newTransRef.id), {
           transacaoId: newTransRef.id,
@@ -716,7 +734,7 @@ export async function adicionarNovasTransacoes(dados) {
     await batch.commit();
     return transacoesParaAdicionar.length;
   } catch (e) {
-    console.error("Erro ao salvar transações:", e);
+    console.error("Erro ao salvar:", e);
     return false;
   }
 }
@@ -840,6 +858,9 @@ export function popularSeletoresFixos() {
 
   // Pessoas (Para Despesas de Terceiros)
   atualizarSelectPessoas();
+
+  // Patrimônio (Fase 2: Conectar itens à transação)
+  popularSelectTransacaoPatrimonio();
 }
 
 export function atualizarSelectPessoas(idParaSelecionar = null) {
@@ -1006,4 +1027,46 @@ export function abrirModalDespesaOrdinariaRapida(callbackAbrirModal) {
 
   // 7. Coloca o foco no nome para agilizar a digitação
   setTimeout(() => elements.nomeTransacaoInput.focus(), 100);
+}
+
+/**
+ * Popula o seletor de itens de patrimônio filtrado pela Natureza (Ativo/Passivo)
+ */
+export function popularSelectTransacaoPatrimonio() {
+  if (
+    !elements.selectTransacaoPatrimonioSub ||
+    !elements.naturezaPatrimonioSelect
+  )
+    return;
+
+  const naturezaAlvo = elements.naturezaPatrimonioSelect.value; // 'ativo' ou 'passivo'
+  const subcategorias = state.patrimonioSubcategorias || [];
+  const categorias = (state.patrimonioCategorias || []).filter(
+    (c) => c.tipo === naturezaAlvo,
+  );
+
+  let h = '<option value="">-- Selecione o Item --</option>';
+
+  if (categorias.length === 0) {
+    h = `<option value="">Cadastre categorias de ${naturezaAlvo === "ativo" ? "Ativos" : "Redução"} primeiro</option>`;
+  } else {
+    categorias
+      .sort((a, b) => a.nome.localeCompare(b.nome))
+      .forEach((cat) => {
+        const itensFilhos = subcategorias.filter(
+          (s) => s.categoriaId === cat.id,
+        );
+        if (itensFilhos.length > 0) {
+          h += `<optgroup label="${cat.nome.toUpperCase()}">`;
+          itensFilhos
+            .sort((a, b) => a.nome.localeCompare(b.nome))
+            .forEach((sub) => {
+              h += `<option value="${sub.id}">${sub.nome}</option>`;
+            });
+          h += `</optgroup>`;
+        }
+      });
+  }
+
+  elements.selectTransacaoPatrimonioSub.innerHTML = h;
 }

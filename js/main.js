@@ -14,6 +14,7 @@ import * as search from "./modules/search.js";
 import * as reports from "./modules/reports.js";
 import * as exportMod from "./modules/export.js";
 import * as tracker from "./modules/weekly-tracker.js";
+import * as patrimony from "./modules/patrimony.js";
 
 document.addEventListener("DOMContentLoaded", () => {
   console.log("Finan Modularizado - JS Carregado");
@@ -352,6 +353,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (elements.modalConsultarTerceiros.style.display === "flex")
         third.renderizarDividasDoMes();
+
+      // REATIVIDADE PATRIMÔNIO
+      if (elements.modalPatrimonio.style.display === "flex") {
+        patrimony.renderizarListaPatrimonioHierarquica();
+      }
     };
 
     // 1. ESCUTA DO DOCUMENTO DO USUÁRIO (Restaura e mantém Data da Última Alteração)
@@ -422,6 +428,28 @@ document.addEventListener("DOMContentLoaded", () => {
     state.activeUnsubscribers.push(
       userRef.collection("faturasConferidas").onSnapshot((s) => {
         state.faturasConferidas = s.docs.map((d) => ({
+          ...d.data(),
+          id: d.id,
+        }));
+        update();
+      }),
+    );
+
+    // 8. ESCUTA DE CATEGORIAS DE PATRIMÔNIO
+    state.activeUnsubscribers.push(
+      userRef.collection("patrimonioCategorias").onSnapshot((s) => {
+        state.patrimonioCategorias = s.docs.map((d) => ({
+          ...d.data(),
+          id: d.id,
+        }));
+        update();
+      }),
+    );
+
+    // 9. ESCUTA DE SUB-CATEGORIAS DE PATRIMÔNIO
+    state.activeUnsubscribers.push(
+      userRef.collection("patrimonioSubcategorias").onSnapshot((s) => {
+        state.patrimonioSubcategorias = s.docs.map((d) => ({
           ...d.data(),
           id: d.id,
         }));
@@ -891,6 +919,108 @@ document.addEventListener("DOMContentLoaded", () => {
       alert("Ocorreu um erro ao salvar o cartão.");
     }
   });
+
+  // --- EVENTOS DE PATRIMÔNIO ---
+  elements.btnMenuPatrimonio.addEventListener("click", () => {
+    ui.abrirModalEspecifico(elements.modalPatrimonio, null, "patrimonio", {
+      renderizarLista: patrimony.renderizarListaPatrimonioHierarquica,
+    });
+  });
+
+  elements.btnAbrirModalNovaCategoriaPatrimonio.addEventListener(
+    "click",
+    () => {
+      ui.fecharModalEspecifico(elements.modalPatrimonio);
+      ui.abrirModalEspecifico(
+        elements.modalCadastrarPatrimonioCategoria,
+        null,
+        "patrimonioForm",
+        {
+          resetForm: patrimony.resetFormCategoria,
+        },
+      );
+    },
+  );
+
+  elements.btnSalvarPatrimonioCategoria.addEventListener("click", async () => {
+    await patrimony.salvarCategoria();
+    ui.fecharModalEspecifico(elements.modalCadastrarPatrimonioCategoria);
+    ui.abrirModalEspecifico(elements.modalPatrimonio, null, "patrimonio", {
+      renderizarLista: patrimony.renderizarListaPatrimonioHierarquica,
+    });
+  });
+
+  elements.btnAbrirModalNovaSubcategoriaPatrimonio.addEventListener(
+    "click",
+    () => {
+      ui.fecharModalEspecifico(elements.modalPatrimonio);
+      ui.abrirModalEspecifico(
+        elements.modalCadastrarPatrimonioSubcategoria,
+        null,
+        "patrimonioForm",
+        {
+          resetForm: patrimony.resetFormSubcategoria,
+        },
+      );
+    },
+  );
+
+  elements.btnSalvarPatrimonioSubcategoria.addEventListener(
+    "click",
+    async () => {
+      await patrimony.salvarSubcategoria();
+      ui.fecharModalEspecifico(elements.modalCadastrarPatrimonioSubcategoria);
+      ui.abrirModalEspecifico(elements.modalPatrimonio, null, "patrimonio", {
+        renderizarLista: patrimony.renderizarListaPatrimonioHierarquica,
+      });
+    },
+  );
+
+  // GATILHOS DE EDIÇÃO E EXCLUSÃO NA LISTA DE PATRIMÔNIO
+  elements.listaPatrimonioHierarquicaUl.addEventListener("click", async (e) => {
+    const btn = e.target.closest("button");
+    const infoArea = e.target.closest(".patrimonio-info");
+
+    // A. Clique na área do nome/saldo (patrimonio-info) abre o histórico detalhado
+    if (infoArea && !btn) {
+      const id = infoArea.dataset.id;
+      // Chama a função que agora usa o tipo 'patrimonioHistorico'
+      patrimony.abrirHistoricoPatrimonio(id, ui.abrirModalEspecifico);
+      return;
+    }
+
+    // B. Clique nos botões de ação (✎ ou ✖)
+    if (btn) {
+      const id = btn.dataset.id;
+
+      if (btn.classList.contains("btn-edit-pat-cat")) {
+        ui.fecharModalEspecifico(elements.modalPatrimonio);
+        ui.abrirModalEspecifico(
+          elements.modalCadastrarPatrimonioCategoria,
+          id,
+          "patrimonioForm",
+          {
+            preencherModal: patrimony.preencherModalEdicaoCategoria,
+          },
+        );
+      } else if (btn.classList.contains("btn-delete-pat-cat")) {
+        await patrimony.excluirCategoria(id);
+      } else if (btn.classList.contains("btn-edit-pat-sub")) {
+        ui.fecharModalEspecifico(elements.modalPatrimonio);
+        ui.abrirModalEspecifico(
+          elements.modalCadastrarPatrimonioSubcategoria,
+          id,
+          "patrimonioForm",
+          {
+            preencherModal: patrimony.preencherModalEdicaoSubcategoria,
+          },
+        );
+      } else if (btn.classList.contains("btn-delete-pat-sub")) {
+        await patrimony.excluirSubcategoria(id);
+      }
+    }
+  });
+
   elements.listaCartoesCadastradosUl.addEventListener("click", async (e) => {
     const cartaoId =
       e.target.closest(".cartao-info")?.dataset.id ||
@@ -1706,6 +1836,13 @@ document.addEventListener("DOMContentLoaded", () => {
   if (elements.frequenciaPatrimonio) {
     elements.frequenciaPatrimonio.addEventListener("change", () => {
       trans.atualizarVisibilidadeFormulario();
+    });
+  }
+
+  // NOVO: Ouvinte para troca de Natureza (Filtra a lista de itens)
+  if (elements.naturezaPatrimonioSelect) {
+    elements.naturezaPatrimonioSelect.addEventListener("change", () => {
+      trans.popularSelectTransacaoPatrimonio();
     });
   }
 

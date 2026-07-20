@@ -36,6 +36,7 @@
         <h2>Menu</h2>
         <button id="btnNovaTransacao">Nova transação</button>
         <button id="btnGerenciarCartoes">Cartões de crédito</button>
+        <button id="btnMenuPatrimonio">Patrimônio</button>
         <button id="btnMenuOrcamentos">Orçamentos</button>
         <button id="btnRelatorios">Relatórios</button>
         <!-- NOVO -->
@@ -56,36 +57,51 @@
             <span>Saldo do mês:</span>
             <span id="saldoMes">R$ 0,00</span>
           </div>
-          <button
-            id="btnFecharTodosOrcamentos"
-            class="btn-secondary"
-            style="
-              width: 100%;
-              margin-top: 15px;
-              font-size: 0.8em;
-              padding: 8px;
-            "
-          >
-            Carregando...
-          </button>
         </section>
 
-        <!-- INSERIDO NO LOCAL CORRETO -->
+        <!-- Container unificado (Zona de Cor Azul Marinho) -->
         <div class="sidebar-footer">
+          <!-- 1. E-mail do usuário -->
           <p
             id="userEmailDisplay"
             style="
               font-size: 0.85em;
               color: #bdc3c7;
-              margin-bottom: 10px;
+              margin-bottom: 12px;
               text-align: center;
               word-break: break-all;
               padding: 0 10px;
               font-weight: 500;
             "
           ></p>
-          <button id="btnLogout">Sair</button>
-          <p id="lastUpdatedDisplay"></p>
+
+          <!-- 2. Ícone de Orçamentos (Movido para cá) -->
+          <button
+            id="btnFecharTodosOrcamentos"
+            class="btn-secondary"
+            style="
+              width: 100%;
+              margin-bottom: 12px;
+              font-size: 0.8em;
+              padding: 8px;
+            "
+          >
+            Carregando...
+          </button>
+
+          <!-- 3. Botão Sair -->
+          <button id="btnLogout" style="width: 100%">Sair</button>
+
+          <!-- 4. Data e Hora de atualização -->
+          <p
+            id="lastUpdatedDisplay"
+            style="
+              margin-top: 10px;
+              text-align: center;
+              font-size: 0.75em;
+              color: #bdc3c7;
+            "
+          ></p>
         </div>
       </aside>
 
@@ -261,7 +277,7 @@
             </select>
           </div>
 
-          <!-- BLOCO PATRIMÔNIO (Só aparece se tipo = patrimonio) -->
+          <!-- BLOCO PATRIMÔNIO (Fase 2: Com Filtro de Natureza) -->
           <div
             id="secaoPatrimonio"
             style="
@@ -272,14 +288,30 @@
             "
           >
             <div>
-              <label for="subTipoPatrimonio">Sub-categoria:</label>
-              <select id="subTipoPatrimonio">
-                <option value="ativo">
-                  Formação de Ativos (Investimentos/Reserva)
+              <label for="operacaoPatrimonio">Operação:</label>
+              <select id="operacaoPatrimonio">
+                <option value="aporte">
+                  Aporte (Dinheiro saindo do Saldo)
                 </option>
-                <option value="passivo">
-                  Redução de Passivos (Amortizações/Dívidas)
+                <option value="resgate">
+                  Resgate (Dinheiro entrando no Saldo)
                 </option>
+                <option value="ajuste">
+                  Ajuste de Valor (Não afeta o Saldo do mês)
+                </option>
+              </select>
+            </div>
+            <div style="margin-top: 10px">
+              <label for="naturezaPatrimonioSelect">Natureza:</label>
+              <select id="naturezaPatrimonioSelect">
+                <option value="ativo">Formação de Ativos</option>
+                <option value="passivo">Redução de Passivos</option>
+              </select>
+            </div>
+            <div style="margin-top: 10px">
+              <label for="selectTransacaoPatrimonioSub">Selecionar Item:</label>
+              <select id="selectTransacaoPatrimonioSub">
+                <!-- Populado via JS e filtrado pela Natureza -->
               </select>
             </div>
             <div style="margin-top: 10px">
@@ -1497,6 +1529,185 @@
           </button>
           <button id="btnSalvarValorInicial" class="btn-primary">
             Salvar Valor
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal para Gerenciar Patrimônio (Visão de Árvore) -->
+    <div id="modalPatrimonio" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Gerenciar Patrimônio</h2>
+          <span class="close-button" data-modal-id="modalPatrimonio">×</span>
+        </div>
+        <div class="modal-body">
+          <div
+            id="resumoPatrimonioLiquido"
+            style="
+              background: #f1f2f6;
+              padding: 15px;
+              border-radius: 8px;
+              margin-bottom: 20px;
+              text-align: center;
+            "
+          >
+            <p style="margin: 0; font-size: 0.9em; color: #57606f">
+              Patrimônio Líquido Acumulado
+            </p>
+            <strong
+              id="valorPatrimonioLiquido"
+              style="font-size: 1.5em; color: #2c3e50"
+              >R$ 0,00</strong
+            >
+          </div>
+          <ul id="listaPatrimonioHierarquica">
+            <!-- Categorias e Sub-categorias via JS -->
+          </ul>
+        </div>
+        <div class="modal-footer">
+          <button
+            id="btnAbrirModalNovaCategoriaPatrimonio"
+            class="btn-primary"
+            style="background-color: #2c3e50"
+          >
+            Nova Categoria (Pai)
+          </button>
+          <button
+            id="btnAbrirModalNovaSubcategoriaPatrimonio"
+            class="btn-primary"
+          >
+            Novo Item (Filho)
+          </button>
+          <button
+            class="btn-secondary close-button-footer"
+            data-modal-id="modalPatrimonio"
+          >
+            Fechar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal para Cadastro de CATEGORIA (Pai) -->
+    <div id="modalCadastrarPatrimonioCategoria" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="tituloModalPatCategoria">Nova Categoria de Patrimônio</h2>
+          <span
+            class="close-button"
+            data-modal-id="modalCadastrarPatrimonioCategoria"
+            >×</span
+          >
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="patCategoriaEditId" />
+          <div>
+            <label for="nomePatCategoria">Nome da Categoria:</label>
+            <input
+              type="text"
+              id="nomePatCategoria"
+              placeholder="Ex: Reserva de Emergência, Renda Fixa"
+              required
+            />
+          </div>
+          <div>
+            <label for="tipoPatCategoria">Tipo:</label>
+            <select id="tipoPatCategoria">
+              <option value="ativo">Ativo (Investimento/Posse)</option>
+              <option value="passivo">
+                Passivo (Dívida/Redução de Passivo)
+              </option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button
+            class="btn-secondary close-button-footer"
+            data-modal-id="modalCadastrarPatrimonioCategoria"
+          >
+            Cancelar
+          </button>
+          <button id="btnSalvarPatrimonioCategoria" class="btn-primary">
+            Salvar Categoria
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal para Cadastro de SUB-CATEGORIA (Filho) -->
+    <div id="modalCadastrarPatrimonioSubcategoria" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="tituloModalPatSubcategoria">Novo Item de Patrimônio</h2>
+          <span
+            class="close-button"
+            data-modal-id="modalCadastrarPatrimonioSubcategoria"
+            >×</span
+          >
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="patSubcategoriaEditId" />
+          <div>
+            <label for="selectCategoriaPai">Vincular à Categoria:</label>
+            <select id="selectCategoriaPai">
+              <!-- Populado dinamicamente com as Categorias cadastradas -->
+            </select>
+          </div>
+          <div>
+            <label for="nomePatSubcategoria">Nome do Item/Instituição:</label>
+            <input
+              type="text"
+              id="nomePatSubcategoria"
+              placeholder="Ex: Nubank, Banco Inter, Vale3"
+              required
+            />
+          </div>
+          <div>
+            <label for="saldoInicialPatrimonio">Saldo Inicial (R$):</label>
+            <input
+              type="number"
+              id="saldoInicialPatrimonio"
+              step="0.01"
+              placeholder="0,00"
+              required
+            />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button
+            class="btn-secondary close-button-footer"
+            data-modal-id="modalCadastrarPatrimonioSubcategoria"
+          >
+            Cancelar
+          </button>
+          <button id="btnSalvarPatrimonioSubcategoria" class="btn-primary">
+            Salvar Item
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- NOVO: Modal para Detalhes/Histórico do Item de Patrimônio -->
+    <div id="modalDetalhesPatrimonio" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="tituloDetalhesPatrimonio">Extrato do Item</h2>
+          <span class="close-button" data-modal-id="modalDetalhesPatrimonio"
+            >×</span
+          >
+        </div>
+        <div class="modal-body">
+          <ul id="listaHistoricoPatrimonio" class="transaction-list">
+            <!-- O histórico será injetado aqui via patrimony.js -->
+          </ul>
+        </div>
+        <div class="modal-footer">
+          <button
+            class="btn-secondary close-button-footer"
+            data-modal-id="modalDetalhesPatrimonio"
+          >
+            Fechar
           </button>
         </div>
       </div>

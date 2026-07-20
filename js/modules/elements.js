@@ -64,8 +64,12 @@ export const elements = {
   secaoDespesaCartao: document.getElementById("secaoDespesaCartao"),
   secaoPatrimonio: document.getElementById("secaoPatrimonio"),
 
-  // Campos de Patrimônio
-  subTipoPatrimonio: document.getElementById("subTipoPatrimonio"),
+  // Campos de Patrimônio (Sincronizados Fase 2)
+  selectTransacaoPatrimonioSub: document.getElementById(
+    "selectTransacaoPatrimonioSub",
+  ),
+  operacaoPatrimonioSelect: document.getElementById("operacaoPatrimonio"),
+  naturezaPatrimonioSelect: document.getElementById("naturezaPatrimonioSelect"),
   frequenciaPatrimonio: document.getElementById("frequenciaPatrimonio"),
   containerTipoCadastroPatrimonio: document.getElementById(
     "containerTipoCadastroPatrimonio",
@@ -276,4 +280,52 @@ export const elements = {
   cicloValorInicialIdInput: document.getElementById("cicloValorInicialId"),
   valorInicialCicloInput: document.getElementById("valorInicialCicloInput"),
   btnSalvarValorInicial: document.getElementById("btnSalvarValorInicial"),
+  // PATRIMÔNIO
+  btnMenuPatrimonio: document.getElementById("btnMenuPatrimonio"),
+  modalPatrimonio: document.getElementById("modalPatrimonio"),
+  listaPatrimonioHierarquicaUl: document.getElementById(
+    "listaPatrimonioHierarquica",
+  ),
+  valorPatrimonioLiquido: document.getElementById("valorPatrimonioLiquido"),
+  btnAbrirModalNovaCategoriaPatrimonio: document.getElementById(
+    "btnAbrirModalNovaCategoriaPatrimonio",
+  ),
+  btnAbrirModalNovaSubcategoriaPatrimonio: document.getElementById(
+    "btnAbrirModalNovaSubcategoriaPatrimonio",
+  ),
+
+  // Modal Categoria (Pai)
+  modalCadastrarPatrimonioCategoria: document.getElementById(
+    "modalCadastrarPatrimonioCategoria",
+  ),
+  tituloModalPatCategoria: document.getElementById("tituloModalPatCategoria"),
+  patCategoriaEditIdInput: document.getElementById("patCategoriaEditId"),
+  nomePatCategoriaInput: document.getElementById("nomePatCategoria"),
+  tipoPatCategoriaSelect: document.getElementById("tipoPatCategoria"),
+  btnSalvarPatrimonioCategoria: document.getElementById(
+    "btnSalvarPatrimonioCategoria",
+  ),
+
+  // Modal Sub-categoria (Filho)
+  modalCadastrarPatrimonioSubcategoria: document.getElementById(
+    "modalCadastrarPatrimonioSubcategoria",
+  ),
+  tituloModalPatSubcategoria: document.getElementById(
+    "tituloModalPatSubcategoria",
+  ),
+  patSubcategoriaEditIdInput: document.getElementById("patSubcategoriaEditId"),
+  selectCategoriaPai: document.getElementById("selectCategoriaPai"),
+  nomePatSubcategoriaInput: document.getElementById("nomePatSubcategoria"),
+  saldoInicialPatrimonioInput: document.getElementById(
+    "saldoInicialPatrimonio",
+  ),
+  btnSalvarPatrimonioSubcategoria: document.getElementById(
+    "btnSalvarPatrimonioSubcategoria",
+  ),
+  // DETALHES DO PATRIMÔNIO (HISTÓRICO)
+  modalDetalhesPatrimonio: document.getElementById("modalDetalhesPatrimonio"),
+  tituloDetalhesPatrimonio: document.getElementById("tituloDetalhesPatrimonio"),
+  listaHistoricoPatrimonioUl: document.getElementById(
+    "listaHistoricoPatrimonio",
+  ),
 };

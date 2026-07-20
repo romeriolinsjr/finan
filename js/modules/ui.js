@@ -37,8 +37,6 @@ export function atualizarResumoFinanceiro() {
     return;
 
   const mesAnoAtual = getMesAnoChave(state.currentDate);
-
-  // Garantimos que estamos filtrando transações e orçamentos do mês CORRETO
   const transacoesDoMes = state.transacoes.filter(
     (t) => t.mesAnoReferencia === mesAnoAtual,
   );
@@ -46,33 +44,36 @@ export function atualizarResumoFinanceiro() {
     (o) => o.mesAnoReferencia === mesAnoAtual,
   );
 
-  let receitasTotais = 0;
-  let despesasProjetadasTotais = 0;
-  let patrimonioTotal = 0;
-
-  // 1. Soma das Receitas
-  receitasTotais = transacoesDoMes
+  // 1. Receitas de Renda (Salário, etc)
+  const receitasTotais = transacoesDoMes
     .filter((t) => t.tipo === CONSTS.TIPO_TRANSACAO.RECEITA)
     .reduce((acc, t) => acc + (Number(t.valor) || 0), 0);
 
-  // 1.1 Soma do Patrimônio (Investimentos e Amortizações)
-  patrimonioTotal = transacoesDoMes
-    .filter((t) => t.tipo === CONSTS.TIPO_TRANSACAO.PATRIMONIO)
+  // 2. Movimentações de Patrimônio (Aportes vs Resgates)
+  const aportesDoMes = transacoesDoMes
+    .filter(
+      (t) =>
+        t.tipo === CONSTS.TIPO_TRANSACAO.PATRIMONIO && t.operacao === "aporte",
+    )
     .reduce((acc, t) => acc + (Number(t.valor) || 0), 0);
 
-  // Mapeia IDs para lógica de órfãos
-  const activeBudgetIds = orcamentosDoMes.map((o) => o.id);
+  const resgatesDoMes = transacoesDoMes
+    .filter(
+      (t) =>
+        t.tipo === CONSTS.TIPO_TRANSACAO.PATRIMONIO && t.operacao === "resgate",
+    )
+    .reduce((acc, t) => acc + (Number(t.valor) || 0), 0);
 
-  // 2. Lógica de Orçamentos (Coração do Saldo)
+  // 3. Lógica de Despesas e Orçamentos
+  const activeBudgetIds = orcamentosDoMes.map((o) => o.id);
+  let despesasProjetadasTotais = 0;
+
   orcamentosDoMes.forEach((orc) => {
     const orcValorPlan = Number(orc.valor) || 0;
-
-    // Gasto Real direto
     let gastoRealNoOrc = transacoesDoMes
       .filter((t) => t.orcamentoId === orc.id)
       .reduce((acc, t) => acc + (Number(t.valor) || 0), 0);
 
-    // Gasto Real Órfão (Cartão)
     if (orc.isFixed) {
       gastoRealNoOrc += transacoesDoMes
         .filter(
@@ -82,15 +83,12 @@ export function atualizarResumoFinanceiro() {
         )
         .reduce((acc, t) => acc + (Number(t.valor) || 0), 0);
     }
-
-    // Gasto Real Órfão (Ordinário)
     if (orc.isFixedOrdinary) {
       gastoRealNoOrc += transacoesDoMes
         .filter((t) => t.categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA)
         .reduce((acc, t) => acc + (Number(t.valor) || 0), 0);
     }
 
-    // A regra de Ouro: Se fechado, usa o Real. Se aberto, usa o Maior entre Plano e Real.
     if (isOrcamentoFechado(orc.id, mesAnoAtual)) {
       despesasProjetadasTotais += gastoRealNoOrc;
     } else {
@@ -98,19 +96,40 @@ export function atualizarResumoFinanceiro() {
     }
   });
 
-  // 3. Subtrai ajustes de fatura
   const totalAjustes = state.ajustesFatura
     .filter((a) => a.mesAnoReferencia === mesAnoAtual)
     .reduce((acc, a) => acc + (Number(a.valor) || 0), 0);
-
   despesasProjetadasTotais -= totalAjustes;
 
-  // O Saldo Final subtrai as despesas de consumo E os aportes em patrimônio
+  // LÓGICA FINAL: Saldo = (Receitas + Resgates) - (Despesas + Aportes)
   const saldoFinal =
-    receitasTotais - despesasProjetadasTotais - patrimonioTotal;
+    receitasTotais + resgatesDoMes - (despesasProjetadasTotais + aportesDoMes);
 
-  // Atualização Visual
+  // --- ATUALIZAÇÃO VISUAL ---
   elements.totalReceitasDisplay.textContent = formatCurrency(receitasTotais);
+
+  // Linha condicional de Resgates na Sidebar
+  let containerResgate = document.getElementById("linhaResumoResgates");
+  if (resgatesDoMes > 0) {
+    if (!containerResgate) {
+      containerResgate = document.createElement("div");
+      containerResgate.id = "linhaResumoResgates";
+      containerResgate.className = "summary-item";
+      containerResgate.style.color = "#9b59b6";
+      containerResgate.innerHTML = `<span>Resgates do mês:</span> <span id="totalResgates">${formatCurrency(resgatesDoMes)}</span>`;
+      elements.totalReceitasDisplay.parentElement.insertAdjacentElement(
+        "afterend",
+        containerResgate,
+      );
+    } else {
+      containerResgate.style.display = "flex";
+      const elTotal = document.getElementById("totalResgates");
+      if (elTotal) elTotal.textContent = formatCurrency(resgatesDoMes);
+    }
+  } else if (containerResgate) {
+    containerResgate.style.display = "none";
+  }
+
   elements.totalDespesasDisplay.textContent = formatCurrency(
     despesasProjetadasTotais,
   );
@@ -123,7 +142,6 @@ export function atualizarResumoFinanceiro() {
     elements.saldoMesDisplay.style.color = "";
   }
 
-  // Sincronia do botão de cadeado
   if (elements.btnFecharTodosOrcamentos) {
     const algumAberto = orcamentosDoMes.some(
       (orc) => !isOrcamentoFechado(orc.id, mesAnoAtual),
@@ -142,46 +160,68 @@ export function abrirModalEspecifico(
 ) {
   if (!modalElement) return;
 
+  // 1. Controle de Pilha (Z-Index)
   modalElement.style.zIndex = 1000 + state.openModals.length * 10;
   if (!state.openModals.includes(modalElement)) {
     state.openModals.push(modalElement);
   }
 
-  if (tipoModal === "transacao") {
-    state.isEditMode = !!idParaEditar;
-    state.editingTransactionId = idParaEditar;
-    if (callbacks.resetModalNovaTransacao) callbacks.resetModalNovaTransacao();
-    if (state.isEditMode && callbacks.preencherModalParaEdicao) {
-      callbacks.preencherModalParaEdicao(state.editingTransactionId);
+  // 2. Execução da Lógica por Tipo
+  try {
+    if (tipoModal === "transacao") {
+      state.isEditMode = !!idParaEditar;
+      state.editingTransactionId = idParaEditar;
+      if (callbacks.resetModalNovaTransacao)
+        callbacks.resetModalNovaTransacao();
+      if (state.isEditMode && callbacks.preencherModalParaEdicao) {
+        callbacks.preencherModalParaEdicao(state.editingTransactionId);
+      }
+    } else if (tipoModal === "patrimonio") {
+      if (callbacks.renderizarLista) callbacks.renderizarLista();
+    } else if (tipoModal === "patrimonioForm") {
+      if (idParaEditar) {
+        if (callbacks.preencherModal) callbacks.preencherModal(idParaEditar);
+      } else {
+        if (callbacks.resetForm) callbacks.resetForm();
+      }
+    } else if (tipoModal === "patrimonioHistorico") {
+      // Novo caso para o Extrato do Ativo - Passa o idParaEditar para o renderizador
+      if (callbacks.popularHistorico) callbacks.popularHistorico(idParaEditar);
+    } else if (tipoModal === "cartaoCadastroEdicao") {
+      state.isCartaoEditMode = !!idParaEditar;
+      if (callbacks.resetModalCartao) callbacks.resetModalCartao();
+      if (state.isCartaoEditMode && callbacks.preencherModalEdicaoCartao) {
+        elements.cartaoEditIdInput.value = idParaEditar;
+        callbacks.preencherModalEdicaoCartao(idParaEditar);
+      }
+    } else if (tipoModal === "gerenciarCartoes") {
+      if (callbacks.renderizarListaCartoesCadastrados)
+        callbacks.renderizarListaCartoesCadastrados();
+    } else if (tipoModal === "orcamentos") {
+      if (callbacks.renderizarListaOrcamentos)
+        callbacks.renderizarListaOrcamentos();
+    } else if (tipoModal === "orcamentoCadastroEdicao") {
+      state.isOrcamentoEditMode = !!idParaEditar;
+      if (callbacks.resetFormOrcamento) callbacks.resetFormOrcamento();
+      if (
+        state.isOrcamentoEditMode &&
+        callbacks.preencherModalEdicaoOrcamento
+      ) {
+        elements.orcamentoEditIdInput.value = idParaEditar;
+        callbacks.preencherModalEdicaoOrcamento(idParaEditar);
+      }
+    } else if (tipoModal === "relatorios") {
+      state.reportDate = new Date(state.currentDate);
+      if (callbacks.popularModalRelatorio)
+        callbacks.popularModalRelatorio(state.reportDate);
+    } else if (tipoModal === "gerenciarPessoas") {
+      if (callbacks.renderizarListaPessoas) callbacks.renderizarListaPessoas();
     }
-  } else if (tipoModal === "cartaoCadastroEdicao") {
-    state.isCartaoEditMode = !!idParaEditar;
-    if (callbacks.resetModalCartao) callbacks.resetModalCartao();
-    if (state.isCartaoEditMode && callbacks.preencherModalEdicaoCartao) {
-      elements.cartaoEditIdInput.value = idParaEditar;
-      callbacks.preencherModalEdicaoCartao(idParaEditar);
-    }
-  } else if (tipoModal === "gerenciarCartoes") {
-    if (callbacks.renderizarListaCartoesCadastrados)
-      callbacks.renderizarListaCartoesCadastrados();
-  } else if (tipoModal === "orcamentos") {
-    if (callbacks.renderizarListaOrcamentos)
-      callbacks.renderizarListaOrcamentos();
-  } else if (tipoModal === "orcamentoCadastroEdicao") {
-    state.isOrcamentoEditMode = !!idParaEditar;
-    if (callbacks.resetFormOrcamento) callbacks.resetFormOrcamento();
-    if (state.isOrcamentoEditMode && callbacks.preencherModalEdicaoOrcamento) {
-      elements.orcamentoEditIdInput.value = idParaEditar;
-      callbacks.preencherModalEdicaoOrcamento(idParaEditar);
-    }
-  } else if (tipoModal === "relatorios") {
-    state.reportDate = new Date(state.currentDate);
-    if (callbacks.popularModalRelatorio)
-      callbacks.popularModalRelatorio(state.reportDate);
-  } else if (tipoModal === "gerenciarPessoas") {
-    if (callbacks.renderizarListaPessoas) callbacks.renderizarListaPessoas();
+  } catch (error) {
+    console.error(`Erro ao processar modal ${tipoModal}:`, error);
   }
 
+  // 3. Exibição Visual ( display: flex )
   modalElement.style.display = "flex";
   elements.bodyEl.classList.add("modal-aberto");
 }
@@ -219,6 +259,10 @@ export function fecharModalEspecifico(modalElement) {
       if (elements.nomeOrcamentoInput) elements.nomeOrcamentoInput.value = "";
       if (elements.valorOrcamentoInput) elements.valorOrcamentoInput.value = "";
       if (elements.diaOrcamentoInput) elements.diaOrcamentoInput.value = "";
+      break;
+    case "modalDetalhesPatrimonio":
+      if (elements.listaHistoricoPatrimonioUl)
+        elements.listaHistoricoPatrimonioUl.innerHTML = "";
       break;
   }
 }
@@ -619,19 +663,29 @@ export function renderizarTransacoesDoMes() {
     });
   });
 
-  const tipoPrioridade = {
-    [CONSTS.TIPO_RENDERIZACAO.RECEITA]: 1,
-    [CONSTS.TIPO_RENDERIZACAO.ORCAMENTO]: 2,
-    [CONSTS.TIPO_RENDERIZACAO.PATRIMONIO]: 3, // Patrimônio aparece antes das despesas
-    [CONSTS.TIPO_RENDERIZACAO.DESPESA]: 4,
-    [CONSTS.TIPO_RENDERIZACAO.FATURA]: 4,
-  };
-  itensParaRenderizar.sort((a, b) => {
-    const prioridadeA = tipoPrioridade[a.tipoDisplay];
-    const prioridadeB = tipoPrioridade[b.tipoDisplay];
-    if (prioridadeA !== prioridadeB) return prioridadeA - prioridadeB;
+  // Prioridade de exibição na Home
+  itensParaRenderizar.forEach((item) => {
+    if (item.tipoDisplay === CONSTS.TIPO_RENDERIZACAO.RECEITA)
+      item.ordemMaster = 1;
+    else if (
+      item.tipoDisplay === CONSTS.TIPO_RENDERIZACAO.PATRIMONIO &&
+      item.operacao === "resgate"
+    )
+      item.ordemMaster = 2;
+    else if (item.tipoDisplay === CONSTS.TIPO_RENDERIZACAO.ORCAMENTO)
+      item.ordemMaster = 3;
+    else if (
+      item.tipoDisplay === CONSTS.TIPO_RENDERIZACAO.PATRIMONIO &&
+      item.operacao !== "resgate"
+    )
+      item.ordemMaster = 4;
+    else item.ordemMaster = 5; // Despesas e Faturas
+  });
 
-    // Sub-ordenação específica para Orçamentos: Gastos Ordinários -> Outros Gastos -> Demais
+  itensParaRenderizar.sort((a, b) => {
+    if (a.ordemMaster !== b.ordemMaster) return a.ordemMaster - b.ordemMaster;
+
+    // Sub-ordenação para Orçamentos
     if (
       a.tipoDisplay === CONSTS.TIPO_RENDERIZACAO.ORCAMENTO &&
       b.tipoDisplay === CONSTS.TIPO_RENDERIZACAO.ORCAMENTO
@@ -646,6 +700,58 @@ export function renderizarTransacoesDoMes() {
       a.dataOrdenacao instanceof Date ? a.dataOrdenacao : new Date(0);
     const dateB =
       b.dataOrdenacao instanceof Date ? b.dataOrdenacao : new Date(0);
+    return (
+      dateA - dateB ||
+      (b.valorTotalOrcamento || b.valor || 0) -
+        (a.valorTotalOrcamento || a.valor || 0)
+    );
+  });
+
+  // 1. Define a Prioridade Master para cada item (Receitas > Resgates > Orçamentos > Aportes > Despesas)
+  itensParaRenderizar.forEach((item) => {
+    if (item.tipoDisplay === CONSTS.TIPO_RENDERIZACAO.RECEITA) {
+      item.ordemMaster = 1;
+    } else if (
+      item.tipoDisplay === CONSTS.TIPO_RENDERIZACAO.PATRIMONIO &&
+      item.operacao === "resgate"
+    ) {
+      item.ordemMaster = 2; // Resgate (Roxo) logo após receitas
+    } else if (item.tipoDisplay === CONSTS.TIPO_RENDERIZACAO.ORCAMENTO) {
+      item.ordemMaster = 3;
+    } else if (
+      item.tipoDisplay === CONSTS.TIPO_RENDERIZACAO.PATRIMONIO &&
+      item.operacao !== "resgate"
+    ) {
+      item.ordemMaster = 4; // Aportes (Azuis) antes das despesas
+    } else {
+      item.ordemMaster = 5; // Despesas e Faturas
+    }
+  });
+
+  // 2. Executa a Ordenação Multinível
+  itensParaRenderizar.sort((a, b) => {
+    // Primeiro critério: Natureza do item (ordemMaster)
+    if (a.ordemMaster !== b.ordemMaster) {
+      return a.ordemMaster - b.ordemMaster;
+    }
+
+    // Segundo critério: Regras internas para Orçamentos
+    if (
+      a.tipoDisplay === CONSTS.TIPO_RENDERIZACAO.ORCAMENTO &&
+      b.tipoDisplay === CONSTS.TIPO_RENDERIZACAO.ORCAMENTO
+    ) {
+      if (a.isFixedOrdinary) return -1;
+      if (b.isFixedOrdinary) return 1;
+      if (a.isFixed) return -1;
+      if (b.isFixed) return 1;
+    }
+
+    // Terceiro critério: Data e depois Valor
+    const dateA =
+      a.dataOrdenacao instanceof Date ? a.dataOrdenacao : new Date(0);
+    const dateB =
+      b.dataOrdenacao instanceof Date ? b.dataOrdenacao : new Date(0);
+
     return (
       dateA - dateB ||
       (b.valorTotalOrcamento || b.valor || 0) -
@@ -676,7 +782,11 @@ export function renderizarTransacoesDoMes() {
         detailsDiv.innerHTML = criarElementoReceita(item, actionsDiv);
         break;
       case CONSTS.TIPO_RENDERIZACAO.PATRIMONIO:
-        li.classList.add("patrimonio");
+        if (item.operacao === "resgate") {
+          li.classList.add("patrimonio-resgate");
+        } else {
+          li.classList.add("patrimonio");
+        }
         if (item.paga) li.classList.add("paga");
         li.dataset.transactionId = item.id;
         detailsDiv.innerHTML = criarElementoPatrimonio(item, actionsDiv);

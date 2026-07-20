@@ -43,29 +43,52 @@ export function popularModalRelatorio(date) {
     .filter((t) => t.tipo === CONSTS.TIPO_TRANSACAO.RECEITA)
     .reduce((total, t) => total + t.valor, 0);
 
-  // Cálculos de Patrimônio
-  const totalAtivos = transacoesDoMes
+  // --- CÁLCULOS DE PATRIMÔNIO (LOGICA DE CRUZAMENTO) ---
+
+  // Função auxiliar para descobrir se uma transação de patrimônio é Ativo ou Redução
+  const obterTipoDoItem = (patrimonioId) => {
+    const sub = state.patrimonioSubcategorias.find(
+      (s) => s.id === patrimonioId,
+    );
+    if (!sub) return null;
+    const cat = state.patrimonioCategorias.find(
+      (c) => c.id === sub.categoriaId,
+    );
+    return cat ? cat.tipo : null;
+  };
+
+  const totalAportesAtivos = transacoesDoMes
     .filter(
       (t) =>
         t.tipo === CONSTS.TIPO_TRANSACAO.PATRIMONIO &&
-        t.subTipo === CONSTS.SUBTIPO_PATRIMONIO.ATIVO,
+        t.operacao === "aporte" &&
+        obterTipoDoItem(t.patrimonioId) === "ativo",
     )
     .reduce((s, t) => s + t.valor, 0);
 
-  const totalPassivos = transacoesDoMes
+  const totalAportesReducao = transacoesDoMes
     .filter(
       (t) =>
         t.tipo === CONSTS.TIPO_TRANSACAO.PATRIMONIO &&
-        t.subTipo === CONSTS.SUBTIPO_PATRIMONIO.PASSIVO,
+        t.operacao === "aporte" &&
+        obterTipoDoItem(t.patrimonioId) === "passivo",
     )
     .reduce((s, t) => s + t.valor, 0);
 
-  const totalPatrimonio = totalAtivos + totalPassivos;
+  const totalResgates = transacoesDoMes
+    .filter(
+      (t) =>
+        t.tipo === CONSTS.TIPO_TRANSACAO.PATRIMONIO && t.operacao === "resgate",
+    )
+    .reduce((s, t) => s + t.valor, 0);
+
+  const totalAportesGeral = totalAportesAtivos + totalAportesReducao;
+  const investimentoLiquido = totalAportesGeral - totalResgates;
   const taxaInvestimento =
-    totalReceitas > 0 ? (totalPatrimonio / totalReceitas) * 100 : 0;
+    totalReceitas > 0 ? (investimentoLiquido / totalReceitas) * 100 : 0;
 
+  // --- CÁLCULOS DE DESPESAS E ORÇAMENTOS ---
   const activeBudgetIds = state.orcamentos.map((o) => o.id);
-
   const totalGastoRealCartao = despesasDoMes
     .filter((d) => d.categoria === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO)
     .reduce((s, t) => s + t.valor, 0);
@@ -108,18 +131,21 @@ export function popularModalRelatorio(date) {
     .filter((a) => a.mesAnoReferencia === mesAno)
     .reduce((s, a) => s + a.valor, 0);
 
-  // Saldo Real e Final agora subtraem o Patrimônio (Dinheiro que saiu do caixa)
+  // --- CÁLCULO DOS SALDOS (ATUALIZADO FASE 2) ---
+  // Saldo = (Receitas + Resgates) - (Gastos + Aportes)
   const saldoReal =
-    totalReceitas -
-    (totalGastoRealCartao + totalGastoRealOrdinario - totalAjustesDoMes) -
-    totalPatrimonio;
-
+    totalReceitas +
+    totalResgates -
+    (totalGastoRealCartao +
+      totalGastoRealOrdinario -
+      totalAjustesDoMes +
+      totalAportesGeral);
   const saldoFinal =
-    totalReceitas -
-    (somaDespesasProjetadas - totalAjustesDoMes) -
-    totalPatrimonio;
+    totalReceitas +
+    totalResgates -
+    (somaDespesasProjetadas - totalAjustesDoMes + totalAportesGeral);
 
-  // --- RESTAURANDO SEÇÃO ORIGINAL: Análise de Despesas ---
+  // --- RENDERIZAÇÃO: ANÁLISE DE DESPESAS ---
   const calcularSubtotais = (categoria) => {
     const despesasFiltradas = despesasDoMes.filter(
       (d) => d.categoria === categoria,
@@ -182,23 +208,33 @@ export function popularModalRelatorio(date) {
   document.getElementById("relatorio-secao-analise-despesas").innerHTML =
     analiseDespesasHTML;
 
-  // --- NOVA SEÇÃO: Análise de Patrimônio ---
+  // --- RENDERIZAÇÃO: ANÁLISE DE PATRIMÔNIO (ATUALIZADA) ---
   const analisePatrimonioHTML = `
     <section class="relatorio-secao">
       <h3>Análise de Patrimônio</h3>
       <div class="relatorio-grid-analise">
-        <div class="relatorio-sub-secao" style="grid-column: span 2;">
-          <div class="relatorio-item-analise clicavel" data-tipo-patrimonio="${CONSTS.SUBTIPO_PATRIMONIO.ATIVO}">
-            <span>Formação de Ativos</span> <strong>${formatCurrency(totalAtivos)}</strong>
+        <div class="relatorio-sub-secao">
+          <h4>Aportes</h4>
+          <div class="relatorio-item-analise clicavel" data-tipo-patrimonio="aporte-ativo">
+            <span>Formação de Ativos</span> <strong>${formatCurrency(totalAportesAtivos)}</strong>
           </div>
-          <div class="relatorio-item-analise clicavel" data-tipo-patrimonio="${CONSTS.SUBTIPO_PATRIMONIO.PASSIVO}">
-            <span>Redução de Passivos</span> <strong>${formatCurrency(totalPassivos)}</strong>
+          <div class="relatorio-item-analise clicavel" data-tipo-patrimonio="aporte-passivo">
+            <span>Redução de Passivos</span> <strong>${formatCurrency(totalAportesReducao)}</strong>
+          </div>
+          <div class="relatorio-item-analise" style="font-weight: bold; margin-top: 15px; border-left-color: #3498db;">
+            <span>Total Aportado</span> <strong>${formatCurrency(totalAportesGeral)}</strong>
+          </div>
+        </div>
+        <div class="relatorio-sub-secao">
+          <h4>Resgates e Performance</h4>
+          <div class="relatorio-item-analise clicavel" data-tipo-patrimonio="resgate">
+            <span>Total Resgatado</span> <strong>${formatCurrency(totalResgates)}</strong>
           </div>
           <div class="relatorio-item-analise" style="font-weight: bold; margin-top: 15px; border-left-color: #27ae60;">
-            <span>Total Investido</span> <strong>${formatCurrency(totalPatrimonio)}</strong>
+            <span>Investimento Líquido</span> <strong>${formatCurrency(investimentoLiquido)}</strong>
           </div>
-          <div class="relatorio-item-analise" style="font-weight: bold; margin-top: 5px; border-left-color: #f1c40f;">
-            <span>Taxa de Investimento</span> <strong>${taxaInvestimento.toFixed(1)}%</strong>
+          <div class="relatorio-item-analise" style="font-weight: bold; border-left-color: #f1c40f;">
+            <span>Taxa de Poupança</span> <strong>${taxaInvestimento.toFixed(1)}%</strong>
           </div>
         </div>
       </div>
@@ -206,20 +242,19 @@ export function popularModalRelatorio(date) {
 
   document.getElementById("relatorio-secao-analise-patrimonio").innerHTML =
     analisePatrimonioHTML;
-  // --- FIM DA NOVA SEÇÃO ---
 
+  // --- RENDERIZAÇÃO: RESUMO GERAL ---
   document.getElementById("relatorio-secao-resumo").innerHTML =
     `<section class="relatorio-secao"><h3>Resumo Geral</h3><div class="relatorio-grid">
     <div class="relatorio-item"><span>Receitas Totais</span><strong class="valor-receita">${formatCurrency(totalReceitas)}</strong></div>
+    <div class="relatorio-item"><span>Resgates</span><strong style="color: #9b59b6;">${formatCurrency(totalResgates)}</strong></div>
     <div class="relatorio-item"><span>Despesas Totais</span><strong class="valor-despesa">${formatCurrency(somaDespesasProjetadas - totalAjustesDoMes)}</strong></div>
-    <div class="relatorio-item"><span>Patrimônio</span><strong style="color: #3498db;">${formatCurrency(totalPatrimonio)}</strong></div>
+    <div class="relatorio-item"><span>Aportes</span><strong style="color: #3498db;">${formatCurrency(totalAportesGeral)}</strong></div>
     <div class="relatorio-item"><span>Saldo Final</span><strong style="color:${saldoFinal >= 0 ? "#27ae60" : "#e74c3c"}">${formatCurrency(saldoFinal)}</strong></div>
     <div class="relatorio-item"><span>Saldo Real</span><strong style="color:${saldoReal >= 0 ? "#27ae60" : "#e74c3c"}">${formatCurrency(saldoReal)}</strong></div>
   </div></section>`;
 
   let orcamentosHTML = "";
-
-  // Ordenação: Gastos Ordinários (1º), Outros Gastos (2º), demais por valor decrescente
   const orcamentosOrdenadosRelatorio = [...orcamentosRelatorio].sort((a, b) => {
     if (a.isFixedOrdinary) return -1;
     if (b.isFixedOrdinary) return 1;
@@ -252,24 +287,21 @@ export function popularModalRelatorio(date) {
     `<section class="relatorio-secao"><h3>Análise de Orçamentos</h3><div class="relatorio-orcamento-lista">${orcamentosHTML}</div><div class="relatorio-orcamento-total"><span>TOTAIS</span><div class="orcamento-valores"><small>Prev: ${formatCurrency(totalPrevistoOrcamentos)}</small><small>Gasto: ${formatCurrency(totalGastoOrcamentos)}</small><strong>Saldo: ${formatCurrency(totalPrevistoOrcamentos - totalGastoOrcamentos)}</strong></div></div></section>`;
 }
 
-/**
- * Abre o modal de detalhamento para uma categoria e frequência específica do relatório.
- */
 export function abrirDetalhesFiltroRelatorio(
   categoria,
   frequencia,
   date,
   callbackAbrir,
-  subTipoPatrimonio = null, // Novo parâmetro opcional
+  tipoPatrimonio = null,
 ) {
   const mesAno = getMesAnoChave(date);
   let labelTitulo = "";
 
-  if (subTipoPatrimonio) {
-    labelTitulo =
-      subTipoPatrimonio === CONSTS.SUBTIPO_PATRIMONIO.ATIVO
-        ? "Patrimônio: Ativos"
-        : "Patrimônio: Passivos";
+  if (tipoPatrimonio) {
+    if (tipoPatrimonio === "resgate") labelTitulo = "Patrimônio: Resgates";
+    else if (tipoPatrimonio === "aporte-ativo")
+      labelTitulo = "Patrimônio: Ativos";
+    else labelTitulo = "Patrimônio: Redução de Passivo";
   } else {
     const labelCat =
       categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA
@@ -284,11 +316,28 @@ export function abrirDetalhesFiltroRelatorio(
 
   const itens = state.transacoes
     .filter((t) => {
-      if (subTipoPatrimonio) {
+      if (tipoPatrimonio) {
+        if (tipoPatrimonio === "resgate") {
+          return (
+            t.mesAnoReferencia === mesAno &&
+            t.tipo === CONSTS.TIPO_TRANSACAO.PATRIMONIO &&
+            t.operacao === "resgate"
+          );
+        }
+        // Para aportes, cruza com a subcategoria para saber se é Ativo ou Passivo
+        const sub = state.patrimonioSubcategorias.find(
+          (s) => s.id === t.patrimonioId,
+        );
+        const cat = sub
+          ? state.patrimonioCategorias.find((c) => c.id === sub.categoriaId)
+          : null;
+        const tipoAlvo =
+          tipoPatrimonio === "aporte-ativo" ? "ativo" : "passivo";
         return (
           t.mesAnoReferencia === mesAno &&
           t.tipo === CONSTS.TIPO_TRANSACAO.PATRIMONIO &&
-          t.subTipo === subTipoPatrimonio
+          t.operacao === "aporte" &&
+          cat?.tipo === tipoAlvo
         );
       }
       return (
