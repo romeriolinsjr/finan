@@ -267,12 +267,16 @@ export async function gerarExtratoMensalPDF() {
   });
   currentY = doc.lastAutoTable.finalY + 10;
 
-  // --- SEÇÃO 3: POSIÇÃO PATRIMONIAL ACUMULADA ---
+  // --- SEÇÃO 3: POSIÇÃO PATRIMONIAL ACUMULADA (HISTÓRICA) ---
   currentY = drawSectionHeader("Posição patrimonial acumulada", currentY);
+
+  // O saldo acumulado deve considerar apenas transações até o mês do relatório (mesAno)
   const totalGeralEstoque = (state.patrimonioSubcategorias || []).reduce(
     (acc, sub) => {
       let saldo = Number(sub.saldoInicial) || 0;
-      const hist = state.transacoes.filter((t) => t.patrimonioId === sub.id);
+      const hist = state.transacoes.filter(
+        (t) => t.patrimonioId === sub.id && t.mesAnoReferencia <= mesAno,
+      );
       hist.forEach((t) => {
         const v = Number(t.valor) || 0;
         if (t.operacao === "aporte") saldo += v;
@@ -292,7 +296,9 @@ export async function gerarExtratoMensalPDF() {
       let totalCat = 0;
       filhos.forEach((sub) => {
         let saldo = Number(sub.saldoInicial) || 0;
-        const hist = state.transacoes.filter((t) => t.patrimonioId === sub.id);
+        const hist = state.transacoes.filter(
+          (t) => t.patrimonioId === sub.id && t.mesAnoReferencia <= mesAno,
+        );
         hist.forEach((t) => {
           const v = Number(t.valor) || 0;
           if (t.operacao === "aporte") saldo += v;
