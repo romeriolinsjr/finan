@@ -133,6 +133,30 @@ export function atualizarResumoFinanceiro() {
   elements.totalDespesasDisplay.textContent = formatCurrency(
     despesasProjetadasTotais,
   );
+
+  // --- NOVO: Linha condicional de Aportes na Sidebar ---
+  let containerAporte = document.getElementById("linhaResumoAportes");
+  if (aportesDoMes > 0) {
+    if (!containerAporte) {
+      containerAporte = document.createElement("div");
+      containerAporte.id = "linhaResumoAportes";
+      containerAporte.className = "summary-item";
+      containerAporte.style.color = "#3498db";
+      containerAporte.innerHTML = `<span>Aportes do mês:</span> <span id="totalAportes">${formatCurrency(aportesDoMes)}</span>`;
+      // Insere logo abaixo das despesas
+      elements.totalDespesasDisplay.parentElement.insertAdjacentElement(
+        "afterend",
+        containerAporte,
+      );
+    } else {
+      containerAporte.style.display = "flex";
+      const elTotal = document.getElementById("totalAportes");
+      if (elTotal) elTotal.textContent = formatCurrency(aportesDoMes);
+    }
+  } else if (containerAporte) {
+    containerAporte.style.display = "none";
+  }
+
   elements.saldoMesDisplay.textContent = formatCurrency(saldoFinal);
 
   if (!state.areValuesHidden) {
@@ -299,9 +323,31 @@ export function criarElementoReceita(item, actionsDiv) {
 }
 
 export function criarElementoPatrimonio(item, actionsDiv) {
-  const isAtivo = item.subTipo === CONSTS.SUBTIPO_PATRIMONIO.ATIVO;
-  const subTipoLabel = isAtivo ? "Ativo" : "Passivo";
-  const icon = isAtivo ? "🏦" : "📉";
+  // Busca Dinâmica: Tenta ler da transação ou descobrir via ID do Patrimônio
+  let natureza = item.natureza;
+
+  if (!natureza && item.patrimonioId) {
+    const sub = (state.patrimonioSubcategorias || []).find(
+      (s) => s.id === item.patrimonioId,
+    );
+    if (sub) {
+      const cat = (state.patrimonioCategorias || []).find(
+        (c) => c.id === sub.categoriaId,
+      );
+      natureza = cat?.tipo;
+    }
+  }
+
+  const isAtivo = natureza === "ativo";
+  const subTipoLabel = isAtivo ? "Formação de Ativos" : "Redução de Passivos";
+
+  // Mapeamento amigável da Operação
+  const operacaoMap = {
+    aporte: "Aporte",
+    resgate: "Resgate",
+    ajuste: "Ajuste",
+  };
+  const labelOperacao = operacaoMap[item.operacao] || "Operação";
 
   const dataFormatada = item.dataOperacao
     ? new Date(parseDateString(item.dataOperacao)).toLocaleDateString("pt-BR", {
@@ -325,7 +371,7 @@ export function criarElementoPatrimonio(item, actionsDiv) {
   deleteButton.dataset.id = item.id;
   actionsDiv.appendChild(deleteButton);
 
-  let categoriaDisplay = `(Patrimônio - ${subTipoLabel}${
+  let categoriaDisplay = `(Patrimônio - ${subTipoLabel} - ${labelOperacao}${
     item.frequencia === CONSTS.FREQUENCIA.PARCELADA && item.totalParcelas
       ? ` - ${item.parcelaAtual || "?"}/${item.totalParcelas}`
       : ""
