@@ -1665,8 +1665,8 @@ body.modal-aberto {
 
 .sidebar-footer #btnLogout {
   width: 100%;
-  background-color: #e74c3c; /* Vermelho para o botão de sair */
-  color: white;
+  background-color: #bdc3c7; /* Cinza sóbrio igual ao de orçamentos */
+  color: #333; /* Texto escuro para contraste no cinza */
   text-align: center;
   margin-bottom: 12px;
   border: none;
@@ -1678,7 +1678,7 @@ body.modal-aberto {
 }
 
 .sidebar-footer #btnLogout:hover {
-  background-color: #c0392b;
+  background-color: #a8b0b5;
 }
 
 #lastUpdatedDisplay {

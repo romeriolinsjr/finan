@@ -954,7 +954,7 @@ document.addEventListener("DOMContentLoaded", () => {
   elements.btnAbrirModalNovaCategoriaPatrimonio.addEventListener(
     "click",
     () => {
-      ui.fecharModalEspecifico(elements.modalPatrimonio);
+      // PADRONIZAÇÃO: O modal pai (Patrimônio) permanece aberto ao fundo
       ui.abrirModalEspecifico(
         elements.modalCadastrarPatrimonioCategoria,
         null,
@@ -968,16 +968,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
   elements.btnSalvarPatrimonioCategoria.addEventListener("click", async () => {
     await patrimony.salvarCategoria();
+    // Fecha apenas o formulário. O modal pai já está ao fundo e será atualizado pelo snapshot
     ui.fecharModalEspecifico(elements.modalCadastrarPatrimonioCategoria);
-    ui.abrirModalEspecifico(elements.modalPatrimonio, null, "patrimonio", {
-      renderizarLista: patrimony.renderizarListaPatrimonioHierarquica,
-    });
   });
 
   elements.btnAbrirModalNovaSubcategoriaPatrimonio.addEventListener(
     "click",
     () => {
-      ui.fecharModalEspecifico(elements.modalPatrimonio);
+      // PADRONIZAÇÃO: O modal pai (Patrimônio) permanece aberto ao fundo
       ui.abrirModalEspecifico(
         elements.modalCadastrarPatrimonioSubcategoria,
         null,
@@ -993,10 +991,8 @@ document.addEventListener("DOMContentLoaded", () => {
     "click",
     async () => {
       await patrimony.salvarSubcategoria();
+      // Fecha apenas o formulário. O modal pai já está ao fundo e será atualizado pelo snapshot
       ui.fecharModalEspecifico(elements.modalCadastrarPatrimonioSubcategoria);
-      ui.abrirModalEspecifico(elements.modalPatrimonio, null, "patrimonio", {
-        renderizarLista: patrimony.renderizarListaPatrimonioHierarquica,
-      });
     },
   );
 
@@ -1018,7 +1014,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const id = btn.dataset.id;
 
       if (btn.classList.contains("btn-edit-pat-cat")) {
-        ui.fecharModalEspecifico(elements.modalPatrimonio);
+        // PADRONIZAÇÃO: Mantém o modal pai aberto ao fundo
         ui.abrirModalEspecifico(
           elements.modalCadastrarPatrimonioCategoria,
           id,
@@ -1030,7 +1026,7 @@ document.addEventListener("DOMContentLoaded", () => {
       } else if (btn.classList.contains("btn-delete-pat-cat")) {
         await patrimony.excluirCategoria(id);
       } else if (btn.classList.contains("btn-edit-pat-sub")) {
-        ui.fecharModalEspecifico(elements.modalPatrimonio);
+        // PADRONIZAÇÃO: Mantém o modal pai aberto ao fundo
         ui.abrirModalEspecifico(
           elements.modalCadastrarPatrimonioSubcategoria,
           id,
