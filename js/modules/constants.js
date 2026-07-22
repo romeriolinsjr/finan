@@ -6,7 +6,7 @@ export const CONSTS = {
   },
   SUBTIPO_PATRIMONIO: {
     ATIVO: "ativo",
-    PASSIVO: "passivo",
+    AMORTIZACAO: "passivo", // Valor mantido como 'passivo' para compatibilidade com o Firebase
   },
   CATEGORIA_DESPESA: {
     ORDINARIA: "ordinaria",

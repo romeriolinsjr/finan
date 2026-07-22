@@ -107,24 +107,26 @@ export async function gerarExtratoMensalPDF() {
   const taxaAtivos =
     totalReceitas > 0 ? ((aAtivos - rAtivos) / totalReceitas) * 100 : 0;
 
-  const aReducao = patTrans
+  const aAmortizacao = patTrans
     .filter(
       (t) =>
         t.operacao === "aporte" && getNatureza(t.patrimonioId) === "passivo",
     )
     .reduce((s, t) => s + t.valor, 0);
-  const rReducao = patTrans
+  const rAmortizacao = patTrans
     .filter(
       (t) =>
         t.operacao === "resgate" && getNatureza(t.patrimonioId) === "passivo",
     )
     .reduce((s, t) => s + t.valor, 0);
-  const taxaReducao =
-    totalReceitas > 0 ? ((aReducao - rReducao) / totalReceitas) * 100 : 0;
+  const taxaAmortizacao =
+    totalReceitas > 0
+      ? ((aAmortizacao - rAmortizacao) / totalReceitas) * 100
+      : 0;
 
   // Consolidação
-  const totalAportesGeral = aAtivos + aReducao;
-  const totalResgatesGeral = rAtivos + rReducao;
+  const totalAportesGeral = aAtivos + aAmortizacao;
+  const totalResgatesGeral = rAtivos + rAmortizacao;
   const investimentoLiquidoGeral = totalAportesGeral - totalResgatesGeral;
   const taxaGlobal =
     totalReceitas > 0 ? (investimentoLiquidoGeral / totalReceitas) * 100 : 0;
@@ -223,14 +225,14 @@ export async function gerarExtratoMensalPDF() {
         },
         `${taxaAtivos.toFixed(1)}%`,
       ],
-      ["Redução de Passivos (Aportes)", formatCurrency(aReducao)],
-      ["Redução de Passivos (Resgates)", formatCurrency(rReducao)],
+      ["Recursos para Amortização (Aportes)", formatCurrency(aAmortizacao)],
+      ["Recursos para Amortização (Resgates)", formatCurrency(rAmortizacao)],
       [
         {
           content: "Taxa de investimento líquido",
           styles: { fontStyle: "italic", textColor: [100, 100, 100] },
         },
-        `${taxaReducao.toFixed(1)}%`,
+        `${taxaAmortizacao.toFixed(1)}%`,
       ],
       [
         { content: "TOTAL DE APORTES", styles: { fontStyle: "bold" } },
@@ -309,7 +311,9 @@ export async function gerarExtratoMensalPDF() {
       });
       return [
         cat.nome,
-        cat.tipo === "ativo" ? "FORMAÇÃO DE ATIVOS" : "REDUÇÃO DE PASSIVOS",
+        cat.tipo === "ativo"
+          ? "FORMAÇÃO DE ATIVOS"
+          : "RECURSOS PARA AMORTIZAÇÃO",
         formatCurrency(totalCat),
         totalCat,
       ];
@@ -324,7 +328,7 @@ export async function gerarExtratoMensalPDF() {
       ...dadosEstoque.map((d) => [d[0], d[1], d[2]]),
       [
         {
-          content: "PATRIMÔNIO LÍQUIDO TOTAL (ESTOQUE)",
+          content: "PATRIMÔNIO ACUMULADO TOTAL (ESTOQUE)",
           colSpan: 2,
           styles: { fontStyle: "bold" },
         },

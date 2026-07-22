@@ -219,7 +219,7 @@ export function popularModalRelatorio(date) {
             <span>Formação de Ativos</span> <strong>${formatCurrency(totalAportesAtivos)}</strong>
           </div>
           <div class="relatorio-item-analise clicavel" data-tipo-patrimonio="aporte-passivo">
-            <span>Redução de Passivos</span> <strong>${formatCurrency(totalAportesReducao)}</strong>
+            <span>Recursos para Amortização</span> <strong>${formatCurrency(totalAportesReducao)}</strong>
           </div>
           <div class="relatorio-item-analise" style="font-weight: bold; margin-top: 15px; border-left-color: #3498db;">
             <span>Total Aportado</span> <strong>${formatCurrency(totalAportesGeral)}</strong>
@@ -300,8 +300,8 @@ export function abrirDetalhesFiltroRelatorio(
   if (tipoPatrimonio) {
     if (tipoPatrimonio === "resgate") labelTitulo = "Patrimônio: Resgates";
     else if (tipoPatrimonio === "aporte-ativo")
-      labelTitulo = "Patrimônio: Ativos";
-    else labelTitulo = "Patrimônio: Redução de Passivo";
+      labelTitulo = "Patrimônio: Formação de Ativos";
+    else labelTitulo = "Patrimônio: Recursos para Amortização";
   } else {
     const labelCat =
       categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA

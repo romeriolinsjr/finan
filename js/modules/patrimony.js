@@ -20,7 +20,7 @@ export function renderizarListaPatrimonioHierarquica() {
     const listaAtivos = categorias
       .filter((c) => c.tipo === "ativo")
       .sort((a, b) => a.nome.localeCompare(b.nome));
-    const listaReducao = categorias
+    const listaAmortizacao = categorias
       .filter((c) => c.tipo === "passivo")
       .sort((a, b) => a.nome.localeCompare(b.nome));
 
@@ -98,7 +98,7 @@ export function renderizarListaPatrimonioHierarquica() {
     };
 
     renderizarSecao(listaAtivos, "Formação de Ativos", "#27ae60");
-    renderizarSecao(listaReducao, "Redução de Passivos", "#3498db");
+    renderizarSecao(listaAmortizacao, "Recursos para Amortização", "#3498db");
   }
 
   const totalGeral = (state.patrimonioSubcategorias || []).reduce(
@@ -188,7 +188,7 @@ export function popularSelectCategoriasPai() {
   categorias
     .sort((a, b) => a.nome.localeCompare(b.nome))
     .forEach((cat) => {
-      h += `<option value="${cat.id}">${cat.nome} (${cat.tipo === "ativo" ? "Ativo" : "Redução"})</option>`;
+      h += `<option value="${cat.id}">${cat.nome} (${cat.tipo === "ativo" ? "Ativo" : "Amortização"})</option>`;
     });
   elements.selectCategoriaPai.innerHTML = h;
 }

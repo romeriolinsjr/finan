@@ -339,7 +339,9 @@ export function criarElementoPatrimonio(item, actionsDiv) {
   }
 
   const isAtivo = natureza === "ativo";
-  const subTipoLabel = isAtivo ? "Formação de Ativos" : "Redução de Passivos";
+  const subTipoLabel = isAtivo
+    ? "Formação de Ativos"
+    : "Recursos para Amortização";
 
   // Mapeamento amigável da Operação
   const operacaoMap = {
