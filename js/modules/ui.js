@@ -64,6 +64,14 @@ export function atualizarResumoFinanceiro() {
     )
     .reduce((acc, t) => acc + (Number(t.valor) || 0), 0);
 
+  const amortizacoesDoMes = transacoesDoMes
+    .filter(
+      (t) =>
+        t.tipo === CONSTS.TIPO_TRANSACAO.PATRIMONIO &&
+        t.operacao === "amortizacao",
+    )
+    .reduce((acc, t) => acc + (Number(t.valor) || 0), 0);
+
   // 3. Lógica de Despesas e Orçamentos
   const activeBudgetIds = orcamentosDoMes.map((o) => o.id);
   let despesasProjetadasTotais = 0;
@@ -101,9 +109,11 @@ export function atualizarResumoFinanceiro() {
     .reduce((acc, a) => acc + (Number(a.valor) || 0), 0);
   despesasProjetadasTotais -= totalAjustes;
 
-  // LÓGICA FINAL: Saldo = (Receitas + Resgates) - (Despesas + Aportes)
+  // LÓGICA FINAL: Saldo = (Receitas + Resgates) - (Despesas + Aportes + Amortizações)
   const saldoFinal =
-    receitasTotais + resgatesDoMes - (despesasProjetadasTotais + aportesDoMes);
+    receitasTotais +
+    resgatesDoMes -
+    (despesasProjetadasTotais + aportesDoMes + amortizacoesDoMes);
 
   // --- ATUALIZAÇÃO VISUAL ---
   elements.totalReceitasDisplay.textContent = formatCurrency(receitasTotais);
@@ -155,6 +165,29 @@ export function atualizarResumoFinanceiro() {
     }
   } else if (containerAporte) {
     containerAporte.style.display = "none";
+  }
+
+  // --- NOVO: Linha condicional de Amortizações na Sidebar ---
+  let containerAmortizacao = document.getElementById("linhaResumoAmortizacoes");
+  if (amortizacoesDoMes > 0) {
+    if (!containerAmortizacao) {
+      containerAmortizacao = document.createElement("div");
+      containerAmortizacao.id = "linhaResumoAmortizacoes";
+      containerAmortizacao.className = "summary-item";
+      containerAmortizacao.style.color = "#008080"; // Azul Petróleo / Teal para Amortização
+      containerAmortizacao.innerHTML = `<span>Amortizações:</span> <span id="totalAmortizacoes">${formatCurrency(amortizacoesDoMes)}</span>`;
+      // Insere logo abaixo dos aportes (ou despesas se não houver aportes)
+      const elReferencia =
+        document.getElementById("linhaResumoAportes") ||
+        elements.totalDespesasDisplay.parentElement;
+      elReferencia.insertAdjacentElement("afterend", containerAmortizacao);
+    } else {
+      containerAmortizacao.style.display = "flex";
+      const elTotal = document.getElementById("totalAmortizacoes");
+      if (elTotal) elTotal.textContent = formatCurrency(amortizacoesDoMes);
+    }
+  } else if (containerAmortizacao) {
+    containerAmortizacao.style.display = "none";
   }
 
   elements.saldoMesDisplay.textContent = formatCurrency(saldoFinal);
@@ -348,6 +381,7 @@ export function criarElementoPatrimonio(item, actionsDiv) {
     aporte: "Aporte",
     resgate: "Resgate",
     ajuste: "Ajuste",
+    amortizacao: "Amortização",
   };
   const labelOperacao = operacaoMap[item.operacao] || "Operação";
 
@@ -711,7 +745,7 @@ export function renderizarTransacoesDoMes() {
     });
   });
 
-  // Prioridade de exibição na Home
+  // Prioridade de exibição na Home (Ajustada para Amortização)
   itensParaRenderizar.forEach((item) => {
     if (item.tipoDisplay === CONSTS.TIPO_RENDERIZACAO.RECEITA)
       item.ordemMaster = 1;
@@ -724,10 +758,15 @@ export function renderizarTransacoesDoMes() {
       item.ordemMaster = 3;
     else if (
       item.tipoDisplay === CONSTS.TIPO_RENDERIZACAO.PATRIMONIO &&
-      item.operacao !== "resgate"
+      (item.operacao === "aporte" || item.operacao === "ajuste")
     )
-      item.ordemMaster = 4;
-    else item.ordemMaster = 5; // Despesas e Faturas
+      item.ordemMaster = 4; // Investimentos
+    else if (
+      item.tipoDisplay === CONSTS.TIPO_RENDERIZACAO.PATRIMONIO &&
+      item.operacao === "amortizacao"
+    )
+      item.ordemMaster = 5; // Amortização (entre Investimentos e Despesas)
+    else item.ordemMaster = 6; // Despesas e Faturas
   });
 
   itensParaRenderizar.sort((a, b) => {
@@ -755,25 +794,28 @@ export function renderizarTransacoesDoMes() {
     );
   });
 
-  // 1. Define a Prioridade Master para cada item (Receitas > Resgates > Orçamentos > Aportes > Despesas)
+  // 1. Define a Prioridade Master (Sincronizado com a lógica acima)
   itensParaRenderizar.forEach((item) => {
-    if (item.tipoDisplay === CONSTS.TIPO_RENDERIZACAO.RECEITA) {
+    if (item.tipoDisplay === CONSTS.TIPO_RENDERIZACAO.RECEITA)
       item.ordemMaster = 1;
-    } else if (
+    else if (
       item.tipoDisplay === CONSTS.TIPO_RENDERIZACAO.PATRIMONIO &&
       item.operacao === "resgate"
-    ) {
-      item.ordemMaster = 2; // Resgate (Roxo) logo após receitas
-    } else if (item.tipoDisplay === CONSTS.TIPO_RENDERIZACAO.ORCAMENTO) {
+    )
+      item.ordemMaster = 2;
+    else if (item.tipoDisplay === CONSTS.TIPO_RENDERIZACAO.ORCAMENTO)
       item.ordemMaster = 3;
-    } else if (
+    else if (
       item.tipoDisplay === CONSTS.TIPO_RENDERIZACAO.PATRIMONIO &&
-      item.operacao !== "resgate"
-    ) {
-      item.ordemMaster = 4; // Aportes (Azuis) antes das despesas
-    } else {
-      item.ordemMaster = 5; // Despesas e Faturas
-    }
+      (item.operacao === "aporte" || item.operacao === "ajuste")
+    )
+      item.ordemMaster = 4;
+    else if (
+      item.tipoDisplay === CONSTS.TIPO_RENDERIZACAO.PATRIMONIO &&
+      item.operacao === "amortizacao"
+    )
+      item.ordemMaster = 5;
+    else item.ordemMaster = 6;
   });
 
   // 2. Executa a Ordenação Multinível
@@ -832,6 +874,8 @@ export function renderizarTransacoesDoMes() {
       case CONSTS.TIPO_RENDERIZACAO.PATRIMONIO:
         if (item.operacao === "resgate") {
           li.classList.add("patrimonio-resgate");
+        } else if (item.operacao === "amortizacao") {
+          li.classList.add("patrimonio-amortizacao");
         } else {
           li.classList.add("patrimonio");
         }

@@ -104,8 +104,9 @@ export async function gerarExtratoMensalPDF() {
         t.operacao === "resgate" && getNatureza(t.patrimonioId) === "ativo",
     )
     .reduce((s, t) => s + t.valor, 0);
-  const taxaAtivos =
-    totalReceitas > 0 ? ((aAtivos - rAtivos) / totalReceitas) * 100 : 0;
+
+  // Taxa baseada no esforço de Aporte (evita percentuais negativos por resgate de juros)
+  const taxaAtivos = totalReceitas > 0 ? (aAtivos / totalReceitas) * 100 : 0;
 
   const aAmortizacao = patTrans
     .filter(
@@ -119,17 +120,21 @@ export async function gerarExtratoMensalPDF() {
         t.operacao === "resgate" && getNatureza(t.patrimonioId) === "passivo",
     )
     .reduce((s, t) => s + t.valor, 0);
+
   const taxaAmortizacao =
-    totalReceitas > 0
-      ? ((aAmortizacao - rAmortizacao) / totalReceitas) * 100
-      : 0;
+    totalReceitas > 0 ? (aAmortizacao / totalReceitas) * 100 : 0;
+
+  // Operação de Amortização Real (Saída de Saldo)
+  const totalAmortizacoesReal = patTrans
+    .filter((t) => t.operacao === "amortizacao")
+    .reduce((s, t) => s + t.valor, 0);
 
   // Consolidação
   const totalAportesGeral = aAtivos + aAmortizacao;
   const totalResgatesGeral = rAtivos + rAmortizacao;
   const investimentoLiquidoGeral = totalAportesGeral - totalResgatesGeral;
   const taxaGlobal =
-    totalReceitas > 0 ? (investimentoLiquidoGeral / totalReceitas) * 100 : 0;
+    totalReceitas > 0 ? (totalAportesGeral / totalReceitas) * 100 : 0;
 
   // Despesas e Orçamentos
   let despesasProjetadas = 0;
@@ -160,10 +165,11 @@ export async function gerarExtratoMensalPDF() {
     .filter((a) => a.mesAnoReferencia === mesAno)
     .reduce((s, a) => s + a.valor, 0);
   const despesasTotaisResumo = despesasProjetadas - totalAjustesMes;
+  // Correção: Subtrai também a Amortização Real do Saldo
   const saldoFinalResumo =
     totalReceitas +
     totalResgatesGeral -
-    (despesasTotaisResumo + totalAportesGeral);
+    (despesasTotaisResumo + totalAportesGeral + totalAmortizacoesReal);
 
   // --- 2. CABEÇALHO ---
   const logo = await getLogoBase64();
@@ -187,9 +193,10 @@ export async function gerarExtratoMensalPDF() {
     startY: currentY,
     body: [
       ["Receitas do Mês", formatCurrency(totalReceitas)],
-      ["Resgates de Patrimônio", formatCurrency(totalResgatesGeral)],
-      ["Aportes em Patrimônio", formatCurrency(totalAportesGeral)],
-      ["Despesas Totais (Consumo)", formatCurrency(despesasTotaisResumo)],
+      ["Resgates de Patrimônio (+)", formatCurrency(totalResgatesGeral)],
+      ["Aportes em Patrimônio (-)", formatCurrency(totalAportesGeral)],
+      ["Amortizações de Passivo (-)", formatCurrency(totalAmortizacoesReal)],
+      ["Despesas Totais (Consumo) (-)", formatCurrency(despesasTotaisResumo)],
       ["Saldo Final", formatCurrency(saldoFinalResumo)],
     ],
     theme: "plain",
@@ -220,7 +227,7 @@ export async function gerarExtratoMensalPDF() {
       ["Formação de Ativos (Resgates)", formatCurrency(rAtivos)],
       [
         {
-          content: "Taxa de investimento líquido",
+          content: "Taxa de aporte (Esforço de poupança)",
           styles: { fontStyle: "italic", textColor: [100, 100, 100] },
         },
         `${taxaAtivos.toFixed(1)}%`,
@@ -229,7 +236,7 @@ export async function gerarExtratoMensalPDF() {
       ["Recursos para Amortização (Resgates)", formatCurrency(rAmortizacao)],
       [
         {
-          content: "Taxa de investimento líquido",
+          content: "Taxa de aporte (Esforço de poupança)",
           styles: { fontStyle: "italic", textColor: [100, 100, 100] },
         },
         `${taxaAmortizacao.toFixed(1)}%`,
@@ -251,7 +258,14 @@ export async function gerarExtratoMensalPDF() {
       ],
       [
         {
-          content: "TAXA DE INVESTIMENTO LÍQUIDO",
+          content: "AMORTIZAÇÕES REALIZADAS (PAGAMENTOS)",
+          styles: { fontStyle: "bold" },
+        },
+        formatCurrency(totalAmortizacoesReal),
+      ],
+      [
+        {
+          content: "TAXA GLOBAL DE APORTE",
           styles: { fontStyle: "bold" },
         },
         `${taxaGlobal.toFixed(1)}%`,

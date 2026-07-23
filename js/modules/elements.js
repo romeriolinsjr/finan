@@ -328,4 +328,6 @@ export const elements = {
   listaHistoricoPatrimonioUl: document.getElementById(
     "listaHistoricoPatrimonio",
   ),
+  containerNomeAmortizacao: document.getElementById("containerNomeAmortizacao"),
+  nomeAmortizacaoInput: document.getElementById("nomeAmortizacao"),
 };

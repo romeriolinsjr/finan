@@ -290,6 +290,7 @@
             <div>
               <label for="operacaoPatrimonio">Operação:</label>
               <select id="operacaoPatrimonio">
+                <option value="">-- Selecione a Operação --</option>
                 <option value="aporte">
                   Aporte (Dinheiro saindo do Saldo)
                 </option>
@@ -299,7 +300,23 @@
                 <option value="ajuste">
                   Ajuste de Valor (Não afeta o Saldo do mês)
                 </option>
+                <option value="amortizacao">
+                  Amortização de Passivo (Saída de Saldo sem afetar Patrimônio)
+                </option>
               </select>
+            </div>
+
+            <!-- Campo de Nome específico para Amortização (Posterior à Operação) -->
+            <div
+              id="containerNomeAmortizacao"
+              style="display: none; margin-top: 10px"
+            >
+              <label for="nomeAmortizacao">Nome da Amortização:</label>
+              <input
+                type="text"
+                id="nomeAmortizacao"
+                placeholder="Ex: Antecipação Consignado BB"
+              />
             </div>
             <div style="margin-top: 10px">
               <label for="naturezaPatrimonioSelect">Natureza:</label>

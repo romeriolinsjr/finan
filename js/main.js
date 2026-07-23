@@ -1863,6 +1863,21 @@ document.addEventListener("DOMContentLoaded", () => {
   if (elements.naturezaPatrimonioSelect) {
     elements.naturezaPatrimonioSelect.addEventListener("change", () => {
       trans.popularSelectTransacaoPatrimonio();
+      trans.exibirSaldoItemNoModal(); // Atualiza saldo se mudar a natureza
+    });
+  }
+
+  // NOVO: Ouvintes para exibir saldo em tempo real no formulário
+  if (elements.operacaoPatrimonioSelect) {
+    elements.operacaoPatrimonioSelect.addEventListener("change", () => {
+      trans.atualizarVisibilidadeFormulario();
+      trans.exibirSaldoItemNoModal();
+    });
+  }
+
+  if (elements.selectTransacaoPatrimonioSub) {
+    elements.selectTransacaoPatrimonioSub.addEventListener("change", () => {
+      trans.exibirSaldoItemNoModal();
     });
   }
 

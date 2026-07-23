@@ -34,12 +34,12 @@ export function atualizarVisibilidadeFormulario() {
         : "none";
     }
 
-    // Controle do Campo Nome: Esconde se for Patrimônio (usaremos o Select de Sub-categorias)
+    // Controle do Campo Nome (Bloco Inicial):
+    // REGRA: Se for Patrimônio, SEMPRE esconde o Nome do topo (usaremos campos específicos abaixo).
     if (elements.nomeTransacaoInput) {
-      const isPatrimonio = tipo === "patrimonio";
-      elements.nomeTransacaoInput.parentElement.style.display = isPatrimonio
-        ? "none"
-        : "block";
+      elements.nomeTransacaoInput.parentElement.style.display =
+        tipo === "patrimonio" ? "none" : "block";
+      elements.nomeTransacaoInput.placeholder = "Ex: Salário, Aluguel";
     }
 
     // 2. Lógica de Cascata por Tipo
@@ -85,6 +85,27 @@ export function atualizarVisibilidadeFormulario() {
     } else if (tipo === "patrimonio") {
       if (elements.secaoPatrimonio)
         elements.secaoPatrimonio.style.display = "block";
+
+      const operacao = elements.operacaoPatrimonioSelect?.value;
+      const isAmortizacao = operacao === "amortizacao";
+
+      // Esconde Natureza e Seleção de Item se for Amortização
+      if (elements.naturezaPatrimonioSelect) {
+        elements.naturezaPatrimonioSelect.parentElement.style.display =
+          isAmortizacao ? "none" : "block";
+      }
+      if (elements.selectTransacaoPatrimonioSub) {
+        elements.selectTransacaoPatrimonioSub.parentElement.style.display =
+          isAmortizacao ? "none" : "block";
+      }
+
+      // Mostra o campo Nome exclusivo se for Amortização (Realocado)
+      if (elements.containerNomeAmortizacao) {
+        elements.containerNomeAmortizacao.style.display = isAmortizacao
+          ? "block"
+          : "none";
+      }
+
       const freqPat = elements.frequenciaPatrimonio?.value || "unica";
       const isParceladaPat = freqPat === "parcelada";
 
@@ -148,6 +169,9 @@ export function resetModalNovaTransacao() {
         .split("T")[0];
 
     // Reset Patrimônio
+    if (elements.operacaoPatrimonioSelect)
+      elements.operacaoPatrimonioSelect.value = "";
+    if (elements.nomeAmortizacaoInput) elements.nomeAmortizacaoInput.value = "";
     if (elements.subTipoPatrimonio) elements.subTipoPatrimonio.value = "ativo";
     if (elements.frequenciaPatrimonio)
       elements.frequenciaPatrimonio.value = "unica";
@@ -285,15 +309,25 @@ export function obterDadosDoFormulario() {
     dados.dataEntrada = elements.dataEntradaReceita.value;
     dados.frequencia = elements.frequenciaReceita.value;
   } else if (tipo === "patrimonio") {
-    // Busca a sub-categoria selecionada para herdar o nome
-    const subId = elements.selectTransacaoPatrimonioSub.value;
-    const itemCadastrado = state.patrimonioSubcategorias.find(
-      (s) => s.id === subId,
-    );
+    dados.operacao = elements.operacaoPatrimonioSelect.value;
+    const isAmortizacao = dados.operacao === "amortizacao";
 
-    dados.patrimonioId = subId;
-    dados.nomeBase = itemCadastrado ? itemCadastrado.nome : "";
-    dados.operacao = elements.operacaoPatrimonioSelect.value; // Aporte, Resgate ou Ajuste
+    if (isAmortizacao) {
+      // Amortização não exige vínculo com item específico para cálculo
+      dados.patrimonioId = null;
+      dados.natureza = "passivo"; // Define como passivo para fins de categorização global
+      // Pega o nome do novo campo específico realocado posterior à Operação
+      dados.nomeBase =
+        elements.nomeAmortizacaoInput.value.trim() || "Amortização de Passivo";
+    } else {
+      // Outras operações exigem o item
+      const subId = elements.selectTransacaoPatrimonioSub.value;
+      const itemCadastrado = state.patrimonioSubcategorias.find(
+        (s) => s.id === subId,
+      );
+      dados.patrimonioId = subId;
+      dados.nomeBase = itemCadastrado ? itemCadastrado.nome : "";
+    }
 
     dados.valor = parseFloat(elements.valorPatrimonio.value) || 0;
     dados.dataOperacao = elements.dataPatrimonio.value;
@@ -337,8 +371,16 @@ export function obterDadosDoFormulario() {
 export function validarDadosDaTransacao(dados) {
   // Validação específica para Patrimônio
   if (dados.tipo === "patrimonio") {
-    if (!dados.patrimonioId) {
-      alert("Selecione um item (Ativo/Redução) na lista.");
+    const isAmortizacao = dados.operacao === "amortizacao";
+
+    if (!isAmortizacao && !dados.patrimonioId) {
+      alert("Selecione o item de referência no Patrimônio.");
+      return false;
+    }
+    if (isAmortizacao && !dados.nomeBase) {
+      alert(
+        "Informe um nome para esta amortização (ex: Antecipação de Parcela).",
+      );
       return false;
     }
   } else {
@@ -1069,4 +1111,61 @@ export function popularSelectTransacaoPatrimonio() {
   }
 
   elements.selectTransacaoPatrimonioSub.innerHTML = h;
+}
+
+/**
+ * Exibe o saldo atual do item selecionado no modal de transação para facilitar Resgates.
+ */
+export function exibirSaldoItemNoModal() {
+  const subId = elements.selectTransacaoPatrimonioSub.value;
+  const operacao = elements.operacaoPatrimonioSelect.value;
+
+  // Remove aviso anterior se existir
+  const avisoAntigo = document.getElementById("infoSaldoPatrimonioModal");
+  if (avisoAntigo) avisoAntigo.remove();
+
+  if (
+    !subId ||
+    (operacao !== "resgate" &&
+      operacao !== "ajuste" &&
+      operacao !== "amortizacao")
+  )
+    return;
+
+  const sub = state.patrimonioSubcategorias.find((s) => s.id === subId);
+  if (!sub) return;
+
+  // Cálculo de Saldo (Reutilizando a lógica do patrimony.js localmente)
+  let saldo = Number(sub.saldoInicial) || 0;
+  const historico = (state.transacoes || []).filter(
+    (t) => t.patrimonioId === subId,
+  );
+  historico.forEach((t) => {
+    const v = Number(t.valor) || 0;
+    if (t.operacao === "aporte") saldo += v;
+    else if (t.operacao === "resgate") saldo -= v;
+    else if (t.operacao === "ajuste") saldo += v;
+  });
+
+  // Injeta o aviso no modal
+  const infoHTML = `
+    <div id="infoSaldoPatrimonioModal" class="form-note-injected" style="background:#e1f5fe; padding:8px; border-radius:4px; margin-top:5px; border-left:4px solid #3498db; cursor:pointer;" title="Clique para preencher o valor total">
+      <small style="color:#2c3e50; font-weight:bold; display:block;">Saldo Atual neste Item: ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(saldo)}</small>
+      <small style="color:#2980b9;">(Dica: Clique aqui para preencher o valor total no campo abaixo)</small>
+    </div>
+  `;
+
+  elements.selectTransacaoPatrimonioSub.insertAdjacentHTML(
+    "afterend",
+    infoHTML,
+  );
+
+  // Atalho para Resgate Total
+  document
+    .getElementById("infoSaldoPatrimonioModal")
+    .addEventListener("click", () => {
+      if (elements.valorPatrimonio) {
+        elements.valorPatrimonio.value = saldo.toFixed(2);
+      }
+    });
 }

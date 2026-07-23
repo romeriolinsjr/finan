@@ -82,6 +82,14 @@ export function popularModalRelatorio(date) {
     )
     .reduce((s, t) => s + t.valor, 0);
 
+  const totalAmortizacoes = transacoesDoMes
+    .filter(
+      (t) =>
+        t.tipo === CONSTS.TIPO_TRANSACAO.PATRIMONIO &&
+        t.operacao === "amortizacao",
+    )
+    .reduce((s, t) => s + t.valor, 0);
+
   const totalAportesGeral = totalAportesAtivos + totalAportesReducao;
   const investimentoLiquido = totalAportesGeral - totalResgates;
   const taxaInvestimento =
@@ -131,19 +139,23 @@ export function popularModalRelatorio(date) {
     .filter((a) => a.mesAnoReferencia === mesAno)
     .reduce((s, a) => s + a.valor, 0);
 
-  // --- CÁLCULO DOS SALDOS (ATUALIZADO FASE 2) ---
-  // Saldo = (Receitas + Resgates) - (Gastos + Aportes)
+  // --- CÁLCULO DOS SALDOS (ATUALIZADO FASE 3: AMORTIZAÇÃO) ---
+  // Saldo = (Receitas + Resgates) - (Gastos + Aportes + Amortizações)
   const saldoReal =
     totalReceitas +
     totalResgates -
     (totalGastoRealCartao +
       totalGastoRealOrdinario -
       totalAjustesDoMes +
-      totalAportesGeral);
+      totalAportesGeral +
+      totalAmortizacoes);
   const saldoFinal =
     totalReceitas +
     totalResgates -
-    (somaDespesasProjetadas - totalAjustesDoMes + totalAportesGeral);
+    (somaDespesasProjetadas -
+      totalAjustesDoMes +
+      totalAportesGeral +
+      totalAmortizacoes);
 
   // --- RENDERIZAÇÃO: ANÁLISE DE DESPESAS ---
   const calcularSubtotais = (categoria) => {
@@ -250,6 +262,7 @@ export function popularModalRelatorio(date) {
     <div class="relatorio-item"><span>Resgates</span><strong style="color: #9b59b6;">${formatCurrency(totalResgates)}</strong></div>
     <div class="relatorio-item"><span>Despesas Totais</span><strong class="valor-despesa">${formatCurrency(somaDespesasProjetadas - totalAjustesDoMes)}</strong></div>
     <div class="relatorio-item"><span>Aportes</span><strong style="color: #3498db;">${formatCurrency(totalAportesGeral)}</strong></div>
+    <div class="relatorio-item"><span>Amortizações</span><strong style="color: #d35400;">${formatCurrency(totalAmortizacoes)}</strong></div>
     <div class="relatorio-item"><span>Saldo Final</span><strong style="color:${saldoFinal >= 0 ? "#27ae60" : "#e74c3c"}">${formatCurrency(saldoFinal)}</strong></div>
     <div class="relatorio-item"><span>Saldo Real</span><strong style="color:${saldoReal >= 0 ? "#27ae60" : "#e74c3c"}">${formatCurrency(saldoReal)}</strong></div>
   </div></section>`;
@@ -299,6 +312,8 @@ export function abrirDetalhesFiltroRelatorio(
 
   if (tipoPatrimonio) {
     if (tipoPatrimonio === "resgate") labelTitulo = "Patrimônio: Resgates";
+    else if (tipoPatrimonio === "amortizacao")
+      labelTitulo = "Patrimônio: Amortização de Passivos";
     else if (tipoPatrimonio === "aporte-ativo")
       labelTitulo = "Patrimônio: Formação de Ativos";
     else labelTitulo = "Patrimônio: Recursos para Amortização";
@@ -317,11 +332,11 @@ export function abrirDetalhesFiltroRelatorio(
   const itens = state.transacoes
     .filter((t) => {
       if (tipoPatrimonio) {
-        if (tipoPatrimonio === "resgate") {
+        if (tipoPatrimonio === "resgate" || tipoPatrimonio === "amortizacao") {
           return (
             t.mesAnoReferencia === mesAno &&
             t.tipo === CONSTS.TIPO_TRANSACAO.PATRIMONIO &&
-            t.operacao === "resgate"
+            t.operacao === tipoPatrimonio
           );
         }
         // Para aportes, cruza com a subcategoria para saber se é Ativo ou Passivo

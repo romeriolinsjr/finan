@@ -310,6 +310,10 @@ export function abrirHistoricoPatrimonio(id, callbackAbrir) {
             sinal = v >= 0 ? "+" : "";
             cor = "#3498db";
             saldoCorrente += v;
+          } else if (op === "amortizacao") {
+            sinal = "↓"; // Seta para baixo indicando saída para liquidação de dívida
+            cor = "#d35400"; // Laranja escuro para diferenciar de resgate e ajuste
+            // Nota: Não altera o saldoCorrente, pois a amortização não afeta o estoque do ativo
           }
 
           const dataFmt = t.dataOperacao
