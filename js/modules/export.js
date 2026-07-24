@@ -105,8 +105,9 @@ export async function gerarExtratoMensalPDF() {
     )
     .reduce((s, t) => s + t.valor, 0);
 
-  // Taxa baseada no esforço de Aporte (evita percentuais negativos por resgate de juros)
-  const taxaAtivos = totalReceitas > 0 ? (aAtivos / totalReceitas) * 100 : 0;
+  // Taxa de Investimento Líquido (Reflete o fluxo real: Aporte - Resgate)
+  const taxaAtivos =
+    totalReceitas > 0 ? ((aAtivos - rAtivos) / totalReceitas) * 100 : 0;
 
   const aAmortizacao = patTrans
     .filter(
@@ -122,7 +123,9 @@ export async function gerarExtratoMensalPDF() {
     .reduce((s, t) => s + t.valor, 0);
 
   const taxaAmortizacao =
-    totalReceitas > 0 ? (aAmortizacao / totalReceitas) * 100 : 0;
+    totalReceitas > 0
+      ? ((aAmortizacao - rAmortizacao) / totalReceitas) * 100
+      : 0;
 
   // Operação de Amortização Real (Saída de Saldo)
   const totalAmortizacoesReal = patTrans
@@ -134,7 +137,7 @@ export async function gerarExtratoMensalPDF() {
   const totalResgatesGeral = rAtivos + rAmortizacao;
   const investimentoLiquidoGeral = totalAportesGeral - totalResgatesGeral;
   const taxaGlobal =
-    totalReceitas > 0 ? (totalAportesGeral / totalReceitas) * 100 : 0;
+    totalReceitas > 0 ? (investimentoLiquidoGeral / totalReceitas) * 100 : 0;
 
   // Despesas e Orçamentos
   let despesasProjetadas = 0;
@@ -227,7 +230,7 @@ export async function gerarExtratoMensalPDF() {
       ["Formação de Ativos (Resgates)", formatCurrency(rAtivos)],
       [
         {
-          content: "Taxa de aporte (Esforço de poupança)",
+          content: "Taxa de investimento líquido",
           styles: { fontStyle: "italic", textColor: [100, 100, 100] },
         },
         `${taxaAtivos.toFixed(1)}%`,
@@ -236,7 +239,7 @@ export async function gerarExtratoMensalPDF() {
       ["Recursos para Amortização (Resgates)", formatCurrency(rAmortizacao)],
       [
         {
-          content: "Taxa de aporte (Esforço de poupança)",
+          content: "Taxa de investimento líquido",
           styles: { fontStyle: "italic", textColor: [100, 100, 100] },
         },
         `${taxaAmortizacao.toFixed(1)}%`,
