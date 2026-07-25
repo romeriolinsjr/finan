@@ -266,12 +266,12 @@ export async function gerarExtratoMensalPDF() {
   doc.autoTable({
     startY: currentY,
     body: [
-      ["Receitas do Mês", formatCurrency(totalReceitas)],
+      ["Receitas", formatCurrency(totalReceitas)],
       ["Resgates de Patrimônio (+)", formatCurrency(totalResgatesGeral)],
       ["Aportes em Patrimônio (-)", formatCurrency(totalAportesGeral)],
       ["Amortizações de Passivo (-)", formatCurrency(totalAmortizacoesReal)],
       ["Despesas Totais (Consumo) (-)", formatCurrency(despesasTotaisResumo)],
-      ["Saldo Final", formatCurrency(saldoFinalResumo)],
+      ["Saldo", formatCurrency(saldoFinalResumo)],
     ],
     theme: "plain",
     styles: { fontSize: 10, cellPadding: 4 },
@@ -302,7 +302,7 @@ export async function gerarExtratoMensalPDF() {
         ? [
             ...receitas.map((r) => [r.nome, formatCurrency(r.valor)]),
             [
-              { content: "TOTAL DE RECEITAS", styles: { fontStyle: "bold" } },
+              { content: "TOTAL", styles: { fontStyle: "bold" } },
               formatCurrency(totalReceitas),
             ],
           ]
@@ -402,7 +402,7 @@ export async function gerarExtratoMensalPDF() {
         ? [
             ...despesasOrd.map((d) => [d.nome, formatCurrency(d.valor)]),
             [
-              { content: "TOTAL DE ORDINÁRIAS", styles: { fontStyle: "bold" } },
+              { content: "TOTAL", styles: { fontStyle: "bold" } },
               formatCurrency(despesasOrd.reduce((s, t) => s + t.valor, 0)),
             ],
           ]
@@ -442,7 +442,7 @@ export async function gerarExtratoMensalPDF() {
               formatCurrency(item.valor),
             ]),
             [
-              { content: "TOTAL DE CARTÕES", styles: { fontStyle: "bold" } },
+              { content: "TOTAL", styles: { fontStyle: "bold" } },
               formatCurrency(
                 resumoFaturasLista.reduce((s, i) => s + i.valor, 0),
               ),
