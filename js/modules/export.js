@@ -70,13 +70,13 @@ export async function gerarExtratoMensalPDF() {
   );
   const activeBudgetIds = state.orcamentos.map((o) => o.id);
 
-  // Receitas
+  // 1.1 Receitas
   const receitas = transacoes
     .filter((t) => t.tipo === CONSTS.TIPO_TRANSACAO.RECEITA)
     .sort((a, b) => b.valor - a.valor);
   const totalReceitas = receitas.reduce((s, t) => s + t.valor, 0);
 
-  // Lógica de Cruzamento de Patrimônio
+  // 1.2 Lógica Patrimonial (Fluxo e Estoque)
   const getNatureza = (patrimonioId) => {
     const sub = state.patrimonioSubcategorias.find(
       (s) => s.id === patrimonioId,
@@ -92,58 +92,120 @@ export async function gerarExtratoMensalPDF() {
     (t) => t.tipo === CONSTS.TIPO_TRANSACAO.PATRIMONIO,
   );
 
-  // Detalhamento por Natureza
+  // FLUXO PATRIMONIAL
   const aAtivos = patTrans
     .filter(
-      (t) => t.operacao === "aporte" && getNatureza(t.patrimonioId) === "ativo",
+      (t) =>
+        t.operacao === CONSTS.OPERACAO_PATRIMONIO.APORTE &&
+        getNatureza(t.patrimonioId) === CONSTS.SUBTIPO_PATRIMONIO.ATIVO,
     )
     .reduce((s, t) => s + t.valor, 0);
   const rAtivos = patTrans
     .filter(
       (t) =>
-        t.operacao === "resgate" && getNatureza(t.patrimonioId) === "ativo",
+        t.operacao === CONSTS.OPERACAO_PATRIMONIO.RESGATE &&
+        getNatureza(t.patrimonioId) === CONSTS.SUBTIPO_PATRIMONIO.ATIVO,
     )
     .reduce((s, t) => s + t.valor, 0);
-
-  // Taxa de Investimento Líquido (Reflete o fluxo real: Aporte - Resgate)
+  const invLiquidoAtivos = aAtivos - rAtivos;
   const taxaAtivos =
-    totalReceitas > 0 ? ((aAtivos - rAtivos) / totalReceitas) * 100 : 0;
+    totalReceitas > 0 ? (invLiquidoAtivos / totalReceitas) * 100 : 0;
 
-  const aAmortizacao = patTrans
+  const aAmort = patTrans
     .filter(
       (t) =>
-        t.operacao === "aporte" && getNatureza(t.patrimonioId) === "passivo",
+        t.operacao === CONSTS.OPERACAO_PATRIMONIO.APORTE &&
+        getNatureza(t.patrimonioId) === CONSTS.SUBTIPO_PATRIMONIO.AMORTIZACAO,
     )
     .reduce((s, t) => s + t.valor, 0);
-  const rAmortizacao = patTrans
+  const rAmort = patTrans
     .filter(
       (t) =>
-        t.operacao === "resgate" && getNatureza(t.patrimonioId) === "passivo",
+        t.operacao === CONSTS.OPERACAO_PATRIMONIO.RESGATE &&
+        getNatureza(t.patrimonioId) === CONSTS.SUBTIPO_PATRIMONIO.AMORTIZACAO,
     )
     .reduce((s, t) => s + t.valor, 0);
+  const invLiquidoAmort = aAmort - rAmort;
+  const taxaAmort =
+    totalReceitas > 0 ? (invLiquidoAmort / totalReceitas) * 100 : 0;
 
-  const taxaAmortizacao =
-    totalReceitas > 0
-      ? ((aAmortizacao - rAmortizacao) / totalReceitas) * 100
-      : 0;
-
-  // Operação de Amortização Real (Saída de Saldo)
+  const totalAportesGeral = aAtivos + aAmort;
+  const totalResgatesGeral = rAtivos + rAmort;
   const totalAmortizacoesReal = patTrans
-    .filter((t) => t.operacao === "amortizacao")
+    .filter((t) => t.operacao === CONSTS.OPERACAO_PATRIMONIO.AMORTIZACAO)
     .reduce((s, t) => s + t.valor, 0);
-
-  // Consolidação
-  const totalAportesGeral = aAtivos + aAmortizacao;
-  const totalResgatesGeral = rAtivos + rAmortizacao;
   const investimentoLiquidoGeral = totalAportesGeral - totalResgatesGeral;
   const taxaGlobal =
     totalReceitas > 0 ? (investimentoLiquidoGeral / totalReceitas) * 100 : 0;
+  const indDestAmortizacao =
+    totalResgatesGeral > 0
+      ? (totalAmortizacoesReal / totalResgatesGeral) * 100
+      : 0;
 
-  // Despesas e Orçamentos
-  let despesasProjetadas = 0;
-  state.orcamentos
+  // ESTOQUE PATRIMONIAL
+  let saldoAcumuladoAtivos = 0;
+  let saldoAcumuladoAmort = 0;
+  let totalAjustesAtivosMes = 0;
+  let totalAjustesAmortMes = 0;
+
+  const dadosEstoquePorCategoria = (state.patrimonioCategorias || [])
+    .map((cat) => {
+      const filhos = (state.patrimonioSubcategorias || []).filter(
+        (s) => s.categoriaId === cat.id,
+      );
+      let totalCat = 0;
+      filhos.forEach((sub) => {
+        let saldo = Number(sub.saldoInicial) || 0;
+        const historico = state.transacoes.filter(
+          (t) => t.patrimonioId === sub.id && t.mesAnoReferencia <= mesAno,
+        );
+        historico.forEach((t) => {
+          const v = Number(t.valor) || 0;
+          if (t.operacao === CONSTS.OPERACAO_PATRIMONIO.APORTE) saldo += v;
+          else if (t.operacao === CONSTS.OPERACAO_PATRIMONIO.RESGATE)
+            saldo -= v;
+          else if (t.operacao === CONSTS.OPERACAO_PATRIMONIO.AJUSTE) {
+            saldo += v;
+            if (t.mesAnoReferencia === mesAno) {
+              if (cat.tipo === CONSTS.SUBTIPO_PATRIMONIO.ATIVO)
+                totalAjustesAtivosMes += v;
+              else totalAjustesAmortMes += v;
+            }
+          }
+        });
+        totalCat += saldo;
+      });
+      if (cat.tipo === CONSTS.SUBTIPO_PATRIMONIO.ATIVO)
+        saldoAcumuladoAtivos += totalCat;
+      else saldoAcumuladoAmort += totalCat;
+      return { nome: cat.nome, tipo: cat.tipo, saldo: totalCat };
+    })
+    .filter((d) => d.saldo !== 0)
+    .sort((a, b) => b.saldo - a.saldo);
+
+  const patrimonioTotalEstoque = saldoAcumuladoAtivos + saldoAcumuladoAmort;
+  const participacaoAtivos =
+    patrimonioTotalEstoque > 0
+      ? (saldoAcumuladoAtivos / patrimonioTotalEstoque) * 100
+      : 0;
+  const participacaoAmort =
+    patrimonioTotalEstoque > 0
+      ? (saldoAcumuladoAmort / patrimonioTotalEstoque) * 100
+      : 0;
+  const saldoInicialAtivos =
+    saldoAcumuladoAtivos - (invLiquidoAtivos + totalAjustesAtivosMes);
+  const crescimentoAtivos =
+    saldoInicialAtivos > 0 ? (invLiquidoAtivos / saldoInicialAtivos) * 100 : 0;
+  const saldoInicialAmort =
+    saldoAcumuladoAmort - (invLiquidoAmort + totalAjustesAmortMes);
+  const crescimentoAmort =
+    saldoInicialAmort > 0 ? (invLiquidoAmort / saldoInicialAmort) * 100 : 0;
+
+  // 1.3 Lógica de Orçamentos e Despesas
+  let despesasProjetadasCalculoResumo = 0;
+  const dadosOrcamentosTabela = state.orcamentos
     .filter((o) => o.mesAnoReferencia === mesAno)
-    .forEach((orc) => {
+    .map((orc) => {
       let gasto = transacoes
         .filter((t) => t.orcamentoId === orc.id)
         .reduce((s, t) => s + t.valor, 0);
@@ -159,22 +221,31 @@ export async function gerarExtratoMensalPDF() {
         gasto += transacoes
           .filter((t) => t.categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA)
           .reduce((s, t) => s + t.valor, 0);
-      despesasProjetadas += isOrcamentoFechado(orc.id, mesAno)
-        ? gasto
-        : Math.max(orc.valor, gasto);
-    });
+
+      const fechado = isOrcamentoFechado(orc.id, mesAno);
+      const valorConsiderado = fechado ? gasto : Math.max(orc.valor, gasto);
+      despesasProjetadasCalculoResumo += valorConsiderado;
+
+      return {
+        nome: orc.nome,
+        previsto: orc.valor,
+        gasto: gasto,
+        saldo: orc.valor - gasto, // Reflete a diferença matemática real para análise
+      };
+    })
+    .sort((a, b) => b.previsto - a.previsto); // Ordenação decrescente por valor previsto
 
   const totalAjustesMes = state.ajustesFatura
     .filter((a) => a.mesAnoReferencia === mesAno)
     .reduce((s, a) => s + a.valor, 0);
-  const despesasTotaisResumo = despesasProjetadas - totalAjustesMes;
-  // Correção: Subtrai também a Amortização Real do Saldo
+  const despesasTotaisResumo =
+    despesasProjetadasCalculoResumo - totalAjustesMes;
   const saldoFinalResumo =
     totalReceitas +
     totalResgatesGeral -
     (despesasTotaisResumo + totalAportesGeral + totalAmortizacoesReal);
 
-  // --- 2. CABEÇALHO ---
+  // --- 2. GERAÇÃO DO PDF ---
   const logo = await getLogoBase64();
   if (logo) doc.addImage(logo, "PNG", margin, 12, 10, 10);
   doc.setFontSize(20);
@@ -190,7 +261,7 @@ export async function gerarExtratoMensalPDF() {
 
   currentY = 30;
 
-  // --- SEÇÃO 1: RESUMO GERAL ---
+  // 1. RESUMO GERAL
   currentY = drawSectionHeader("Resumo Geral", currentY);
   doc.autoTable({
     startY: currentY,
@@ -210,7 +281,7 @@ export async function gerarExtratoMensalPDF() {
         doc.setFillColor(...COLOR_GRAY);
         doc.rect(data.cell.x, data.cell.y + 1, 1.2, data.cell.height - 2, "F");
       }
-      if (data.row.index === 4 && data.column.index === 1) {
+      if (data.row.index === 5 && data.column.index === 1) {
         doc.setTextColor(
           saldoFinalResumo >= 0 ? 39 : 231,
           saldoFinalResumo >= 0 ? 174 : 76,
@@ -221,158 +292,7 @@ export async function gerarExtratoMensalPDF() {
   });
   currentY = doc.lastAutoTable.finalY + 10;
 
-  // --- SEÇÃO 2: POSIÇÃO PATRIMONIAL MENSAL (DETALHADA) ---
-  currentY = drawSectionHeader("Posição patrimonial mensal", currentY);
-  doc.autoTable({
-    startY: currentY,
-    body: [
-      ["Formação de Ativos (Aportes)", formatCurrency(aAtivos)],
-      ["Formação de Ativos (Resgates)", formatCurrency(rAtivos)],
-      [
-        {
-          content: "Taxa de investimento líquido",
-          styles: { fontStyle: "italic", textColor: [100, 100, 100] },
-        },
-        `${taxaAtivos.toFixed(1)}%`,
-      ],
-      ["Recursos para Amortização (Aportes)", formatCurrency(aAmortizacao)],
-      ["Recursos para Amortização (Resgates)", formatCurrency(rAmortizacao)],
-      [
-        {
-          content: "Taxa de investimento líquido",
-          styles: { fontStyle: "italic", textColor: [100, 100, 100] },
-        },
-        `${taxaAmortizacao.toFixed(1)}%`,
-      ],
-      [
-        { content: "TOTAL DE APORTES", styles: { fontStyle: "bold" } },
-        formatCurrency(totalAportesGeral),
-      ],
-      [
-        { content: "TOTAL DE RESGATES", styles: { fontStyle: "bold" } },
-        formatCurrency(totalResgatesGeral),
-      ],
-      [
-        {
-          content: "INVESTIMENTO LÍQUIDO",
-          styles: { fontStyle: "bold", textColor: COLOR_BLUE },
-        },
-        formatCurrency(investimentoLiquidoGeral),
-      ],
-      [
-        {
-          content: "AMORTIZAÇÕES REALIZADAS (PAGAMENTOS)",
-          styles: { fontStyle: "bold" },
-        },
-        formatCurrency(totalAmortizacoesReal),
-      ],
-      [
-        {
-          content: "TAXA GLOBAL DE APORTE",
-          styles: { fontStyle: "bold" },
-        },
-        `${taxaGlobal.toFixed(1)}%`,
-      ],
-    ],
-    theme: "plain",
-    styles: { fontSize: 9, cellPadding: 2.5 },
-    columnStyles: { 1: { halign: "right", fontStyle: "bold" } },
-    didDrawCell: (data) => {
-      if (data.column.index === 0) {
-        doc.setFillColor(...COLOR_GRAY);
-        doc.rect(data.cell.x, data.cell.y + 1, 1.2, data.cell.height - 2, "F");
-      }
-    },
-  });
-  currentY = doc.lastAutoTable.finalY + 10;
-
-  // --- SEÇÃO 3: POSIÇÃO PATRIMONIAL ACUMULADA (HISTÓRICA) ---
-  currentY = drawSectionHeader("Posição patrimonial acumulada", currentY);
-
-  // O saldo acumulado deve considerar apenas transações até o mês do relatório (mesAno)
-  const totalGeralEstoque = (state.patrimonioSubcategorias || []).reduce(
-    (acc, sub) => {
-      let saldo = Number(sub.saldoInicial) || 0;
-      const hist = state.transacoes.filter(
-        (t) => t.patrimonioId === sub.id && t.mesAnoReferencia <= mesAno,
-      );
-      hist.forEach((t) => {
-        const v = Number(t.valor) || 0;
-        if (t.operacao === "aporte") saldo += v;
-        else if (t.operacao === "resgate") saldo -= v;
-        else if (t.operacao === "ajuste") saldo += v;
-      });
-      return acc + saldo;
-    },
-    0,
-  );
-
-  const dadosEstoque = (state.patrimonioCategorias || [])
-    .map((cat) => {
-      const filhos = (state.patrimonioSubcategorias || []).filter(
-        (s) => s.categoriaId === cat.id,
-      );
-      let totalCat = 0;
-      filhos.forEach((sub) => {
-        let saldo = Number(sub.saldoInicial) || 0;
-        const hist = state.transacoes.filter(
-          (t) => t.patrimonioId === sub.id && t.mesAnoReferencia <= mesAno,
-        );
-        hist.forEach((t) => {
-          const v = Number(t.valor) || 0;
-          if (t.operacao === "aporte") saldo += v;
-          else if (t.operacao === "resgate") saldo -= v;
-          else if (t.operacao === "ajuste") saldo += v;
-        });
-        totalCat += saldo;
-      });
-      return [
-        cat.nome,
-        cat.tipo === "ativo"
-          ? "FORMAÇÃO DE ATIVOS"
-          : "RECURSOS PARA AMORTIZAÇÃO",
-        formatCurrency(totalCat),
-        totalCat,
-      ];
-    })
-    .filter((d) => d[3] !== 0)
-    .sort((a, b) => b[3] - a[3]);
-
-  doc.autoTable({
-    startY: currentY,
-    head: [["CATEGORIA", "NATUREZA", "VALOR ACUMULADO"]],
-    body: [
-      ...dadosEstoque.map((d) => [d[0], d[1], d[2]]),
-      [
-        {
-          content: "PATRIMÔNIO ACUMULADO TOTAL (ESTOQUE)",
-          colSpan: 2,
-          styles: { fontStyle: "bold" },
-        },
-        {
-          content: formatCurrency(totalGeralEstoque),
-          styles: { fontStyle: "bold", halign: "right" },
-        },
-      ],
-    ],
-    theme: "plain",
-    headStyles: {
-      fontStyle: "bold",
-      textColor: [100, 100, 100],
-      halign: "left",
-    },
-    styles: { fontSize: 9, cellPadding: 3.5 },
-    columnStyles: { 2: { halign: "right" } },
-    didDrawCell: (data) => {
-      if (data.section === "body" && data.column.index === 0) {
-        doc.setFillColor(...COLOR_GRAY);
-        doc.rect(data.cell.x, data.cell.y + 1, 1.2, data.cell.height - 2, "F");
-      }
-    },
-  });
-  currentY = doc.lastAutoTable.finalY + 10;
-
-  // --- SEÇÃO 4: RECEITAS (DETALHADO) ---
+  // 2. RECEITAS
   currentY = drawSectionHeader("Receitas", currentY);
   doc.autoTable({
     startY: currentY - 5,
@@ -393,13 +313,74 @@ export async function gerarExtratoMensalPDF() {
     didDrawCell: (data) => {
       if (data.section === "body" && data.column.index === 0) {
         doc.setFillColor(...COLOR_GRAY);
-        doc.rect(data.cell.x, data.cell.y + 1, 1.2, data.cell.height - 2, "F");
+        doc.rect(data.cell.x, data.cell.y + 1, 1, data.cell.height - 2, "F");
       }
     },
   });
   currentY = doc.lastAutoTable.finalY + 10;
 
-  // --- SEÇÃO 5: DESPESAS (DETALHADO) ---
+  // 3. ORÇAMENTOS (Previsões)
+  currentY = drawSectionHeader("Orçamentos", currentY);
+  doc.autoTable({
+    startY: currentY - 5,
+    head: [["ORÇAMENTO", "PREVISTO", "GASTO", "SALDO"]],
+    body:
+      dadosOrcamentosTabela.length > 0
+        ? [
+            ...dadosOrcamentosTabela.map((o) => [
+              o.nome,
+              formatCurrency(o.previsto),
+              formatCurrency(o.gasto),
+              formatCurrency(o.saldo),
+            ]),
+            [
+              { content: "TOTAL", styles: { fontStyle: "bold" } },
+              {
+                content: formatCurrency(
+                  dadosOrcamentosTabela.reduce((s, o) => s + o.previsto, 0),
+                ),
+                styles: { fontStyle: "bold" },
+              },
+              {
+                content: formatCurrency(
+                  dadosOrcamentosTabela.reduce((s, o) => s + o.gasto, 0),
+                ),
+                styles: { fontStyle: "bold" },
+              },
+              {
+                content: formatCurrency(
+                  dadosOrcamentosTabela.reduce((s, o) => s + o.saldo, 0),
+                ),
+                styles: { fontStyle: "bold" },
+              },
+            ],
+          ]
+        : [["Nenhum orçamento cadastrado", "-", "-", "-"]],
+    theme: "plain",
+    headStyles: { fontStyle: "bold", textColor: [100, 100, 100] },
+    styles: { fontSize: 8.5, cellPadding: 2.5 },
+    columnStyles: {
+      1: { halign: "right" },
+      2: { halign: "right" },
+      3: { halign: "right", fontStyle: "bold" },
+    },
+    didDrawCell: (data) => {
+      if (
+        data.section === "body" &&
+        data.column.index === 3 &&
+        data.cell.raw !== "R$ 0,00" &&
+        !data.row.raw[0].content
+      ) {
+        const val = parseFloat(
+          data.cell.raw.replace(/[R$\s.]/g, "").replace(",", "."),
+        );
+        if (val < 0) doc.setTextColor(231, 76, 60);
+      }
+    },
+  });
+  currentY = doc.lastAutoTable.finalY + 10;
+
+  // 4. DESPESAS (Realizadas)
   currentY = drawSectionHeader("Despesas", currentY);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(9);
@@ -413,8 +394,6 @@ export async function gerarExtratoMensalPDF() {
         t.categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA,
     )
     .sort((a, b) => b.valor - a.valor);
-  const totalOrdLocal = despesasOrd.reduce((s, t) => s + t.valor, 0);
-
   doc.autoTable({
     startY: currentY,
     showHead: false,
@@ -424,19 +403,13 @@ export async function gerarExtratoMensalPDF() {
             ...despesasOrd.map((d) => [d.nome, formatCurrency(d.valor)]),
             [
               { content: "TOTAL DE ORDINÁRIAS", styles: { fontStyle: "bold" } },
-              formatCurrency(totalOrdLocal),
+              formatCurrency(despesasOrd.reduce((s, t) => s + t.valor, 0)),
             ],
           ]
         : [["Nenhuma despesa ordinária", "-"]],
     theme: "plain",
     styles: { fontSize: 8.5, cellPadding: 2.5 },
     columnStyles: { 1: { halign: "right", fontStyle: "bold" } },
-    didDrawCell: (data) => {
-      if (data.section === "body" && data.column.index === 0) {
-        doc.setFillColor(...COLOR_GRAY);
-        doc.rect(data.cell.x, data.cell.y + 1, 1.2, data.cell.height - 2, "F");
-      }
-    },
   });
   currentY = doc.lastAutoTable.finalY + 8;
 
@@ -451,18 +424,12 @@ export async function gerarExtratoMensalPDF() {
         .filter((t) => t.cartaoId === cartao.id)
         .reduce((s, t) => s + t.valor, 0);
       const ajustes = calcularTotalAjustes(cartao.id, mesAno);
-      const valorFinal = totalGasto - ajustes;
       return totalGasto > 0
-        ? { nome: `Fatura ${cartao.nome}`, valor: valorFinal }
+        ? { nome: `Fatura ${cartao.nome}`, valor: totalGasto - ajustes }
         : null;
     })
     .filter((item) => item !== null)
     .sort((a, b) => b.valor - a.valor);
-
-  const totalFaturasResumo = resumoFaturasLista.reduce(
-    (s, item) => s + item.valor,
-    0,
-  );
 
   doc.autoTable({
     startY: currentY,
@@ -476,31 +443,203 @@ export async function gerarExtratoMensalPDF() {
             ]),
             [
               { content: "TOTAL DE CARTÕES", styles: { fontStyle: "bold" } },
-              formatCurrency(totalFaturasResumo),
+              formatCurrency(
+                resumoFaturasLista.reduce((s, i) => s + i.valor, 0),
+              ),
             ],
           ]
         : [["Nenhuma despesa de cartão", "-"]],
     theme: "plain",
     styles: { fontSize: 8.5, cellPadding: 2.5 },
     columnStyles: { 1: { halign: "right", fontStyle: "bold" } },
-    didDrawCell: (data) => {
-      if (data.section === "body" && data.column.index === 0) {
-        doc.setFillColor(...COLOR_GRAY);
-        doc.rect(data.cell.x, data.cell.y + 1, 1.2, data.cell.height - 2, "F");
-      }
-    },
+  });
+  currentY = doc.lastAutoTable.finalY + 10;
+
+  // 5. POSIÇÃO PATRIMONIAL MENSAL
+  currentY = drawSectionHeader("Posição patrimonial mensal", currentY);
+  const cardH = 35;
+  doc.setFillColor(245, 250, 245);
+  doc.rect(margin, currentY, (pageWidth - margin * 2) / 2 - 2, cardH, "F");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  doc.setTextColor(39, 174, 96);
+  doc.text("FORMAÇÃO DE ATIVOS", margin + 5, currentY + 7);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.setTextColor(...COLOR_DARK);
+  doc.text(`Aportes: ${formatCurrency(aAtivos)}`, margin + 5, currentY + 15);
+  doc.text(`Resgates: ${formatCurrency(rAtivos)}`, margin + 5, currentY + 20);
+  doc.setFont("helvetica", "bold");
+  doc.text(
+    `Inv. Líquido: ${formatCurrency(invLiquidoAtivos)}`,
+    margin + 5,
+    currentY + 27,
+  );
+  doc.setFontSize(7);
+  doc.setTextColor(100, 100, 100);
+  doc.text(
+    `Taxa: ${taxaAtivos.toFixed(1)}% das receitas`,
+    margin + 5,
+    currentY + 31,
+  );
+
+  const secondColX = margin + (pageWidth - margin * 2) / 2 + 2;
+  doc.setFillColor(240, 245, 250);
+  doc.rect(secondColX, currentY, (pageWidth - margin * 2) / 2 - 2, cardH, "F");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  doc.setTextColor(52, 152, 219);
+  doc.text("RECURSOS PARA AMORTIZAÇÃO", secondColX + 5, currentY + 7);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.setTextColor(...COLOR_DARK);
+  doc.text(`Aportes: ${formatCurrency(aAmort)}`, secondColX + 5, currentY + 15);
+  doc.text(
+    `Resgates: ${formatCurrency(rAmort)}`,
+    secondColX + 5,
+    currentY + 20,
+  );
+  doc.setFont("helvetica", "bold");
+  doc.text(
+    `Inv. Líquido: ${formatCurrency(invLiquidoAmort)}`,
+    secondColX + 5,
+    currentY + 27,
+  );
+  doc.setFontSize(7);
+  doc.setTextColor(100, 100, 100);
+  doc.text(
+    `Taxa: ${taxaAmort.toFixed(1)}% das receitas`,
+    secondColX + 5,
+    currentY + 31,
+  );
+
+  currentY += 40;
+  doc.autoTable({
+    startY: currentY,
+    body: [
+      ["TOTAL DE APORTES", formatCurrency(totalAportesGeral)],
+      ["TOTAL DE RESGATES", formatCurrency(totalResgatesGeral)],
+      [
+        {
+          content: "INVESTIMENTO LÍQUIDO GLOBAL",
+          styles: { fontStyle: "bold", textColor: COLOR_BLUE },
+        },
+        formatCurrency(investimentoLiquidoGeral),
+      ],
+      [
+        "AMORTIZAÇÕES REALIZADAS (PAGAMENTO DE DÍVIDAS)",
+        formatCurrency(totalAmortizacoesReal),
+      ],
+      [
+        {
+          content: "ÍNDICE DE DESTINAÇÃO PARA AMORTIZAÇÃO",
+          styles: { fontStyle: "bold" },
+        },
+        `${indDestAmortizacao.toFixed(1)}%`,
+      ],
+      [
+        {
+          content: "TAXA GLOBAL DE INVESTIMENTO LÍQUIDO",
+          styles: { fontStyle: "bold" },
+        },
+        `${taxaGlobal.toFixed(1)}%`,
+      ],
+    ],
+    theme: "plain",
+    styles: { fontSize: 8.5, cellPadding: 2 },
+    columnStyles: { 1: { halign: "right", fontStyle: "bold" } },
+  });
+  currentY = doc.lastAutoTable.finalY + 10;
+
+  // 6. POSIÇÃO PATRIMONIAL ACUMULADA
+  currentY = drawSectionHeader("Posição patrimonial acumulada", currentY);
+  const cardW = (pageWidth - margin * 2) / 2 - 2;
+
+  doc.setFillColor(255, 254, 235);
+  doc.setDrawColor(241, 196, 15);
+  doc.roundedRect(margin, currentY, cardW, 25, 1, 1, "FD");
+  doc.setFontSize(7);
+  doc.setTextColor(150, 120, 0);
+  doc.setFont("helvetica", "bold");
+  doc.text("TAXA DE CRESCIMENTO PATRIMONIAL", margin + 3, currentY + 6);
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(...COLOR_DARK);
+  doc.text(
+    `Formação de ativos: ${crescimentoAtivos.toFixed(1)}%`,
+    margin + 3,
+    currentY + 14,
+  );
+  doc.text(
+    `Recursos para amortização: ${crescimentoAmort.toFixed(1)}%`,
+    margin + 3,
+    currentY + 20,
+  );
+
+  doc.setFillColor(255, 245, 230);
+  doc.setDrawColor(230, 126, 34);
+  doc.roundedRect(margin + cardW + 4, currentY, cardW, 25, 1, 1, "FD");
+  doc.setFontSize(7);
+  doc.setTextColor(180, 90, 0);
+  doc.setFont("helvetica", "bold");
+  doc.text("PARTICIPAÇÃO NO PATRIMÔNIO", margin + cardW + 7, currentY + 6);
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(...COLOR_DARK);
+  doc.text(
+    `Formação de ativos: ${participacaoAtivos.toFixed(1)}%`,
+    margin + cardW + 7,
+    currentY + 14,
+  );
+  doc.text(
+    `Recursos para amortização: ${participacaoAmort.toFixed(1)}%`,
+    margin + cardW + 7,
+    currentY + 20,
+  );
+
+  currentY += 32;
+  doc.autoTable({
+    startY: currentY,
+    head: [["CATEGORIA", "NATUREZA", "SALDO ACUMULADO"]],
+    body: [
+      ...dadosEstoquePorCategoria.map((d) => [
+        d.nome,
+        d.tipo === CONSTS.SUBTIPO_PATRIMONIO.ATIVO
+          ? "FORMAÇÃO DE ATIVOS"
+          : "RECURSOS PARA AMORTIZAÇÃO",
+        formatCurrency(d.saldo),
+      ]),
+      [
+        {
+          content: "PATRIMÔNIO LÍQUIDO TOTAL",
+          colSpan: 2,
+          styles: { fontStyle: "bold", fillColor: [240, 240, 240] },
+        },
+        {
+          content: formatCurrency(patrimonioTotalEstoque),
+          styles: {
+            fontStyle: "bold",
+            halign: "right",
+            fillColor: [240, 240, 240],
+          },
+        },
+      ],
+    ],
+    theme: "plain",
+    headStyles: { fontStyle: "bold", textColor: [100, 100, 100] },
+    styles: { fontSize: 8.5, cellPadding: 2.5 },
+    columnStyles: { 2: { halign: "right" } },
   });
 
-  // Rodapé final
+  // Rodapé
   const finalY = Math.min(doc.lastAutoTable.finalY + 15, 285);
   doc.setFontSize(8);
   doc.setTextColor(150, 150, 150);
   doc.setFont("helvetica", "italic");
   doc.text(
-    `Gerado em: ${new Date().toLocaleString("pt-BR")} | Finan PWA - Inteligência Patrimonial`,
+    `Gerado em: ${new Date().toLocaleString("pt-BR")} | Finan PWA`,
     margin,
     finalY,
   );
-
   doc.save(`Finan_Extrato_${mesAno}.pdf`);
 }
