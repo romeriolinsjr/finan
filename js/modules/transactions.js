@@ -157,6 +157,19 @@ export function resetModalNovaTransacao() {
       elements.categoriaDespesa.disabled = false;
     }
 
+    // Reset Cartão / Orçamentos (Garante que não fiquem travados por adições rápidas anteriores)
+    if (elements.cartaoDespesa) {
+      elements.cartaoDespesa.value = "";
+      elements.cartaoDespesa.disabled = false;
+    }
+    if (elements.orcamentoVinculado) {
+      elements.orcamentoVinculado.value = "";
+      elements.orcamentoVinculado.disabled = false;
+    }
+    if (elements.valorDespesaCartao) {
+      elements.valorDespesaCartao.value = "";
+    }
+
     // Reset Ordinária
     if (elements.frequenciaDespesaOrd) {
       elements.frequenciaDespesaOrd.value = "unica";
@@ -189,6 +202,8 @@ export function resetModalNovaTransacao() {
     if (elements.quickAddFeedback)
       elements.quickAddFeedback.style.display = "none";
 
+    // Garante que os dropdowns estejam carregados com os dados mais recentes do estado
+    popularSeletoresFixos();
     atualizarVisibilidadeFormulario();
   } catch (err) {
     console.error("Erro ao resetar modal:", err);

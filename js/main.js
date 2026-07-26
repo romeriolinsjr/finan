@@ -1432,7 +1432,7 @@ document.addEventListener("DOMContentLoaded", () => {
       state.editingTransactionId = null;
       state.editingSerieId = null;
       state.isModoTerceiros = true;
-      trans.popularSeletoresFixos();
+      // popularSeletoresFixos agora é chamado automaticamente dentro do resetModalNovaTransacao
       ui.abrirModalEspecifico(elements.modalNovaTransacao, null, "transacao", {
         resetModalNovaTransacao: trans.resetModalNovaTransacao,
         preencherModalParaEdicao: trans.preencherModalParaEdicao,
