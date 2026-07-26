@@ -1398,7 +1398,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (elements.btnDownloadPDF) {
     elements.btnDownloadPDF.addEventListener("click", () => {
-      exportMod.gerarExtratoMensalPDF();
+      // Sincroniza a data da Home com a do Relatório apenas para a geração do PDF
+      // Isso garante que o PDF seja gerado para o mês visível no modal de relatórios
+      const originalDate = new Date(state.currentDate);
+      state.currentDate = new Date(state.reportDate);
+
+      exportMod.gerarExtratoMensalPDF().then(() => {
+        // Restaura a data original da Home após gerar o PDF
+        state.currentDate = originalDate;
+      });
     });
   }
 

@@ -471,14 +471,14 @@ export async function gerarExtratoMensalPDF() {
   doc.text(`Resgates: ${formatCurrency(rAtivos)}`, margin + 5, currentY + 20);
   doc.setFont("helvetica", "bold");
   doc.text(
-    `Inv. Líquido: ${formatCurrency(invLiquidoAtivos)}`,
+    `Investimento Líquido: ${formatCurrency(invLiquidoAtivos)}`,
     margin + 5,
     currentY + 27,
   );
   doc.setFontSize(7);
   doc.setTextColor(100, 100, 100);
   doc.text(
-    `Taxa: ${taxaAtivos.toFixed(1)}% das receitas`,
+    `Taxa de investimento líquido: ${taxaAtivos.toFixed(1)}% das receitas`,
     margin + 5,
     currentY + 31,
   );
@@ -501,14 +501,14 @@ export async function gerarExtratoMensalPDF() {
   );
   doc.setFont("helvetica", "bold");
   doc.text(
-    `Inv. Líquido: ${formatCurrency(invLiquidoAmort)}`,
+    `Investimento Líquido: ${formatCurrency(invLiquidoAmort)}`,
     secondColX + 5,
     currentY + 27,
   );
   doc.setFontSize(7);
   doc.setTextColor(100, 100, 100);
   doc.text(
-    `Taxa: ${taxaAmort.toFixed(1)}% das receitas`,
+    `Taxa de investimento líquido: ${taxaAmort.toFixed(1)}% das receitas`,
     secondColX + 5,
     currentY + 31,
   );
@@ -611,7 +611,7 @@ export async function gerarExtratoMensalPDF() {
       ]),
       [
         {
-          content: "PATRIMÔNIO LÍQUIDO TOTAL",
+          content: "PATRIMÔNIO ACUMULADO TOTAL",
           colSpan: 2,
           styles: { fontStyle: "bold", fillColor: [240, 240, 240] },
         },
