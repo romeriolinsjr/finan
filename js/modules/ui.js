@@ -849,6 +849,20 @@ export function renderizarTransacoesDoMes() {
     );
   });
 
+  // --- NOVO: FILTRAGEM POR ABA (DIA-A-DIA vs PATRIMÔNIO) ---
+  const abaAtiva = state.homeActiveTab || "dia-a-dia";
+  if (abaAtiva === "dia-a-dia") {
+    // Mantém tudo, EXCETO transações de tipo Patrimônio
+    itensParaRenderizar = itensParaRenderizar.filter(
+      (item) => item.tipoDisplay !== CONSTS.TIPO_RENDERIZACAO.PATRIMONIO,
+    );
+  } else {
+    // Mantém APENAS transações de tipo Patrimônio
+    itensParaRenderizar = itensParaRenderizar.filter(
+      (item) => item.tipoDisplay === CONSTS.TIPO_RENDERIZACAO.PATRIMONIO,
+    );
+  }
+
   atualizarResumoFinanceiro();
 
   if (itensParaRenderizar.length === 0) {

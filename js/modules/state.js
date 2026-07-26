@@ -32,6 +32,7 @@ export const state = {
   ciclosTracker: [], // Armazena os ciclos ativos (Ciclo 1 e Ciclo 2)
   votosTracker: [], // Armazena as atribuições manuais de transações a ciclos específicos
   trackerActiveTabIndex: null, // Controla qual aba de ciclo está visível (0 ou 1)
+  homeActiveTab: "dia-a-dia", // Define a aba ativa na tela inicial (dia-a-dia ou patrimonio)
   faturasConferidas: [], // Armazena registros de faturas que foram conferidas pelo usuário
   // PATRIMÔNIO:
   patrimonioCategorias: [], // Categorias Pai (ex: Reserva, Renda Fixa)

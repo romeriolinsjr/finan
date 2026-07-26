@@ -2045,4 +2045,21 @@ document.addEventListener("DOMContentLoaded", () => {
       ui.abrirModalEspecifico(elements.modalConfigCiclo);
     },
   };
+
+  // --- OUVINTE PARA AS ABAS DA HOME ---
+  if (elements.homeTabBtns) {
+    elements.homeTabBtns.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const tab = btn.dataset.tab;
+        state.homeActiveTab = tab;
+
+        // Atualiza visual dos botões
+        elements.homeTabBtns.forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+
+        // Re-renderiza a lista filtrada
+        ui.renderizarTransacoesDoMes();
+      });
+    });
+  }
 }); // Fim do DOMContentLoaded

@@ -256,6 +256,7 @@ export const elements = {
     "btnExcluirOrcamentoCancelar",
   ),
   userEmailDisplay: document.getElementById("userEmailDisplay"),
+  homeTabBtns: document.querySelectorAll(".home-tab-btn"),
   // =========================================
   //        ELEMENTOS DO WEEKLY TRACKER
   // =========================================

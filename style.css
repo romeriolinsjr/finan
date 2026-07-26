@@ -2187,3 +2187,64 @@ body.modal-aberto {
   background-color: #2c3e50; /* Destaque opcional para o dia atual, se desejar */
   box-shadow: 0 0 4px rgba(0, 0, 0, 0.2);
 }
+
+/* ========================================= */
+/*       ESTILOS PARA AS ABAS DA HOME        */
+/* ========================================= */
+
+.transactions-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #e0e0e0;
+  margin-bottom: 15px;
+  padding-bottom: 5px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.transactions-header-row h2 {
+  margin: 0;
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.home-tabs-nav {
+  display: flex;
+  gap: 5px;
+  background: #f1f2f6;
+  padding: 4px;
+  border-radius: 8px;
+}
+
+.home-tab-btn {
+  border: none;
+  background: transparent;
+  padding: 6px 15px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9em;
+  color: #7f8c8d;
+  transition: all 0.2s ease;
+}
+
+.home-tab-btn.active {
+  background: #ffffff;
+  color: #2c3e50;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+@media (max-width: 600px) {
+  .transactions-header-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .home-tabs-nav {
+    width: 100%;
+  }
+  .home-tab-btn {
+    flex: 1;
+    text-align: center;
+  }
+}
