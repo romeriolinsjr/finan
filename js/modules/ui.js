@@ -356,9 +356,8 @@ export function criarElementoReceita(item, actionsDiv) {
 }
 
 export function criarElementoPatrimonio(item, actionsDiv) {
-  // Busca Dinâmica: Tenta ler da transação ou descobrir via ID do Patrimônio
+  // 1. Identificar Natureza
   let natureza = item.natureza;
-
   if (!natureza && item.patrimonioId) {
     const sub = (state.patrimonioSubcategorias || []).find(
       (s) => s.id === item.patrimonioId,
@@ -371,19 +370,16 @@ export function criarElementoPatrimonio(item, actionsDiv) {
     }
   }
 
-  const isAtivo = natureza === "ativo";
-  const subTipoLabel = isAtivo
-    ? "Formação de Ativos"
-    : "Recursos para Amortização";
+  const naturezaLabel =
+    natureza === "ativo" ? "Formação de Ativos" : "Recursos para Amortização";
 
-  // Mapeamento amigável da Operação
+  // 2. Mapeamento da Operação (Agora será o título principal)
   const operacaoMap = {
     aporte: "Aporte",
     resgate: "Resgate",
-    ajuste: "Ajuste",
     amortizacao: "Amortização",
   };
-  const labelOperacao = operacaoMap[item.operacao] || "Operação";
+  const tituloOperacao = operacaoMap[item.operacao] || "Operação";
 
   const dataFormatada = item.dataOperacao
     ? new Date(parseDateString(item.dataOperacao)).toLocaleDateString("pt-BR", {
@@ -393,36 +389,37 @@ export function criarElementoPatrimonio(item, actionsDiv) {
       })
     : "N/D";
 
+  // 3. Botões de Ação
   const editButton = document.createElement("button");
   editButton.className = "btn-edit";
   editButton.innerHTML = "✎";
-  editButton.title = "Editar";
   editButton.dataset.id = item.id;
   actionsDiv.appendChild(editButton);
 
   const deleteButton = document.createElement("button");
   deleteButton.className = "btn-delete";
   deleteButton.innerHTML = "✖";
-  deleteButton.title = "Excluir";
   deleteButton.dataset.id = item.id;
   actionsDiv.appendChild(deleteButton);
 
-  let categoriaDisplay = `(Patrimônio - ${subTipoLabel} - ${labelOperacao}${
+  // 4. Subtexto formatado: Natureza - Item (Parcela)
+  const parcelaInfo =
     item.frequencia === CONSTS.FREQUENCIA.PARCELADA && item.totalParcelas
-      ? ` - ${item.parcelaAtual || "?"}/${item.totalParcelas}`
-      : ""
-  })`;
+      ? ` (${item.parcelaAtual}/${item.totalParcelas})`
+      : "";
+
+  const subtextoDisplay = `${naturezaLabel} - ${item.nome}${parcelaInfo}`;
 
   return `<label class="transaction-main-info" for="patrimonio-${item.id}">
             <input type="checkbox" id="patrimonio-${item.id}" data-transaction-id="${item.id}" ${item.paga ? "checked" : ""}>
             <div class="transaction-name-category">
-                <span class="transaction-name">${item.nome}</span>
-                <span class="transaction-category">${categoriaDisplay}</span>
+                <span class="transaction-name" style="font-weight: bold; letter-spacing: 0.5px;">${tituloOperacao}</span>
+                <span class="transaction-category">${subtextoDisplay}</span>
             </div>
           </label>
           <div class="transaction-value-date">
               <span class="transaction-value" style="color: #34495e;">${formatCurrency(item.valor)}</span>
-              <span class="transaction-date">Operação: ${dataFormatada}</span>
+              <span class="transaction-date">${dataFormatada}</span>
               ${item.paga ? '<span class="status-paga">Concluído</span>' : ""}
           </div>`;
 }
@@ -623,9 +620,10 @@ export function renderizarTransacoesDoMes() {
     }),
   );
 
-  // Patrimônio
+  // Patrimônio (Filtrado: Apenas o que afeta o saldo mensal)
   const patrimoniosDoMes = transacoesDoMesVisivel.filter(
-    (t) => t.tipo === CONSTS.TIPO_TRANSACAO.PATRIMONIO,
+    (t) =>
+      t.tipo === CONSTS.TIPO_TRANSACAO.PATRIMONIO && t.operacao !== "ajuste",
   );
   patrimoniosDoMes.forEach((p) =>
     itensParaRenderizar.push({

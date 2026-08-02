@@ -169,6 +169,15 @@ export function resetModalNovaTransacao() {
     if (elements.valorDespesaCartao) {
       elements.valorDespesaCartao.value = "";
     }
+    if (elements.frequenciaDespesaCartao) {
+      elements.frequenciaDespesaCartao.value = "unica";
+      elements.frequenciaDespesaCartao.disabled = false;
+    }
+    if (elements.qtdParcelasCartao) elements.qtdParcelasCartao.value = "";
+    if (elements.parcelaAtualCartao) elements.parcelaAtualCartao.value = "1";
+    if (elements.tipoCadastroParcelaCartao) {
+      elements.tipoCadastroParcelaCartao.value = "valor_total";
+    }
 
     // Reset Ordinária
     if (elements.frequenciaDespesaOrd) {
