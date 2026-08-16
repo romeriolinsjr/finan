@@ -34,7 +34,7 @@
     <div class="app-container">
       <aside class="sidebar">
         <h2>Menu</h2>
-        <button id="btnNovaTransacao">Nova transação</button>
+        <button id="btnContextTransacoes">Transações</button>
         <button id="btnGerenciarCartoes">Cartões de crédito</button>
         <button id="btnMenuPatrimonio">Patrimônio</button>
         <button id="btnMenuOrcamentos">Orçamentos</button>
@@ -149,20 +149,52 @@
         </header>
 
         <section class="transactions-list">
-          <div class="transactions-header-row">
-            <h2>Transações</h2>
-            <div class="home-tabs-nav">
-              <button class="home-tab-btn active" data-tab="dia-a-dia">
-                Dia a dia
-              </button>
-              <button class="home-tab-btn" data-tab="patrimonio">
-                Patrimônio
-              </button>
+          <!-- CONTEXTO 1: TRANSAÇÕES (GERAIS E PATRIMONIAIS) -->
+          <div id="headerContextTransacoes">
+            <div class="transactions-header-row">
+              <h2>Transações</h2>
+              <div class="home-tabs-nav">
+                <button class="home-tab-btn active" data-tab="gerais">
+                  Gerais
+                </button>
+                <button class="home-tab-btn" data-tab="patrimoniais">
+                  Patrimoniais
+                </button>
+              </div>
             </div>
+            <!-- Botão de Ação para Receitas e Despesas -->
+            <button
+              id="btnAbrirModalNovaTransacaoHome"
+              class="btn-primary"
+              style="
+                width: auto;
+                margin-bottom: 20px;
+                padding: 10px 20px;
+                font-weight: bold;
+                font-size: 0.95em;
+                cursor: pointer;
+                display: block;
+              "
+            >
+              Nova transação
+            </button>
           </div>
 
-          <!-- NOVO: Container da Barra de Busca com Botão de Limpar -->
-          <div class="search-container">
+          <!-- CONTEXTO 2: GESTÃO PATRIMONIAL (ÁRVORE) -->
+          <div
+            id="headerContextPatrimonio"
+            style="
+              display: none;
+              margin-bottom: 20px;
+              border-bottom: 1px solid #e0e0e0;
+              padding-bottom: 10px;
+            "
+          >
+            <h2 style="color: #2c3e50; font-size: 1.3em">Gestão Patrimonial</h2>
+          </div>
+
+          <!-- Barra de Busca (Visível apenas no contexto de Transações) -->
+          <div id="containerBuscaTransacoes" class="search-container">
             <input
               type="search"
               id="searchInput"
@@ -187,6 +219,57 @@
           <ul id="listaTransacoes">
             <!-- Transações via JS -->
           </ul>
+
+          <!-- NOVO: Espaço para a Árvore de Patrimônio na Home -->
+          <div id="containerPatrimonioHome" style="display: none">
+            <div
+              id="resumoPatrimonioLiquidoHome"
+              class="tracker-cycle-card"
+              style="
+                margin-bottom: 20px;
+                text-align: center;
+                background: #f8f9fa;
+              "
+            >
+              <p style="margin: 0; font-size: 0.9em; color: #57606f">
+                Patrimônio Acumulado Total
+              </p>
+              <strong
+                id="valorPatrimonioLiquidoHome"
+                style="font-size: 1.8em; color: #2c3e50"
+                >R$ 0,00</strong
+              >
+            </div>
+            <ul
+              id="listaPatrimonioHierarquicaHome"
+              class="lista-detalhes-limpa"
+            >
+              <!-- Árvore hierárquica injetada via JS -->
+            </ul>
+            <div
+              style="
+                margin-top: 20px;
+                display: flex;
+                gap: 10px;
+                justify-content: center;
+              "
+            >
+              <button
+                id="btnHomeNovaCategoriaPat"
+                class="btn-primary"
+                style="background-color: #2c3e50; font-size: 0.85em"
+              >
+                + Categoria
+              </button>
+              <button
+                id="btnHomeNovoItemPat"
+                class="btn-primary"
+                style="font-size: 0.85em"
+              >
+                + Novo Item
+              </button>
+            </div>
+          </div>
         </section>
       </main>
     </div>
@@ -202,12 +285,17 @@
           <!-- BLOCO INICIAL (Sempre visível) -->
           <div id="blocoInicialTransacao">
             <div>
-              <label for="tipoTransacao">Tipo de transação:</label>
+              <label id="labelTipoTransacao" for="tipoTransacao"
+                >Tipo de transação:</label
+              >
               <select id="tipoTransacao">
                 <option value="">-- Selecione --</option>
                 <option value="receita">Receita</option>
                 <option value="despesa">Despesa</option>
-                <option value="patrimonio">Patrimônio</option>
+                <!-- Opção oculta para manter compatibilidade com o motor de formulário disparado pela árvore -->
+                <option value="patrimonio" style="display: none">
+                  Patrimônio
+                </option>
               </select>
             </div>
             <div>

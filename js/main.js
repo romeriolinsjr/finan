@@ -649,23 +649,36 @@ document.addEventListener("DOMContentLoaded", () => {
     if (confirm("Deseja sair?")) auth.signOut();
   });
 
-  // Transações
-  elements.btnAbrirModalNovaTransacao.addEventListener("click", () => {
-    // NOVO: Limpa o estado de edição para garantir um formulário novo e limpo
-    state.isEditMode = false;
-    state.editingTransactionId = null;
-    state.editingSerieId = null;
-
-    // Garante que o estado de "Modo Terceiros" seja limpo ao entrar pelo menu geral
-    state.isModoTerceiros = false;
-    state.isQuickAddMode = false;
-
-    trans.popularSeletoresFixos();
-    ui.abrirModalEspecifico(elements.modalNovaTransacao, null, "transacao", {
-      resetModalNovaTransacao: trans.resetModalNovaTransacao,
-      preencherModalParaEdicao: trans.preencherModalParaEdicao,
+  // --- NAVEGAÇÃO DE CONTEXTO: TRANSAÇÕES (SIDEBAR) ---
+  if (elements.btnContextTransacoes) {
+    elements.btnContextTransacoes.addEventListener("click", () => {
+      state.modoVisualizacao = "lista";
+      state.homeActiveTab = "gerais";
+      if (elements.homeTabBtns) {
+        elements.homeTabBtns.forEach((b) =>
+          b.classList.toggle("active", b.dataset.tab === "gerais"),
+        );
+      }
+      ui.renderizarTransacoesDoMes();
     });
-  });
+  }
+
+  // --- BOTÃO NOVA TRANSAÇÃO (DENTRO DA HOME) ---
+  if (elements.btnAbrirModalNovaTransacaoHome) {
+    elements.btnAbrirModalNovaTransacaoHome.addEventListener("click", () => {
+      state.isEditMode = false;
+      state.editingTransactionId = null;
+      state.editingSerieId = null;
+      state.isModoTerceiros = false;
+      state.isQuickAddMode = false;
+
+      trans.popularSeletoresFixos();
+      ui.abrirModalEspecifico(elements.modalNovaTransacao, null, "transacao", {
+        resetModalNovaTransacao: trans.resetModalNovaTransacao,
+        preencherModalParaEdicao: trans.preencherModalParaEdicao,
+      });
+    });
+  }
 
   elements.btnSalvarTransacao.addEventListener("click", async () => {
     if (state.isModoTerceiros) {
@@ -944,12 +957,17 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // --- EVENTOS DE PATRIMÔNIO ---
-  elements.btnMenuPatrimonio.addEventListener("click", () => {
-    ui.abrirModalEspecifico(elements.modalPatrimonio, null, "patrimonio", {
-      renderizarLista: patrimony.renderizarListaPatrimonioHierarquica,
+  // --- NAVEGAÇÃO DE CONTEXTO: PATRIMÔNIO (SIDEBAR: GESTÃO) ---
+  if (elements.btnMenuPatrimonio) {
+    elements.btnMenuPatrimonio.addEventListener("click", () => {
+      state.modoVisualizacao = "gestao-patrimonio";
+      // Remove destaque das abas de lista (Gerais e Patrimoniais)
+      if (elements.homeTabBtns) {
+        elements.homeTabBtns.forEach((b) => b.classList.remove("active"));
+      }
+      ui.renderizarTransacoesDoMes();
     });
-  });
+  }
 
   elements.btnAbrirModalNovaCategoriaPatrimonio.addEventListener(
     "click",
@@ -2046,20 +2064,106 @@ document.addEventListener("DOMContentLoaded", () => {
     },
   };
 
-  // --- OUVINTE PARA AS ABAS DA HOME ---
+  // --- OUVINTE PARA AS ABAS DA HOME (LISTA) ---
   if (elements.homeTabBtns) {
     elements.homeTabBtns.forEach((btn) => {
       btn.addEventListener("click", () => {
+        // Sai do modo de gestão se as abas da Home forem clicadas
+        state.modoVisualizacao = "lista";
         const tab = btn.dataset.tab;
         state.homeActiveTab = tab;
 
-        // Atualiza visual dos botões
         elements.homeTabBtns.forEach((b) => b.classList.remove("active"));
         btn.classList.add("active");
 
-        // Re-renderiza a lista filtrada
         ui.renderizarTransacoesDoMes();
       });
+    });
+  }
+
+  // --- OUVINTE PARA A ÁRVORE DE GESTÃO PATRIMONIAL (NA HOME) ---
+  if (elements.listaPatrimonioHierarquicaHome) {
+    elements.listaPatrimonioHierarquicaHome.addEventListener("click", (e) => {
+      const btnOp = e.target.closest(".btn-pat-op");
+      const btnEdit = e.target.closest(".btn-edit-pat-sub, .btn-edit-pat-cat");
+      const btnDel = e.target.closest(
+        ".btn-delete-pat-sub, .btn-delete-pat-cat",
+      );
+      const infoArea = e.target.closest(".patrimonio-info");
+
+      // 1. Operações Rápidas (⊕, ⊖, ≈, ↓)
+      if (btnOp) {
+        const { id, op } = btnOp.dataset;
+        trans.abrirModalPatrimonioRapido(id, op, ui.abrirModalEspecifico);
+        return;
+      }
+
+      // 2. Ver Extrato do Item (Clique no nome/saldo)
+      if (infoArea && !btnEdit && !btnDel) {
+        patrimony.abrirHistoricoPatrimonio(
+          infoArea.dataset.id,
+          ui.abrirModalEspecifico,
+        );
+        return;
+      }
+
+      // 3. Edição (Lápis)
+      if (btnEdit) {
+        const id = btnEdit.dataset.id;
+        if (btnEdit.classList.contains("btn-edit-pat-cat")) {
+          ui.abrirModalEspecifico(
+            elements.modalCadastrarPatrimonioCategoria,
+            id,
+            "patrimonioForm",
+            {
+              preencherModal: patrimony.preencherModalEdicaoCategoria,
+            },
+          );
+        } else {
+          ui.abrirModalEspecifico(
+            elements.modalCadastrarPatrimonioSubcategoria,
+            id,
+            "patrimonioForm",
+            {
+              preencherModal: patrimony.preencherModalEdicaoSubcategoria,
+            },
+          );
+        }
+      }
+
+      // 4. Exclusão (X)
+      if (btnDel) {
+        const id = btnDel.dataset.id;
+        if (btnDel.classList.contains("btn-delete-pat-cat"))
+          patrimony.excluirCategoria(id);
+        else patrimony.excluirSubcategoria(id);
+      }
+    });
+  }
+
+  // Botões de criação que ficam abaixo da árvore na Home
+  if (elements.btnHomeNovaCategoriaPat) {
+    elements.btnHomeNovaCategoriaPat.addEventListener("click", () => {
+      ui.abrirModalEspecifico(
+        elements.modalCadastrarPatrimonioCategoria,
+        null,
+        "patrimonioForm",
+        {
+          resetForm: patrimony.resetFormCategoria,
+        },
+      );
+    });
+  }
+  if (elements.btnHomeNovoItemPat) {
+    elements.btnHomeNovoItemPat.addEventListener("click", () => {
+      ui.abrirModalEspecifico(
+        elements.modalCadastrarPatrimonioSubcategoria,
+        null,
+        "patrimonioForm",
+        {
+          resetForm: patrimony.resetFormSubcategoria,
+        },
+      );
     });
   }
 }); // Fim do DOMContentLoaded

@@ -559,315 +559,195 @@ export function criarElementoOrcamento(item, actionsDiv) {
 }
 
 export function renderizarTransacoesDoMes() {
-  if (!elements.listaTransacoesUl) return;
-  elements.listaTransacoesUl.innerHTML = "";
-  const mesAnoAtual = getMesAnoChave(state.currentDate);
+  if (!elements.listaTransacoesUl || !elements.containerPatrimonioHome) return;
 
-  let primeiroMesAnoComDados = null;
-  if (state.transacoes.length > 0) {
-    primeiroMesAnoComDados = state.transacoes.reduce(
-      (min, t) => (t.mesAnoReferencia < min ? t.mesAnoReferencia : min),
-      state.transacoes[0].mesAnoReferencia,
-    );
-  }
+  const abaAtivaAtual = state.homeActiveTab || "gerais";
+  const mesAnoReferenciaAtual = getMesAnoChave(state.currentDate);
+  const isGestaoContexto = state.modoVisualizacao === "gestao-patrimonio";
 
-  // Identifica o mês real de hoje para evitar que o mês atual seja considerado "pré-histórico"
-  const mesAnoHoje = getMesAnoChave(new Date());
+  // --- 1. CONTROLE DE VISIBILIDADE POR CONTEXTO ---
+  if (isGestaoContexto) {
+    if (elements.headerContextTransacoes)
+      elements.headerContextTransacoes.style.display = "none";
+    if (elements.containerBuscaTransacoes)
+      elements.containerBuscaTransacoes.style.display = "none";
+    elements.listaTransacoesUl.style.display = "none";
+    if (elements.headerContextPatrimonio)
+      elements.headerContextPatrimonio.style.display = "block";
+    elements.containerPatrimonioHome.style.display = "block";
 
-  if (
-    primeiroMesAnoComDados &&
-    mesAnoAtual < primeiroMesAnoComDados &&
-    mesAnoAtual < mesAnoHoje
-  ) {
+    import("./patrimony.js").then((m) => {
+      m.renderizarListaPatrimonioHierarquica(
+        elements.listaPatrimonioHierarquicaHome,
+        true,
+      );
+    });
     atualizarResumoFinanceiro();
-    const liEmpty = document.createElement("li");
-    liEmpty.textContent = "Sem dados para este período.";
-    liEmpty.style.textAlign = "center";
-    liEmpty.style.padding = "20px";
-    liEmpty.style.color = "#777";
-    elements.listaTransacoesUl.appendChild(liEmpty);
     return;
+  } else {
+    if (elements.headerContextTransacoes)
+      elements.headerContextTransacoes.style.display = "block";
+    if (elements.containerBuscaTransacoes)
+      elements.containerBuscaTransacoes.style.display = "block";
+    elements.listaTransacoesUl.style.display = "block";
+    if (elements.headerContextPatrimonio)
+      elements.headerContextPatrimonio.style.display = "none";
+    elements.containerPatrimonioHome.style.display = "none";
+    elements.listaTransacoesUl.innerHTML = "";
   }
 
+  // --- 2. PREPARAÇÃO DA LISTA DE FLUXO ---
   const transacoesDoMesVisivel = state.transacoes.filter(
-    (t) => t.mesAnoReferencia === mesAnoAtual,
+    (t) => t.mesAnoReferencia === mesAnoReferenciaAtual,
   );
   let itensParaRenderizar = [];
 
-  // Receitas
-  const receitasDoMes = transacoesDoMesVisivel.filter(
-    (t) => t.tipo === CONSTS.TIPO_TRANSACAO.RECEITA,
-  );
-  receitasDoMes.forEach((r) =>
-    itensParaRenderizar.push({
-      ...r,
-      tipoDisplay: CONSTS.TIPO_RENDERIZACAO.RECEITA,
-      dataOrdenacao: parseDateString(r.dataEntrada),
-    }),
-  );
+  if (abaAtivaAtual === "gerais") {
+    // 1. Receitas
+    transacoesDoMesVisivel
+      .filter((t) => t.tipo === CONSTS.TIPO_TRANSACAO.RECEITA)
+      .forEach((r) =>
+        itensParaRenderizar.push({
+          ...r,
+          tipoDisplay: CONSTS.TIPO_RENDERIZACAO.RECEITA,
+          ordemMaster: 1,
+          dataOrdenacao: parseDateString(r.dataEntrada),
+        }),
+      );
 
-  // Despesas Ordinárias Individuais (RESTAURADO)
-  const despesasOrdinariasDoMes = transacoesDoMesVisivel.filter(
-    (t) =>
-      t.tipo === CONSTS.TIPO_TRANSACAO.DESPESA &&
-      t.categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA,
-  );
-  despesasOrdinariasDoMes.forEach((d) =>
-    itensParaRenderizar.push({
-      ...d,
-      tipoDisplay: CONSTS.TIPO_RENDERIZACAO.DESPESA,
-      dataOrdenacao: parseDateString(d.dataVencimento),
-    }),
-  );
+    // 2. Despesas Ordinárias
+    transacoesDoMesVisivel
+      .filter(
+        (t) =>
+          t.tipo === CONSTS.TIPO_TRANSACAO.DESPESA &&
+          t.categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA,
+      )
+      .forEach((d) =>
+        itensParaRenderizar.push({
+          ...d,
+          tipoDisplay: CONSTS.TIPO_RENDERIZACAO.DESPESA,
+          ordemMaster: 3,
+          dataOrdenacao: parseDateString(d.dataVencimento),
+        }),
+      );
 
-  // Patrimônio (Filtrado: Apenas o que afeta o saldo mensal)
-  const patrimoniosDoMes = transacoesDoMesVisivel.filter(
-    (t) =>
-      t.tipo === CONSTS.TIPO_TRANSACAO.PATRIMONIO && t.operacao !== "ajuste",
-  );
-  patrimoniosDoMes.forEach((p) =>
-    itensParaRenderizar.push({
-      ...p,
-      tipoDisplay: CONSTS.TIPO_RENDERIZACAO.PATRIMONIO,
-      dataOrdenacao: parseDateString(p.dataOperacao),
-    }),
-  );
-
-  // Faturas de Cartão
-  const despesasCartaoDoMes = transacoesDoMesVisivel.filter(
-    (t) =>
-      t.tipo === CONSTS.TIPO_TRANSACAO.DESPESA &&
-      t.categoria === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO,
-  );
-  const faturasAgrupadas = {};
-  despesasCartaoDoMes.forEach((dc) => {
-    if (!dc.cartaoId) return;
-
-    // NOVO: Verifica se o cartão tem uma data de corte e se deve ser exibido neste mês
-    const cartaoInfo = state.cartoes.find((c) => c.id === dc.cartaoId) || {};
-    if (
-      cartaoInfo.deletado &&
-      cartaoInfo.dataExclusao &&
-      mesAnoAtual >= cartaoInfo.dataExclusao
-    ) {
-      return; // Pula este cartão, ele não deve aparecer mais deste mês em diante
-    }
-
-    if (!faturasAgrupadas[dc.cartaoId]) {
-      faturasAgrupadas[dc.cartaoId] = {
-        cartaoId: dc.cartaoId,
-        cartaoNome: cartaoInfo.nome || "Cartão Desconhecido",
-        diaVencimentoFatura: cartaoInfo.diaVencimentoFatura || 1,
-        vencimentoNoMesSeguinte: cartaoInfo.vencimentoNoMesSeguinte || false,
-        totalValor: 0,
-        todasPagas: true,
-        isDeletado: cartaoInfo.deletado === true,
-      };
-    }
-    faturasAgrupadas[dc.cartaoId].totalValor += dc.valor;
-    if (!dc.paga) faturasAgrupadas[dc.cartaoId].todasPagas = false;
-  });
-
-  Object.values(faturasAgrupadas).forEach((fatura) => {
-    const [ano, mes] = mesAnoAtual.split("-").map(Number);
-    const ajusteDeMes = fatura.vencimentoNoMesSeguinte ? 1 : 0;
-    const dataVencimentoFatura = new Date(
-      ano,
-      mes - 1 + ajusteDeMes,
-      fatura.diaVencimentoFatura,
-    );
-    const totalAjustes = calcularTotalAjustes(fatura.cartaoId, mesAnoAtual);
-    // Verifica se esta fatura foi marcada como conferida pelo usuário
-    const isConferida = state.faturasConferidas.some(
-      (f) => f.cartaoId === fatura.cartaoId && f.mesAno === mesAnoAtual,
-    );
-
-    itensParaRenderizar.push({
-      id: fatura.cartaoId,
-      tipoDisplay: CONSTS.TIPO_RENDERIZACAO.FATURA,
-      cartaoId: fatura.cartaoId,
-      nome: `Fatura ${fatura.cartaoNome}`,
-      valor: fatura.totalValor - totalAjustes,
-      dataOrdenacao: dataVencimentoFatura,
-      dataVencimentoDisplay: dataVencimentoFatura.toISOString().split("T")[0],
-      paga: fatura.todasPagas,
-      mesAnoReferencia: mesAnoAtual,
-      vencimentoNoMesSeguinte: fatura.vencimentoNoMesSeguinte,
-      isDeletado: fatura.isDeletado,
-      isConferida: isConferida, // Injeta o status de conferência
-    });
-  });
-
-  // Orçamentos
-  // IMPORTANTE: Exibe apenas os orçamentos vinculados ao mês que está na tela
-  const orcamentosParaRenderizar = state.orcamentos.filter(
-    (o) => o.mesAnoReferencia === mesAnoAtual,
-  );
-
-  orcamentosParaRenderizar.forEach((orcamento) => {
-    const [ano, mes] = mesAnoAtual.split("-").map(Number);
-    const dataOrcamento = new Date(ano, mes - 1, orcamento.dia);
-    let gastosNoOrcamento = transacoesDoMesVisivel
-      .filter((t) => t.orcamentoId === orcamento.id)
-      .reduce((total, t) => total + t.valor, 0);
-
-    if (orcamento.isFixed) {
-      const activeBudgetIds = state.orcamentos.map((o) => o.id);
-      const extra = transacoesDoMesVisivel
-        .filter(
-          (t) =>
-            t.categoria === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO &&
-            (!t.orcamentoId || !activeBudgetIds.includes(t.orcamentoId)),
+    // 3. Faturas de Cartão
+    const faturasAgrupadas = {};
+    transacoesDoMesVisivel
+      .filter(
+        (t) =>
+          t.tipo === CONSTS.TIPO_TRANSACAO.DESPESA &&
+          t.categoria === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO,
+      )
+      .forEach((dc) => {
+        const cInfo = state.cartoes.find((c) => c.id === dc.cartaoId) || {};
+        if (
+          cInfo.deletado &&
+          cInfo.dataExclusao &&
+          mesAnoReferenciaAtual >= cInfo.dataExclusao
         )
-        .reduce((total, t) => total + t.valor, 0);
-      gastosNoOrcamento += extra;
-    }
+          return;
+        if (!faturasAgrupadas[dc.cartaoId]) {
+          faturasAgrupadas[dc.cartaoId] = {
+            cartaoId: dc.cartaoId,
+            cartaoNome: cInfo.nome || "Cartão",
+            diaVencimentoFatura: cInfo.diaVencimentoFatura || 1,
+            vencimentoNoMesSeguinte: cInfo.vencimentoNoMesSeguinte || false,
+            totalValor: 0,
+            todasPagas: true,
+          };
+        }
+        faturasAgrupadas[dc.cartaoId].totalValor += dc.valor;
+        if (!dc.paga) faturasAgrupadas[dc.cartaoId].todasPagas = false;
+      });
 
-    if (orcamento.isFixedOrdinary) {
-      const extraOrdinario = transacoesDoMesVisivel
-        .filter((t) => t.categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA)
-        .reduce((total, t) => total + t.valor, 0);
-      gastosNoOrcamento += extraOrdinario;
-    }
-
-    itensParaRenderizar.push({
-      id: `orcamento-${orcamento.id}`,
-      orcamentoId: orcamento.id,
-      tipoDisplay: CONSTS.TIPO_RENDERIZACAO.ORCAMENTO,
-      nome: orcamento.nome,
-      valor: orcamento.valor - gastosNoOrcamento,
-      valorTotalOrcamento: orcamento.valor,
-      dataOrdenacao: dataOrcamento,
-      isFixed: orcamento.isFixed || false,
-      isFixedOrdinary: orcamento.isFixedOrdinary || false,
+    Object.values(faturasAgrupadas).forEach((fatura) => {
+      const [ano, mes] = mesAnoReferenciaAtual.split("-").map(Number);
+      const dataVenc = new Date(
+        ano,
+        mes - 1 + (fatura.vencimentoNoMesSeguinte ? 1 : 0),
+        fatura.diaVencimentoFatura,
+      );
+      itensParaRenderizar.push({
+        id: fatura.cartaoId,
+        tipoDisplay: CONSTS.TIPO_RENDERIZACAO.FATURA,
+        ordemMaster: 3,
+        cartaoId: fatura.cartaoId,
+        nome: `Fatura ${fatura.cartaoNome}`,
+        valor:
+          fatura.totalValor -
+          calcularTotalAjustes(fatura.cartaoId, mesAnoReferenciaAtual),
+        dataOrdenacao: dataVenc,
+        paga: fatura.todasPagas,
+        mesAnoReferencia: mesAnoReferenciaAtual,
+      });
     });
-  });
 
-  // Prioridade de exibição na Home (Ajustada para Amortização)
-  itensParaRenderizar.forEach((item) => {
-    if (item.tipoDisplay === CONSTS.TIPO_RENDERIZACAO.RECEITA)
-      item.ordemMaster = 1;
-    else if (
-      item.tipoDisplay === CONSTS.TIPO_RENDERIZACAO.PATRIMONIO &&
-      item.operacao === "resgate"
-    )
-      item.ordemMaster = 2;
-    else if (item.tipoDisplay === CONSTS.TIPO_RENDERIZACAO.ORCAMENTO)
-      item.ordemMaster = 3;
-    else if (
-      item.tipoDisplay === CONSTS.TIPO_RENDERIZACAO.PATRIMONIO &&
-      (item.operacao === "aporte" || item.operacao === "ajuste")
-    )
-      item.ordemMaster = 4; // Investimentos
-    else if (
-      item.tipoDisplay === CONSTS.TIPO_RENDERIZACAO.PATRIMONIO &&
-      item.operacao === "amortizacao"
-    )
-      item.ordemMaster = 5; // Amortização (entre Investimentos e Despesas)
-    else item.ordemMaster = 6; // Despesas e Faturas
-  });
+    // 4. Orçamentos
+    state.orcamentos
+      .filter((o) => o.mesAnoReferencia === mesAnoReferenciaAtual)
+      .forEach((orc) => {
+        let gasto = transacoesDoMesVisivel
+          .filter((t) => t.orcamentoId === orc.id)
+          .reduce((total, t) => total + t.valor, 0);
+        if (orc.isFixed)
+          gasto += transacoesDoMesVisivel
+            .filter(
+              (t) =>
+                t.categoria === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO &&
+                (!t.orcamentoId ||
+                  !state.orcamentos.map((o) => o.id).includes(t.orcamentoId)),
+            )
+            .reduce((total, t) => total + t.valor, 0);
+        if (orc.isFixedOrdinary)
+          gasto += transacoesDoMesVisivel
+            .filter((t) => t.categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA)
+            .reduce((total, t) => total + t.valor, 0);
 
+        itensParaRenderizar.push({
+          id: `orcamento-${orc.id}`,
+          orcamentoId: orc.id,
+          tipoDisplay: CONSTS.TIPO_RENDERIZACAO.ORCAMENTO,
+          ordemMaster: 2,
+          nome: orc.nome,
+          valor: orc.valor - gasto,
+          valorTotalOrcamento: orc.valor,
+          isFixedOrdinary: orc.isFixedOrdinary || false,
+          isFixed: orc.isFixed || false,
+        });
+      });
+  } else {
+    // ABA PATRIMONIAIS
+    transacoesDoMesVisivel
+      .filter(
+        (t) =>
+          t.tipo === CONSTS.TIPO_TRANSACAO.PATRIMONIO &&
+          t.operacao !== "ajuste",
+      )
+      .forEach((p) =>
+        itensParaRenderizar.push({
+          ...p,
+          tipoDisplay: CONSTS.TIPO_RENDERIZACAO.PATRIMONIO,
+          dataOrdenacao: parseDateString(p.dataOperacao),
+        }),
+      );
+  }
+
+  // --- 3. ORDENAÇÃO RÍGIDA ---
   itensParaRenderizar.sort((a, b) => {
+    // 1º Critério: Prioridade de Seção (Receita=1, Orçamento=2, Despesa=3)
     if (a.ordemMaster !== b.ordemMaster) return a.ordemMaster - b.ordemMaster;
 
-    // Sub-ordenação para Orçamentos
-    if (
-      a.tipoDisplay === CONSTS.TIPO_RENDERIZACAO.ORCAMENTO &&
-      b.tipoDisplay === CONSTS.TIPO_RENDERIZACAO.ORCAMENTO
-    ) {
-      if (a.isFixedOrdinary) return -1;
+    // 2º Critério: Sub-ordenação de Orçamentos
+    if (a.tipoDisplay === CONSTS.TIPO_RENDERIZACAO.ORCAMENTO) {
+      if (a.isFixedOrdinary) return -1; // Gastos Ordinários sempre no topo
       if (b.isFixedOrdinary) return 1;
-      if (a.isFixed) return -1;
-      if (b.isFixed) return 1;
+      return b.valorTotalOrcamento - a.valorTotalOrcamento; // Demais por valor decrescente
     }
 
-    const dateA =
-      a.dataOrdenacao instanceof Date ? a.dataOrdenacao : new Date(0);
-    const dateB =
-      b.dataOrdenacao instanceof Date ? b.dataOrdenacao : new Date(0);
-    return (
-      dateA - dateB ||
-      (b.valorTotalOrcamento || b.valor || 0) -
-        (a.valorTotalOrcamento || a.valor || 0)
-    );
+    // 3º Critério: Data para os demais
+    return a.dataOrdenacao - b.dataOrdenacao;
   });
-
-  // 1. Define a Prioridade Master (Sincronizado com a lógica acima)
-  itensParaRenderizar.forEach((item) => {
-    if (item.tipoDisplay === CONSTS.TIPO_RENDERIZACAO.RECEITA)
-      item.ordemMaster = 1;
-    else if (
-      item.tipoDisplay === CONSTS.TIPO_RENDERIZACAO.PATRIMONIO &&
-      item.operacao === "resgate"
-    )
-      item.ordemMaster = 2;
-    else if (item.tipoDisplay === CONSTS.TIPO_RENDERIZACAO.ORCAMENTO)
-      item.ordemMaster = 3;
-    else if (
-      item.tipoDisplay === CONSTS.TIPO_RENDERIZACAO.PATRIMONIO &&
-      (item.operacao === "aporte" || item.operacao === "ajuste")
-    )
-      item.ordemMaster = 4;
-    else if (
-      item.tipoDisplay === CONSTS.TIPO_RENDERIZACAO.PATRIMONIO &&
-      item.operacao === "amortizacao"
-    )
-      item.ordemMaster = 5;
-    else item.ordemMaster = 6;
-  });
-
-  // 2. Executa a Ordenação Multinível
-  itensParaRenderizar.sort((a, b) => {
-    // Primeiro critério: Natureza do item (ordemMaster)
-    if (a.ordemMaster !== b.ordemMaster) {
-      return a.ordemMaster - b.ordemMaster;
-    }
-
-    // Segundo critério: Regras internas para Orçamentos
-    if (
-      a.tipoDisplay === CONSTS.TIPO_RENDERIZACAO.ORCAMENTO &&
-      b.tipoDisplay === CONSTS.TIPO_RENDERIZACAO.ORCAMENTO
-    ) {
-      if (a.isFixedOrdinary) return -1;
-      if (b.isFixedOrdinary) return 1;
-      if (a.isFixed) return -1;
-      if (b.isFixed) return 1;
-    }
-
-    // Terceiro critério: Data e depois Valor
-    const dateA =
-      a.dataOrdenacao instanceof Date ? a.dataOrdenacao : new Date(0);
-    const dateB =
-      b.dataOrdenacao instanceof Date ? b.dataOrdenacao : new Date(0);
-
-    return (
-      dateA - dateB ||
-      (b.valorTotalOrcamento || b.valor || 0) -
-        (a.valorTotalOrcamento || a.valor || 0)
-    );
-  });
-
-  // --- NOVO: FILTRAGEM POR ABA (DIA-A-DIA vs PATRIMÔNIO) ---
-  const abaAtiva = state.homeActiveTab || "dia-a-dia";
-  if (abaAtiva === "dia-a-dia") {
-    // Mantém tudo, EXCETO transações de tipo Patrimônio
-    itensParaRenderizar = itensParaRenderizar.filter(
-      (item) => item.tipoDisplay !== CONSTS.TIPO_RENDERIZACAO.PATRIMONIO,
-    );
-  } else {
-    // Mantém APENAS transações de tipo Patrimônio
-    itensParaRenderizar = itensParaRenderizar.filter(
-      (item) => item.tipoDisplay === CONSTS.TIPO_RENDERIZACAO.PATRIMONIO,
-    );
-  }
-
-  atualizarResumoFinanceiro();
-
-  if (itensParaRenderizar.length === 0) {
-    elements.listaTransacoesUl.innerHTML =
-      '<li style="text-align:center;padding:20px;color:#777;">Nenhuma transação.</li>';
-    return;
-  }
 
   itensParaRenderizar.forEach((item) => {
     const li = document.createElement("li");
@@ -880,17 +760,13 @@ export function renderizarTransacoesDoMes() {
     switch (item.tipoDisplay) {
       case CONSTS.TIPO_RENDERIZACAO.RECEITA:
         li.classList.add("receita");
-        li.dataset.transactionId = item.id;
         detailsDiv.innerHTML = criarElementoReceita(item, actionsDiv);
         break;
       case CONSTS.TIPO_RENDERIZACAO.PATRIMONIO:
-        if (item.operacao === "resgate") {
-          li.classList.add("patrimonio-resgate");
-        } else if (item.operacao === "amortizacao") {
+        if (item.operacao === "resgate") li.classList.add("patrimonio-resgate");
+        else if (item.operacao === "amortizacao")
           li.classList.add("patrimonio-amortizacao");
-        } else {
-          li.classList.add("patrimonio");
-        }
+        else li.classList.add("patrimonio");
         if (item.paga) li.classList.add("paga");
         li.dataset.transactionId = item.id;
         detailsDiv.innerHTML = criarElementoPatrimonio(item, actionsDiv);
@@ -910,11 +786,9 @@ export function renderizarTransacoesDoMes() {
         break;
       case CONSTS.TIPO_RENDERIZACAO.ORCAMENTO:
         li.classList.add("orcamento");
-        // Adiciona as classes de destaque se for um orçamento fixo
         if (item.isFixedOrdinary) li.classList.add("orcamento-item-ordinario");
         if (item.isFixed) li.classList.add("orcamento-item-outros");
-
-        if (isOrcamentoFechado(item.orcamentoId, mesAnoAtual))
+        if (isOrcamentoFechado(item.orcamentoId, mesAnoReferenciaAtual))
           li.classList.add("fechado");
         li.dataset.orcamentoId = item.id;
         detailsDiv.innerHTML = criarElementoOrcamento(item, actionsDiv);
@@ -924,6 +798,7 @@ export function renderizarTransacoesDoMes() {
     li.appendChild(actionsDiv);
     elements.listaTransacoesUl.appendChild(li);
   });
+  atualizarResumoFinanceiro();
 }
 
 export function abrirModalDetalhesSerie(serieId, callbackAbrir) {

@@ -211,6 +211,18 @@ export function resetModalNovaTransacao() {
     if (elements.quickAddFeedback)
       elements.quickAddFeedback.style.display = "none";
 
+    // Destrava campos de patrimônio que podem ter sido travados em operações anteriores
+    if (elements.operacaoPatrimonioSelect)
+      elements.operacaoPatrimonioSelect.disabled = false;
+    if (elements.selectTransacaoPatrimonioSub)
+      elements.selectTransacaoPatrimonioSub.disabled = false;
+    if (elements.naturezaPatrimonioSelect)
+      elements.naturezaPatrimonioSelect.disabled = false;
+
+    // Restaura o label padrão
+    const labelTipo = document.getElementById("labelTipoTransacao");
+    if (labelTipo) labelTipo.textContent = "Tipo de transação:";
+
     // Garante que os dropdowns estejam carregados com os dados mais recentes do estado
     popularSeletoresFixos();
     atualizarVisibilidadeFormulario();
@@ -1192,4 +1204,67 @@ export function exibirSaldoItemNoModal() {
         elements.valorPatrimonio.value = saldo.toFixed(2);
       }
     });
+}
+
+/**
+ * Abre o modal de transação já configurado para uma operação de patrimônio vinda da árvore.
+ */
+export function abrirModalPatrimonioRapido(
+  subId,
+  operacao,
+  callbackAbrirModal,
+) {
+  const item = state.patrimonioSubcategorias.find((s) => s.id === subId);
+  if (!item) return;
+
+  // 1. Limpa o modal para o estado inicial
+  resetModalNovaTransacao();
+
+  // 2. Troca o Label para o contexto de Patrimônio
+  const labelTipo = document.getElementById("labelTipoTransacao");
+  if (labelTipo) labelTipo.textContent = "Operação Patrimonial:";
+
+  // 3. Configura como Patrimônio e bloqueia alteração do tipo
+  elements.tipoTransacaoSelect.value = "patrimonio";
+  elements.tipoTransacaoSelect.disabled = true;
+
+  // 4. Define Operação e Item (Conta) e BLOQUEIA para o usuário não mudar o contexto
+  elements.operacaoPatrimonioSelect.value = operacao;
+  elements.operacaoPatrimonioSelect.disabled = true;
+
+  elements.selectTransacaoPatrimonioSub.value = subId;
+  elements.selectTransacaoPatrimonioSub.disabled = true;
+
+  // Bloqueia também a natureza, pois ela é amarrada ao item
+  const cat = state.patrimonioCategorias.find((c) => c.id === item.categoriaId);
+  if (elements.naturezaPatrimonioSelect && cat) {
+    elements.naturezaPatrimonioSelect.value = cat.tipo;
+    elements.naturezaPatrimonioSelect.disabled = true;
+  }
+
+  // 5. Se for Amortização, prepara o nome padrão
+  if (operacao === "amortizacao") {
+    elements.nomeAmortizacaoInput.value = `Amortização: ${item.nome}`;
+  }
+
+  // 6. Sincroniza a visibilidade (isso fará o campo de VALOR aparecer)
+  atualizarVisibilidadeFormulario();
+  exibirSaldoItemNoModal();
+
+  // 7. Ajusta o título do Modal
+  const labelsOp = {
+    aporte: "Aporte",
+    resgate: "Resgate",
+    ajuste: "Ajuste",
+    amortizacao: "Amortização",
+  };
+  elements.modalHeaderNovaTransacao.textContent = `${labelsOp[operacao]}: ${item.nome}`;
+
+  // 8. Abre o modal
+  callbackAbrirModal(elements.modalNovaTransacao, null, "transacao");
+
+  // 9. Foco direto no campo de valor para agilizar
+  setTimeout(() => {
+    if (elements.valorPatrimonio) elements.valorPatrimonio.focus();
+  }, 200);
 }

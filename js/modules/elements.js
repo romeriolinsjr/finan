@@ -49,7 +49,13 @@ export const elements = {
   nomePessoaInputModal: document.getElementById("nomePessoaInputModal"),
   btnSalvarPessoaModal: document.getElementById("btnSalvarPessoaModal"),
   modalNovaTransacao: document.getElementById("modalNovaTransacao"),
-  btnAbrirModalNovaTransacao: document.getElementById("btnNovaTransacao"),
+  btnContextTransacoes: document.getElementById("btnContextTransacoes"),
+  btnAbrirModalNovaTransacaoHome: document.getElementById(
+    "btnAbrirModalNovaTransacaoHome",
+  ),
+  headerContextTransacoes: document.getElementById("headerContextTransacoes"),
+  headerContextPatrimonio: document.getElementById("headerContextPatrimonio"),
+  containerBuscaTransacoes: document.getElementById("containerBuscaTransacoes"),
   tipoTransacaoSelect: document.getElementById("tipoTransacao"),
   nomeTransacaoInput: document.getElementById("nomeTransacao"),
   btnSalvarTransacao: document.getElementById("btnSalvarTransacao"),
@@ -331,4 +337,14 @@ export const elements = {
   ),
   containerNomeAmortizacao: document.getElementById("containerNomeAmortizacao"),
   nomeAmortizacaoInput: document.getElementById("nomeAmortizacao"),
+  // ELEMENTOS PATRIMÔNIO NA HOME
+  containerPatrimonioHome: document.getElementById("containerPatrimonioHome"),
+  listaPatrimonioHierarquicaHome: document.getElementById(
+    "listaPatrimonioHierarquicaHome",
+  ),
+  valorPatrimonioLiquidoHome: document.getElementById(
+    "valorPatrimonioLiquidoHome",
+  ),
+  btnHomeNovaCategoriaPat: document.getElementById("btnHomeNovaCategoriaPat"),
+  btnHomeNovoItemPat: document.getElementById("btnHomeNovoItemPat"),
 };

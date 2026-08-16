@@ -4,17 +4,37 @@ import { db } from "./firebase-config.js";
 import { formatCurrency, registrarUltimaAlteracao } from "./utils.js";
 
 /**
- * Renderiza a árvore hierárquica do Patrimônio no modal de Gerenciamento.
+ * Renderiza a árvore hierárquica do Patrimônio.
+ * @param {HTMLElement} targetUl - O elemento UL onde será renderizado (Modal ou Home).
+ * @param {boolean} isHome - Se true, renderiza botões operacionais (+, -, ≈, ↓).
  */
-export function renderizarListaPatrimonioHierarquica() {
-  if (!elements.listaPatrimonioHierarquicaUl) return;
-  elements.listaPatrimonioHierarquicaUl.innerHTML = "";
+export function renderizarListaPatrimonioHierarquica(
+  targetUl = elements.listaPatrimonioHierarquicaUl,
+  isHome = false,
+) {
+  if (!targetUl) return;
+  targetUl.innerHTML = "";
 
   const categorias = state.patrimonioCategorias || [];
   const subcategorias = state.patrimonioSubcategorias || [];
 
+  // Função de cálculo definida no topo do escopo para evitar ReferenceError
+  const calcularSaldoRealItem = (sub) => {
+    let saldo = Number(sub.saldoInicial) || 0;
+    const historico = (state.transacoes || []).filter(
+      (t) => t.patrimonioId === sub.id,
+    );
+    historico.forEach((t) => {
+      const v = Number(t.valor) || 0;
+      if (t.operacao === "aporte") saldo += v;
+      else if (t.operacao === "resgate") saldo -= v;
+      else if (t.operacao === "ajuste") saldo += v;
+    });
+    return saldo;
+  };
+
   if (categorias.length === 0) {
-    elements.listaPatrimonioHierarquicaUl.innerHTML =
+    targetUl.innerHTML =
       '<li style="padding: 20px; text-align: center; color: #7f8c8d;">Nenhuma categoria cadastrada.</li>';
   } else {
     const listaAtivos = categorias
@@ -23,20 +43,6 @@ export function renderizarListaPatrimonioHierarquica() {
     const listaAmortizacao = categorias
       .filter((c) => c.tipo === "passivo")
       .sort((a, b) => a.nome.localeCompare(b.nome));
-
-    const calcularSaldoRealItem = (sub) => {
-      let saldo = Number(sub.saldoInicial) || 0;
-      const historico = (state.transacoes || []).filter(
-        (t) => t.patrimonioId === sub.id,
-      );
-      historico.forEach((t) => {
-        const v = Number(t.valor) || 0;
-        if (t.operacao === "aporte") saldo += v;
-        else if (t.operacao === "resgate") saldo -= v;
-        else if (t.operacao === "ajuste") saldo += v;
-      });
-      return saldo;
-    };
 
     const renderizarSecao = (listaDeCategorias, tituloSecao, corDestaque) => {
       if (listaDeCategorias.length === 0) return;
@@ -57,15 +63,29 @@ export function renderizarListaPatrimonioHierarquica() {
             totalCategoria += saldoReal;
             totalSecao += saldoReal;
 
+            // BOTÕES OPERACIONAIS (Apenas quando isHome é true)
+            const botoesOperacionais = isHome
+              ? `
+            <div class="patrimonio-op-group" style="display:flex; gap:8px; margin-right: 15px;">
+              <button class="btn-pat-op" data-id="${sub.id}" data-op="aporte" title="Aporte (+)" style="color:#27ae60; font-size:1.2em; font-weight:bold; background:none; border:none; cursor:pointer;">⊕</button>
+              <button class="btn-pat-op" data-id="${sub.id}" data-op="resgate" title="Resgate (-)" style="color:#e74c3c; font-size:1.2em; font-weight:bold; background:none; border:none; cursor:pointer;">⊖</button>
+              <button class="btn-pat-op" data-id="${sub.id}" data-op="ajuste" title="Ajuste de Valor (≈)" style="color:#3498db; font-size:1.2em; font-weight:bold; background:none; border:none; cursor:pointer;">≈</button>
+              <button class="btn-pat-op" data-id="${sub.id}" data-op="amortizacao" title="Amortização (↓)" style="color:#008080; font-size:1.2em; font-weight:bold; background:none; border:none; cursor:pointer;">↓</button>
+            </div>`
+              : "";
+
             containerItens.push(`
-            <li style="display:flex; justify-content:space-between; align-items:center; padding:10px 15px 10px 40px; border-bottom:1px solid #eee; background: #fff;">
+            <li class="patrimonio-item-row" style="display:flex; justify-content:space-between; align-items:center; padding:12px 15px 12px 40px; border-bottom:1px solid #eee; background: #fff;">
               <div class="patrimonio-info" data-id="${sub.id}" style="flex-grow:1; cursor:pointer;">
-                <span style="font-size: 0.95em; color: #333; font-weight: 500;">${sub.nome}</span>
-                <span style="font-size:0.8em; color:#7f8c8d; display:block;">Saldo Atual: <strong>${formatCurrency(saldoReal)}</strong></span>
+                <span style="font-size: 1em; color: #333; font-weight: 500;">${sub.nome}</span>
+                <span style="font-size:0.85em; color:#7f8c8d; display:block;">Saldo: <strong>${formatCurrency(saldoReal)}</strong></span>
               </div>
-              <div class="transaction-actions">
-                <button class="btn-edit-pat-sub" data-id="${sub.id}" title="Editar Item">✎</button>
-                <button class="btn-delete-pat-sub" data-id="${sub.id}" title="Excluir Item">✖</button>
+              <div style="display:flex; align-items:center;">
+                ${botoesOperacionais}
+                <div class="transaction-actions">
+                  <button class="btn-edit-pat-sub" data-id="${sub.id}" title="Editar Item">✎</button>
+                  <button class="btn-delete-pat-sub" data-id="${sub.id}" title="Excluir Item">✖</button>
+                </div>
               </div>
             </li>`);
           });
@@ -80,47 +100,36 @@ export function renderizarListaPatrimonioHierarquica() {
           </div>`;
 
         secaoFragmento.appendChild(liCat);
-
-        const ulFilhos = document.createElement("div");
-        ulFilhos.innerHTML =
+        const divFilhos = document.createElement("div");
+        divFilhos.innerHTML =
           containerItens.length > 0
             ? containerItens.join("")
             : '<li style="padding: 8px 15px 8px 40px; font-size: 0.85em; color: #999; font-style: italic; background: #fff; border-bottom: 1px solid #eee;">Nenhum item vinculado</li>';
-        secaoFragmento.appendChild(ulFilhos);
+        secaoFragmento.appendChild(divFilhos);
       });
 
       const headerSecao = document.createElement("li");
-      headerSecao.style.cssText = `background: ${corDestaque}; color: white; padding: 10px 15px; font-weight: bold; font-size: 0.95em; text-transform: uppercase; border-radius: 4px; margin-top: 20px; display: flex; justify-content: space-between; align-items: center;`;
+      headerSecao.style.cssText = `background: ${corDestaque}; color: white; padding: 12px 15px; font-weight: bold; font-size: 1em; text-transform: uppercase; border-radius: 4px; margin-top: 20px; display: flex; justify-content: space-between; align-items: center;`;
       headerSecao.innerHTML = `<span>${tituloSecao}</span> <span>${formatCurrency(totalSecao)}</span>`;
 
-      elements.listaPatrimonioHierarquicaUl.appendChild(headerSecao);
-      elements.listaPatrimonioHierarquicaUl.appendChild(secaoFragmento);
+      targetUl.appendChild(headerSecao);
+      targetUl.appendChild(secaoFragmento);
     };
 
     renderizarSecao(listaAtivos, "Formação de Ativos", "#27ae60");
     renderizarSecao(listaAmortizacao, "Recursos para Amortização", "#3498db");
   }
 
-  const totalGeral = (state.patrimonioSubcategorias || []).reduce(
-    (acc, sub) => {
-      let saldo = Number(sub.saldoInicial) || 0;
-      const historico = (state.transacoes || []).filter(
-        (t) => t.patrimonioId === sub.id,
-      );
-      historico.forEach((t) => {
-        const v = Number(t.valor) || 0;
-        if (t.operacao === "aporte") saldo += v;
-        else if (t.operacao === "resgate") saldo -= v;
-        else if (t.operacao === "ajuste") saldo += v;
-      });
-      return acc + saldo;
-    },
+  // Atualiza os resumos (Home ou Modal)
+  const totalGeralCalculo = subcategorias.reduce(
+    (acc, sub) => acc + calcularSaldoRealItem(sub),
     0,
   );
-
-  if (elements.valorPatrimonioLiquido) {
-    elements.valorPatrimonioLiquido.textContent = formatCurrency(totalGeral);
-  }
+  const elementoExibicao = isHome
+    ? elements.valorPatrimonioLiquidoHome
+    : elements.valorPatrimonioLiquido;
+  if (elementoExibicao)
+    elementoExibicao.textContent = formatCurrency(totalGeralCalculo);
 }
 
 // --- CATEGORIAS ---
