@@ -45,7 +45,6 @@ export function popularModalRelatorio(date) {
 
   // --- CÁLCULOS DE PATRIMÔNIO (LOGICA DE CRUZAMENTO) ---
 
-  // Função auxiliar para descobrir se uma transação de patrimônio é Ativo ou Redução
   const obterTipoDoItem = (patrimonioId) => {
     const sub = state.patrimonioSubcategorias.find(
       (s) => s.id === patrimonioId,
@@ -139,23 +138,20 @@ export function popularModalRelatorio(date) {
     .filter((a) => a.mesAnoReferencia === mesAno)
     .reduce((s, a) => s + a.valor, 0);
 
-  // --- CÁLCULO DOS SALDOS (ATUALIZADO FASE 3: AMORTIZAÇÃO) ---
-  // Saldo = (Receitas + Resgates) - (Gastos + Aportes + Amortizações)
+  // --- CÁLCULO DOS SALDOS (SINCRONIZADO COM UI.JS) ---
+  // A Amortização foi removida da dedução, pois o dinheiro sai do Patrimônio, não do Saldo Mensal Corrente.
   const saldoReal =
     totalReceitas +
     totalResgates -
     (totalGastoRealCartao +
       totalGastoRealOrdinario -
       totalAjustesDoMes +
-      totalAportesGeral +
-      totalAmortizacoes);
+      totalAportesGeral);
+
   const saldoFinal =
     totalReceitas +
     totalResgates -
-    (somaDespesasProjetadas -
-      totalAjustesDoMes +
-      totalAportesGeral +
-      totalAmortizacoes);
+    (somaDespesasProjetadas - totalAjustesDoMes + totalAportesGeral);
 
   // --- RENDERIZAÇÃO: ANÁLISE DE DESPESAS ---
   const calcularSubtotais = (categoria) => {
@@ -220,7 +216,7 @@ export function popularModalRelatorio(date) {
   document.getElementById("relatorio-secao-analise-despesas").innerHTML =
     analiseDespesasHTML;
 
-  // --- RENDERIZAÇÃO: ANÁLISE DE PATRIMÔNIO (ATUALIZADA) ---
+  // --- RENDERIZAÇÃO: ANÁLISE DE PATRIMÔNIO ---
   const analisePatrimonioHTML = `
     <section class="relatorio-secao">
       <h3>Análise de Patrimônio</h3>
@@ -262,7 +258,7 @@ export function popularModalRelatorio(date) {
     <div class="relatorio-item"><span>Resgates</span><strong style="color: #9b59b6;">${formatCurrency(totalResgates)}</strong></div>
     <div class="relatorio-item"><span>Despesas Totais</span><strong class="valor-despesa">${formatCurrency(somaDespesasProjetadas - totalAjustesDoMes)}</strong></div>
     <div class="relatorio-item"><span>Aportes</span><strong style="color: #3498db;">${formatCurrency(totalAportesGeral)}</strong></div>
-    <div class="relatorio-item"><span>Amortizações</span><strong style="color: #d35400;">${formatCurrency(totalAmortizacoes)}</strong></div>
+    <div class="relatorio-item"><span>Amortizações</span><strong style="color: #008080;">${formatCurrency(totalAmortizacoes)}</strong></div>
     <div class="relatorio-item"><span>Saldo Final</span><strong style="color:${saldoFinal >= 0 ? "#27ae60" : "#e74c3c"}">${formatCurrency(saldoFinal)}</strong></div>
     <div class="relatorio-item"><span>Saldo Real</span><strong style="color:${saldoReal >= 0 ? "#27ae60" : "#e74c3c"}">${formatCurrency(saldoReal)}</strong></div>
   </div></section>`;
