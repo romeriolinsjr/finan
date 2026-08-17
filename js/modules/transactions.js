@@ -34,12 +34,10 @@ export function atualizarVisibilidadeFormulario() {
         : "none";
     }
 
-    // Controle do Campo Nome (Bloco Inicial):
-    // REGRA: Se for Patrimônio, SEMPRE esconde o Nome do topo (usaremos campos específicos abaixo).
+    // Controle do Campo Nome (Bloco Inicial)
     if (elements.nomeTransacaoInput) {
       elements.nomeTransacaoInput.parentElement.style.display =
         tipo === "patrimonio" ? "none" : "block";
-      elements.nomeTransacaoInput.placeholder = "Ex: Salário, Aluguel";
     }
 
     // 2. Lógica de Cascata por Tipo
@@ -89,21 +87,21 @@ export function atualizarVisibilidadeFormulario() {
       const operacao = elements.operacaoPatrimonioSelect?.value;
       const isAmortizacao = operacao === "amortizacao";
 
-      // Esconde Natureza e Seleção de Item se for Amortização
-      if (elements.naturezaPatrimonioSelect) {
-        elements.naturezaPatrimonioSelect.parentElement.style.display =
-          isAmortizacao ? "none" : "block";
-      }
-      if (elements.selectTransacaoPatrimonioSub) {
-        elements.selectTransacaoPatrimonioSub.parentElement.style.display =
-          isAmortizacao ? "none" : "block";
-      }
-
-      // Mostra o campo Nome exclusivo se for Amortização (Realocado)
+      // Campo Nome exclusivo para Amortização
       if (elements.containerNomeAmortizacao) {
         elements.containerNomeAmortizacao.style.display = isAmortizacao
           ? "block"
           : "none";
+      }
+
+      // NATUREZA E ITEM: Devem estar sempre visíveis para Patrimônio,
+      // pois agora a Amortização precisa de uma conta de origem.
+      if (elements.naturezaPatrimonioSelect) {
+        elements.naturezaPatrimonioSelect.parentElement.style.display = "block";
+      }
+      if (elements.selectTransacaoPatrimonioSub) {
+        elements.selectTransacaoPatrimonioSub.parentElement.style.display =
+          "block";
       }
 
       const freqPat = elements.frequenciaPatrimonio?.value || "unica";
@@ -263,8 +261,8 @@ export function preencherModalParaEdicao(id) {
   const transacao = state.transacoes.find((t) => t.id === id);
   if (!transacao) return;
 
-  // NOVO: Popula os seletores (Cartões/Orçamentos/Patrimônio) ANTES de tentar definir os valores
-  popularSeletoresFixos();
+  // 1. Limpa o modal e restaura o estado inicial
+  resetModalNovaTransacao();
 
   const nomeOriginal = transacao.serieId
     ? transacao.nome
@@ -282,7 +280,25 @@ export function preencherModalParaEdicao(id) {
     elements.frequenciaReceita.value = transacao.frequencia;
     elements.frequenciaReceita.disabled = true;
   } else if (transacao.tipo === "patrimonio") {
-    // Fase 2: Preenche os novos campos de Patrimônio
+    // AJUSTE DE RÓTULO
+    const labelTipo = document.getElementById("labelTipoTransacao");
+    if (labelTipo) labelTipo.textContent = "Operação Patrimonial:";
+
+    // DETECTA A NATUREZA: Consulta o item real no estado para saber se é ativo ou passivo
+    const subReal = state.patrimonioSubcategorias.find(
+      (s) => s.id === transacao.patrimonioId,
+    );
+    if (subReal && elements.naturezaPatrimonioSelect) {
+      const catReal = state.patrimonioCategorias.find(
+        (c) => c.id === subReal.categoriaId,
+      );
+      if (catReal) {
+        elements.naturezaPatrimonioSelect.value = catReal.tipo;
+        // REPOPULA OS ITENS: Agora que a natureza está setada, popula o select de itens
+        popularSelectTransacaoPatrimonio();
+      }
+    }
+
     if (elements.selectTransacaoPatrimonioSub) {
       elements.selectTransacaoPatrimonioSub.value =
         transacao.patrimonioId || "";
@@ -291,11 +307,15 @@ export function preencherModalParaEdicao(id) {
       elements.operacaoPatrimonioSelect.value = transacao.operacao || "aporte";
     }
 
+    // Se for Amortização, preenche o campo de nome específico
+    if (transacao.operacao === "amortizacao" && elements.nomeAmortizacaoInput) {
+      elements.nomeAmortizacaoInput.value = nomeOriginal;
+    }
+
     elements.valorPatrimonio.value = transacao.valor;
     elements.dataPatrimonio.value = transacao.dataOperacao;
-
-    // Suporte a frequências no Patrimônio
     elements.frequenciaPatrimonio.value = transacao.frequencia || "unica";
+
     if (transacao.frequencia === "parcelada") {
       elements.qtdParcelasPatrimonio.value = transacao.totalParcelas;
       elements.parcelaAtualPatrimonio.value = transacao.parcelaAtual;
@@ -314,7 +334,6 @@ export function preencherModalParaEdicao(id) {
         elements.parcelaAtualOrd.value = transacao.parcelaAtual;
       }
     } else {
-      // Configuração para Cartão de Crédito
       elements.cartaoDespesa.value = transacao.cartaoId;
       elements.cartaoDespesa.disabled = false;
       elements.orcamentoVinculado.value = transacao.orcamentoId || "";
@@ -348,20 +367,27 @@ export function obterDadosDoFormulario() {
     dados.operacao = elements.operacaoPatrimonioSelect.value;
     const isAmortizacao = dados.operacao === "amortizacao";
 
+    // CAPTURA DO ITEM (CONTA): Obrigatória para todas as operações
+    const subId = elements.selectTransacaoPatrimonioSub.value;
+    const itemCadastrado = state.patrimonioSubcategorias.find(
+      (s) => s.id === subId,
+    );
+    dados.patrimonioId = subId;
+
+    // NOVO: Detecta a natureza real da categoria vinculada ao item selecionado
+    const categoriaDoc = state.patrimonioCategorias.find(
+      (c) => c.id === itemCadastrado?.categoriaId,
+    );
+    dados.natureza = categoriaDoc?.tipo || "ativo";
+
     if (isAmortizacao) {
-      // Amortização não exige vínculo com item específico para cálculo
-      dados.patrimonioId = null;
-      dados.natureza = "passivo"; // Define como passivo para fins de categorização global
-      // Pega o nome do novo campo específico realocado posterior à Operação
+      // Para Amortização, o nome vem do campo específico ou do nome do item
       dados.nomeBase =
-        elements.nomeAmortizacaoInput.value.trim() || "Amortização de Passivo";
+        elements.nomeAmortizacaoInput.value.trim() ||
+        (itemCadastrado
+          ? `Amortização: ${itemCadastrado.nome}`
+          : "Amortização");
     } else {
-      // Outras operações exigem o item
-      const subId = elements.selectTransacaoPatrimonioSub.value;
-      const itemCadastrado = state.patrimonioSubcategorias.find(
-        (s) => s.id === subId,
-      );
-      dados.patrimonioId = subId;
       dados.nomeBase = itemCadastrado ? itemCadastrado.nome : "";
     }
 
@@ -407,13 +433,13 @@ export function obterDadosDoFormulario() {
 export function validarDadosDaTransacao(dados) {
   // Validação específica para Patrimônio
   if (dados.tipo === "patrimonio") {
-    const isAmortizacao = dados.operacao === "amortizacao";
-
-    if (!isAmortizacao && !dados.patrimonioId) {
+    // Agora exigimos o patrimonioId (conta) para QUALQUER operação patrimonial
+    if (!dados.patrimonioId) {
       alert("Selecione o item de referência no Patrimônio.");
       return false;
     }
-    if (isAmortizacao && !dados.nomeBase) {
+
+    if (dados.operacao === "amortizacao" && !dados.nomeBase) {
       alert(
         "Informe um nome para esta amortização (ex: Antecipação de Parcela).",
       );
@@ -1228,30 +1254,33 @@ export function abrirModalPatrimonioRapido(
   elements.tipoTransacaoSelect.value = "patrimonio";
   elements.tipoTransacaoSelect.disabled = true;
 
-  // 4. Define Operação e Item (Conta) e BLOQUEIA para o usuário não mudar o contexto
+  // 4. ESSENCIAL: Identifica a natureza e popula o seletor ANTES de selecionar o item
+  const cat = state.patrimonioCategorias.find((c) => c.id === item.categoriaId);
+  if (elements.naturezaPatrimonioSelect && cat) {
+    elements.naturezaPatrimonioSelect.value = cat.tipo;
+    elements.naturezaPatrimonioSelect.disabled = true;
+
+    // Força a repopulação da lista de itens baseada na natureza detectada
+    popularSelectTransacaoPatrimonio();
+  }
+
+  // 5. Define Operação e Item (Conta) e BLOQUEIA
   elements.operacaoPatrimonioSelect.value = operacao;
   elements.operacaoPatrimonioSelect.disabled = true;
 
   elements.selectTransacaoPatrimonioSub.value = subId;
   elements.selectTransacaoPatrimonioSub.disabled = true;
 
-  // Bloqueia também a natureza, pois ela é amarrada ao item
-  const cat = state.patrimonioCategorias.find((c) => c.id === item.categoriaId);
-  if (elements.naturezaPatrimonioSelect && cat) {
-    elements.naturezaPatrimonioSelect.value = cat.tipo;
-    elements.naturezaPatrimonioSelect.disabled = true;
-  }
-
-  // 5. Se for Amortização, prepara o nome padrão
+  // 6. Se for Amortização, prepara o nome padrão
   if (operacao === "amortizacao") {
     elements.nomeAmortizacaoInput.value = `Amortização: ${item.nome}`;
   }
 
-  // 6. Sincroniza a visibilidade (isso fará o campo de VALOR aparecer)
+  // 7. Sincroniza a visibilidade e exibe saldo
   atualizarVisibilidadeFormulario();
   exibirSaldoItemNoModal();
 
-  // 7. Ajusta o título do Modal
+  // 8. Ajusta o título do Modal
   const labelsOp = {
     aporte: "Aporte",
     resgate: "Resgate",
@@ -1260,10 +1289,10 @@ export function abrirModalPatrimonioRapido(
   };
   elements.modalHeaderNovaTransacao.textContent = `${labelsOp[operacao]}: ${item.nome}`;
 
-  // 8. Abre o modal
+  // 9. Abre o modal
   callbackAbrirModal(elements.modalNovaTransacao, null, "transacao");
 
-  // 9. Foco direto no campo de valor para agilizar
+  // 10. Foco direto no campo de valor para agilizar
   setTimeout(() => {
     if (elements.valorPatrimonio) elements.valorPatrimonio.focus();
   }, 200);

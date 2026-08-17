@@ -18,7 +18,7 @@ export function renderizarListaPatrimonioHierarquica(
   const categorias = state.patrimonioCategorias || [];
   const subcategorias = state.patrimonioSubcategorias || [];
 
-  // Função de cálculo definida no topo do escopo para evitar ReferenceError
+  // Função de cálculo atualizada para incluir a Amortização como saída do item
   const calcularSaldoRealItem = (sub) => {
     let saldo = Number(sub.saldoInicial) || 0;
     const historico = (state.transacoes || []).filter(
@@ -29,6 +29,7 @@ export function renderizarListaPatrimonioHierarquica(
       if (t.operacao === "aporte") saldo += v;
       else if (t.operacao === "resgate") saldo -= v;
       else if (t.operacao === "ajuste") saldo += v;
+      else if (t.operacao === "amortizacao") saldo -= v; // Amortização retira dinheiro da conta de patrimônio
     });
     return saldo;
   };
@@ -63,7 +64,6 @@ export function renderizarListaPatrimonioHierarquica(
             totalCategoria += saldoReal;
             totalSecao += saldoReal;
 
-            // BOTÕES OPERACIONAIS (Apenas quando isHome é true)
             const botoesOperacionais = isHome
               ? `
             <div class="patrimonio-op-group" style="display:flex; gap:8px; margin-right: 15px;">

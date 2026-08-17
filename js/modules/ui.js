@@ -64,13 +64,8 @@ export function atualizarResumoFinanceiro() {
     )
     .reduce((acc, t) => acc + (Number(t.valor) || 0), 0);
 
-  const amortizacoesDoMes = transacoesDoMes
-    .filter(
-      (t) =>
-        t.tipo === CONSTS.TIPO_TRANSACAO.PATRIMONIO &&
-        t.operacao === "amortizacao",
-    )
-    .reduce((acc, t) => acc + (Number(t.valor) || 0), 0);
+  // NOTA: A amortização não entra mais no cálculo de Saldo do Mês (Dedução Mensal),
+  // pois o dinheiro já saiu do saldo no momento do Aporte para a conta de recursos.
 
   // 3. Lógica de Despesas e Orçamentos
   const activeBudgetIds = orcamentosDoMes.map((o) => o.id);
@@ -109,11 +104,10 @@ export function atualizarResumoFinanceiro() {
     .reduce((acc, a) => acc + (Number(a.valor) || 0), 0);
   despesasProjetadasTotais -= totalAjustes;
 
-  // LÓGICA FINAL: Saldo = (Receitas + Resgates) - (Despesas + Aportes + Amortizações)
+  // LÓGICA FINAL: Saldo = (Receitas + Resgates) - (Despesas + Aportes)
+  // Amortizações agora são neutras para o caixa do mês (saem apenas do Patrimônio)
   const saldoFinal =
-    receitasTotais +
-    resgatesDoMes -
-    (despesasProjetadasTotais + aportesDoMes + amortizacoesDoMes);
+    receitasTotais + resgatesDoMes - (despesasProjetadasTotais + aportesDoMes);
 
   // --- ATUALIZAÇÃO VISUAL ---
   elements.totalReceitasDisplay.textContent = formatCurrency(receitasTotais);
@@ -144,7 +138,7 @@ export function atualizarResumoFinanceiro() {
     despesasProjetadasTotais,
   );
 
-  // --- NOVO: Linha condicional de Aportes na Sidebar ---
+  // Linha condicional de Aportes na Sidebar
   let containerAporte = document.getElementById("linhaResumoAportes");
   if (aportesDoMes > 0) {
     if (!containerAporte) {
@@ -153,7 +147,6 @@ export function atualizarResumoFinanceiro() {
       containerAporte.className = "summary-item";
       containerAporte.style.color = "#3498db";
       containerAporte.innerHTML = `<span>Aportes do mês:</span> <span id="totalAportes">${formatCurrency(aportesDoMes)}</span>`;
-      // Insere logo abaixo das despesas
       elements.totalDespesasDisplay.parentElement.insertAdjacentElement(
         "afterend",
         containerAporte,
@@ -167,28 +160,7 @@ export function atualizarResumoFinanceiro() {
     containerAporte.style.display = "none";
   }
 
-  // --- NOVO: Linha condicional de Amortizações na Sidebar ---
-  let containerAmortizacao = document.getElementById("linhaResumoAmortizacoes");
-  if (amortizacoesDoMes > 0) {
-    if (!containerAmortizacao) {
-      containerAmortizacao = document.createElement("div");
-      containerAmortizacao.id = "linhaResumoAmortizacoes";
-      containerAmortizacao.className = "summary-item";
-      containerAmortizacao.style.color = "#008080"; // Azul Petróleo / Teal para Amortização
-      containerAmortizacao.innerHTML = `<span>Amortizações:</span> <span id="totalAmortizacoes">${formatCurrency(amortizacoesDoMes)}</span>`;
-      // Insere logo abaixo dos aportes (ou despesas se não houver aportes)
-      const elReferencia =
-        document.getElementById("linhaResumoAportes") ||
-        elements.totalDespesasDisplay.parentElement;
-      elReferencia.insertAdjacentElement("afterend", containerAmortizacao);
-    } else {
-      containerAmortizacao.style.display = "flex";
-      const elTotal = document.getElementById("totalAmortizacoes");
-      if (elTotal) elTotal.textContent = formatCurrency(amortizacoesDoMes);
-    }
-  } else if (containerAmortizacao) {
-    containerAmortizacao.style.display = "none";
-  }
+  // Linha de Amortização OMITIDA do resumo financeiro mensal para manter a neutralidade de caixa.
 
   elements.saldoMesDisplay.textContent = formatCurrency(saldoFinal);
 
@@ -356,24 +328,27 @@ export function criarElementoReceita(item, actionsDiv) {
 }
 
 export function criarElementoPatrimonio(item, actionsDiv) {
-  // 1. Identificar Natureza
-  let natureza = item.natureza;
-  if (!natureza && item.patrimonioId) {
-    const sub = (state.patrimonioSubcategorias || []).find(
+  // 1. Identificar Natureza Real (Consulta Dinâmica para garantir fidelidade)
+  let naturezaFinal = item.natureza;
+
+  if (item.patrimonioId) {
+    const subReal = (state.patrimonioSubcategorias || []).find(
       (s) => s.id === item.patrimonioId,
     );
-    if (sub) {
-      const cat = (state.patrimonioCategorias || []).find(
-        (c) => c.id === sub.categoriaId,
+    if (subReal) {
+      const catReal = (state.patrimonioCategorias || []).find(
+        (c) => c.id === subReal.categoriaId,
       );
-      natureza = cat?.tipo;
+      if (catReal) naturezaFinal = catReal.tipo;
     }
   }
 
   const naturezaLabel =
-    natureza === "ativo" ? "Formação de Ativos" : "Recursos para Amortização";
+    naturezaFinal === "ativo"
+      ? "Formação de Ativos"
+      : "Recursos para Amortização";
 
-  // 2. Mapeamento da Operação (Agora será o título principal)
+  // 2. Mapeamento da Operação (Título principal)
   const operacaoMap = {
     aporte: "Aporte",
     resgate: "Resgate",
@@ -402,7 +377,7 @@ export function criarElementoPatrimonio(item, actionsDiv) {
   deleteButton.dataset.id = item.id;
   actionsDiv.appendChild(deleteButton);
 
-  // 4. Subtexto formatado: Natureza - Item (Parcela)
+  // 4. Subtexto formatado: Natureza - Nome do Item (Parcela)
   const parcelaInfo =
     item.frequencia === CONSTS.FREQUENCIA.PARCELADA && item.totalParcelas
       ? ` (${item.parcelaAtual}/${item.totalParcelas})`
