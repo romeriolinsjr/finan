@@ -495,10 +495,6 @@ export function criarElementoFatura(item, actionsDiv) {
     ? '<span class="status-conferida" style="background: #3498db; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.75em; margin-left: 5px;">Conferida</span>'
     : "";
 
-  const btnAjusteHTML = item.isDeletado
-    ? ""
-    : `<button class="btn-vencimento-adjust ${item.vencimentoNoMesSeguinte ? "ativo" : ""}" data-cartao-id="${item.cartaoId}" title="Ajustar mês de vencimento">🗓️</button>`;
-
   const viewButton = document.createElement("button");
   viewButton.className = "btn-view-fatura";
   viewButton.innerHTML = "🔍";
@@ -517,8 +513,7 @@ export function criarElementoFatura(item, actionsDiv) {
                 <div class="transaction-value-date">
                     <span class="transaction-value">- ${formatCurrency(item.valor)}</span>
                     <div class="fatura-date-container">
-                        <span class="transaction-date">Venc: ${dataFormatada}</span>
-                        ${btnAjusteHTML}
+                        <span class="transaction-date">${dataFormatada}</span>
                     </div>
                     ${item.paga ? '<span class="status-paga">Paga</span>' : ""}
                 </div>`;
@@ -603,7 +598,7 @@ export function renderizarTransacoesDoMes() {
   let itensParaRenderizar = [];
 
   if (abaAtivaAtual === "gerais") {
-    // 1. Receitas
+    // 1. Receitas (Prioridade 1)
     transacoesDoMesVisivel
       .filter((t) => t.tipo === CONSTS.TIPO_TRANSACAO.RECEITA)
       .forEach((r) =>
@@ -615,7 +610,7 @@ export function renderizarTransacoesDoMes() {
         }),
       );
 
-    // 2. Despesas Ordinárias
+    // 2. Despesas Ordinárias (Prioridade 3)
     transacoesDoMesVisivel
       .filter(
         (t) =>
@@ -631,7 +626,7 @@ export function renderizarTransacoesDoMes() {
         }),
       );
 
-    // 3. Faturas de Cartão
+    // 3. Faturas de Cartão (Prioridade 3)
     const faturasAgrupadas = {};
     transacoesDoMesVisivel
       .filter(
@@ -650,11 +645,12 @@ export function renderizarTransacoesDoMes() {
         if (!faturasAgrupadas[dc.cartaoId]) {
           faturasAgrupadas[dc.cartaoId] = {
             cartaoId: dc.cartaoId,
-            cartaoNome: cInfo.nome || "Cartão",
+            cartaoNome: cInfo.nome || "Cartão Desconhecido",
             diaVencimentoFatura: cInfo.diaVencimentoFatura || 1,
             vencimentoNoMesSeguinte: cInfo.vencimentoNoMesSeguinte || false,
             totalValor: 0,
             todasPagas: true,
+            isDeletado: cInfo.deletado === true, // Garante a captura do status de exclusão
           };
         }
         faturasAgrupadas[dc.cartaoId].totalValor += dc.valor;
@@ -663,11 +659,17 @@ export function renderizarTransacoesDoMes() {
 
     Object.values(faturasAgrupadas).forEach((fatura) => {
       const [ano, mes] = mesAnoReferenciaAtual.split("-").map(Number);
+      const ajusteDeMes = fatura.vencimentoNoMesSeguinte ? 1 : 0;
       const dataVenc = new Date(
         ano,
-        mes - 1 + (fatura.vencimentoNoMesSeguinte ? 1 : 0),
+        mes - 1 + ajusteDeMes,
         fatura.diaVencimentoFatura,
       );
+      const isConferida = state.faturasConferidas.some(
+        (f) =>
+          f.cartaoId === fatura.cartaoId && f.mesAno === mesAnoReferenciaAtual,
+      );
+
       itensParaRenderizar.push({
         id: fatura.cartaoId,
         tipoDisplay: CONSTS.TIPO_RENDERIZACAO.FATURA,
@@ -678,12 +680,15 @@ export function renderizarTransacoesDoMes() {
           fatura.totalValor -
           calcularTotalAjustes(fatura.cartaoId, mesAnoReferenciaAtual),
         dataOrdenacao: dataVenc,
+        dataVencimentoDisplay: dataVenc.toISOString().split("T")[0],
         paga: fatura.todasPagas,
         mesAnoReferencia: mesAnoReferenciaAtual,
+        isConferida: isConferida,
+        isDeletado: fatura.isDeletado, // Passa a propriedade para a função visual
       });
     });
 
-    // 4. Orçamentos
+    // 4. Orçamentos (Prioridade 2)
     state.orcamentos
       .filter((o) => o.mesAnoReferencia === mesAnoReferenciaAtual)
       .forEach((orc) => {
@@ -714,6 +719,7 @@ export function renderizarTransacoesDoMes() {
           valorTotalOrcamento: orc.valor,
           isFixedOrdinary: orc.isFixedOrdinary || false,
           isFixed: orc.isFixed || false,
+          dataOrdenacao: new Date(0),
         });
       });
   } else {
@@ -728,6 +734,7 @@ export function renderizarTransacoesDoMes() {
         itensParaRenderizar.push({
           ...p,
           tipoDisplay: CONSTS.TIPO_RENDERIZACAO.PATRIMONIO,
+          ordemMaster: 1,
           dataOrdenacao: parseDateString(p.dataOperacao),
         }),
       );
@@ -735,17 +742,12 @@ export function renderizarTransacoesDoMes() {
 
   // --- 3. ORDENAÇÃO RÍGIDA ---
   itensParaRenderizar.sort((a, b) => {
-    // 1º Critério: Prioridade de Seção (Receita=1, Orçamento=2, Despesa=3)
     if (a.ordemMaster !== b.ordemMaster) return a.ordemMaster - b.ordemMaster;
-
-    // 2º Critério: Sub-ordenação de Orçamentos
     if (a.tipoDisplay === CONSTS.TIPO_RENDERIZACAO.ORCAMENTO) {
-      if (a.isFixedOrdinary) return -1; // Gastos Ordinários sempre no topo
+      if (a.isFixedOrdinary) return -1;
       if (b.isFixedOrdinary) return 1;
-      return b.valorTotalOrcamento - a.valorTotalOrcamento; // Demais por valor decrescente
+      return b.valorTotalOrcamento - a.valorTotalOrcamento;
     }
-
-    // 3º Critério: Data para os demais
     return a.dataOrdenacao - b.dataOrdenacao;
   });
 
