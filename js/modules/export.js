@@ -240,10 +240,12 @@ export async function gerarExtratoMensalPDF() {
     .reduce((s, a) => s + a.valor, 0);
   const despesasTotaisResumo =
     despesasProjetadasCalculoResumo - totalAjustesMes;
+
+  // LÓGICA DE SALDO (SINCRONIZADA): Amortização removida da dedução mensal.
   const saldoFinalResumo =
     totalReceitas +
     totalResgatesGeral -
-    (despesasTotaisResumo + totalAportesGeral + totalAmortizacoesReal);
+    (despesasTotaisResumo + totalAportesGeral);
 
   // --- 2. GERAÇÃO DO PDF ---
   const logo = await getLogoBase64();
@@ -269,7 +271,7 @@ export async function gerarExtratoMensalPDF() {
       ["Receitas", formatCurrency(totalReceitas)],
       ["Resgates de Patrimônio (+)", formatCurrency(totalResgatesGeral)],
       ["Aportes em Patrimônio (-)", formatCurrency(totalAportesGeral)],
-      ["Amortizações de Passivo (-)", formatCurrency(totalAmortizacoesReal)],
+      ["Amortizações Realizadas", formatCurrency(totalAmortizacoesReal)], // Neutra no saldo
       ["Despesas Totais (Consumo) (-)", formatCurrency(despesasTotaisResumo)],
       ["Saldo", formatCurrency(saldoFinalResumo)],
     ],
