@@ -137,9 +137,12 @@ export async function gerarExtratoMensalPDF() {
   const investimentoLiquidoGeral = totalAportesGeral - totalResgatesGeral;
   const taxaGlobal =
     totalReceitas > 0 ? (investimentoLiquidoGeral / totalReceitas) * 100 : 0;
+
+  // CORREÇÃO DO ÍNDICE: Considera a Amortização como parte da saída de patrimônio (Denominador Híbrido)
   const indDestAmortizacao =
-    totalResgatesGeral > 0
-      ? (totalAmortizacoesReal / totalResgatesGeral) * 100
+    totalResgatesGeral + totalAmortizacoesReal > 0
+      ? (totalAmortizacoesReal / (totalResgatesGeral + totalAmortizacoesReal)) *
+        100
       : 0;
 
   // ESTOQUE PATRIMONIAL
@@ -171,6 +174,8 @@ export async function gerarExtratoMensalPDF() {
                 totalAjustesAtivosMes += v;
               else totalAjustesAmortMes += v;
             }
+          } else if (t.operacao === CONSTS.OPERACAO_PATRIMONIO.AMORTIZACAO) {
+            saldo -= v; // Amortização reduz saldo da conta no estoque
           }
         });
         totalCat += saldo;
@@ -230,10 +235,10 @@ export async function gerarExtratoMensalPDF() {
         nome: orc.nome,
         previsto: orc.valor,
         gasto: gasto,
-        saldo: orc.valor - gasto, // Reflete a diferença matemática real para análise
+        saldo: orc.valor - gasto,
       };
     })
-    .sort((a, b) => b.previsto - a.previsto); // Ordenação decrescente por valor previsto
+    .sort((a, b) => b.previsto - a.previsto);
 
   const totalAjustesMes = state.ajustesFatura
     .filter((a) => a.mesAnoReferencia === mesAno)
@@ -241,7 +246,6 @@ export async function gerarExtratoMensalPDF() {
   const despesasTotaisResumo =
     despesasProjetadasCalculoResumo - totalAjustesMes;
 
-  // LÓGICA DE SALDO (SINCRONIZADA): Amortização removida da dedução mensal.
   const saldoFinalResumo =
     totalReceitas +
     totalResgatesGeral -
@@ -271,7 +275,7 @@ export async function gerarExtratoMensalPDF() {
       ["Receitas", formatCurrency(totalReceitas)],
       ["Resgates de Patrimônio (+)", formatCurrency(totalResgatesGeral)],
       ["Aportes em Patrimônio (-)", formatCurrency(totalAportesGeral)],
-      ["Amortizações Realizadas", formatCurrency(totalAmortizacoesReal)], // Neutra no saldo
+      ["Amortizações Realizadas", formatCurrency(totalAmortizacoesReal)],
       ["Despesas Totais (Consumo) (-)", formatCurrency(despesasTotaisResumo)],
       ["Saldo", formatCurrency(saldoFinalResumo)],
     ],
@@ -321,7 +325,7 @@ export async function gerarExtratoMensalPDF() {
   });
   currentY = doc.lastAutoTable.finalY + 10;
 
-  // 3. ORÇAMENTOS (Previsões)
+  // 3. ORÇAMENTOS
   currentY = drawSectionHeader("Orçamentos", currentY);
   doc.autoTable({
     startY: currentY - 5,
@@ -382,7 +386,7 @@ export async function gerarExtratoMensalPDF() {
   });
   currentY = doc.lastAutoTable.finalY + 10;
 
-  // 4. DESPESAS (Realizadas)
+  // 4. DESPESAS
   currentY = drawSectionHeader("Despesas", currentY);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(9);
@@ -528,10 +532,7 @@ export async function gerarExtratoMensalPDF() {
         },
         formatCurrency(investimentoLiquidoGeral),
       ],
-      [
-        "AMORTIZAÇÕES REALIZADAS (PAGAMENTO DE DÍVIDAS)",
-        formatCurrency(totalAmortizacoesReal),
-      ],
+      ["AMORTIZAÇÕES REALIZADAS", formatCurrency(totalAmortizacoesReal)],
       [
         {
           content: "ÍNDICE DE DESTINAÇÃO PARA AMORTIZAÇÃO",
@@ -633,7 +634,6 @@ export async function gerarExtratoMensalPDF() {
     columnStyles: { 2: { halign: "right" } },
   });
 
-  // Rodapé
   const finalY = Math.min(doc.lastAutoTable.finalY + 15, 285);
   doc.setFontSize(8);
   doc.setTextColor(150, 150, 150);
