@@ -542,7 +542,7 @@ export async function gerarExtratoMensalPDF() {
       ],
       [
         {
-          content: "TAXA GLOBAL DE INVESTIMENTO LÍQUIDO",
+          content: "TAXA DE INVESTIMENTO LÍQUIDO",
           styles: { fontStyle: "bold" },
         },
         `${taxaGlobal.toFixed(1)}%`,
