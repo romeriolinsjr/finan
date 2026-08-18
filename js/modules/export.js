@@ -527,7 +527,7 @@ export async function gerarExtratoMensalPDF() {
       ["TOTAL DE RESGATES", formatCurrency(totalResgatesGeral)],
       [
         {
-          content: "INVESTIMENTO LÍQUIDO GLOBAL",
+          content: "INVESTIMENTO LÍQUIDO",
           styles: { fontStyle: "bold", textColor: COLOR_BLUE },
         },
         formatCurrency(investimentoLiquidoGeral),
