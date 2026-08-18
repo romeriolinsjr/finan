@@ -691,7 +691,7 @@ export function renderizarTransacoesDoMes() {
         });
       });
   } else {
-    // ABA PATRIMONIAIS (Prioridade Master Única 1)
+    // ABA PATRIMONIAIS
     transacoesDoMesVisivel
       .filter(
         (t) =>
@@ -708,7 +708,7 @@ export function renderizarTransacoesDoMes() {
       );
   }
 
-  // --- 3. ORDENAÇÃO RÍGIDA (TIPO > DATA > VALOR) ---
+  // --- 3. ORDENAÇÃO RÍGIDA (MÁXIMA PRECISÃO) ---
   itensParaRenderizar.sort((a, b) => {
     // A. Primeiro critério: Tipo (ordemMaster)
     if (a.ordemMaster !== b.ordemMaster) return a.ordemMaster - b.ordemMaster;
@@ -720,15 +720,26 @@ export function renderizarTransacoesDoMes() {
       b.dataOrdenacao instanceof Date ? b.dataOrdenacao.getTime() : 0;
     if (dataA !== dataB) return dataA - dataB;
 
-    // C. Terceiro critério: Valor (Decrescente) - Desempate para mesma Data e Tipo
-    // Lógica especial para orçamentos: Gastos Ordinários sempre no topo
+    // C. Terceiro critério: Prioridade de Operação (Específico para Patrimoniais na mesma data)
+    if (
+      a.tipoDisplay === CONSTS.TIPO_RENDERIZACAO.PATRIMONIO &&
+      b.tipoDisplay === CONSTS.TIPO_RENDERIZACAO.PATRIMONIO
+    ) {
+      // Peso: Aporte(1), Amortização(2), Resgate(3)
+      const pesoOperacao = { aporte: 1, amortizacao: 2, resgate: 3 };
+      const pA = pesoOperacao[a.operacao] || 99;
+      const pB = pesoOperacao[b.operacao] || 99;
+      if (pA !== pB) return pA - pB;
+    }
+
+    // D. Quarto critério: Desempate por Valor ou Regras Especiais
     if (a.tipoDisplay === CONSTS.TIPO_RENDERIZACAO.ORCAMENTO) {
       if (a.isFixedOrdinary) return -1;
       if (b.isFixedOrdinary) return 1;
       return (b.valorTotalOrcamento || 0) - (a.valorTotalOrcamento || 0);
     }
 
-    // Para Receitas, Despesas e Patrimoniais
+    // Para Receitas, Despesas e Faturas
     return (b.valor || 0) - (a.valor || 0);
   });
 
