@@ -573,7 +573,7 @@ export function renderizarTransacoesDoMes() {
   let itensParaRenderizar = [];
 
   if (abaAtivaAtual === "gerais") {
-    // 1. Receitas (Prioridade 1)
+    // 1. Receitas (Prioridade Master 1)
     transacoesDoMesVisivel
       .filter((t) => t.tipo === CONSTS.TIPO_TRANSACAO.RECEITA)
       .forEach((r) =>
@@ -585,7 +585,7 @@ export function renderizarTransacoesDoMes() {
         }),
       );
 
-    // 2. Despesas Ordinárias (Prioridade 3)
+    // 2. Despesas Ordinárias (Prioridade Master 3)
     transacoesDoMesVisivel
       .filter(
         (t) =>
@@ -601,7 +601,7 @@ export function renderizarTransacoesDoMes() {
         }),
       );
 
-    // 3. Faturas de Cartão (Prioridade 3)
+    // 3. Faturas de Cartão (Prioridade Master 3)
     const faturasAgrupadas = {};
     transacoesDoMesVisivel
       .filter(
@@ -620,12 +620,11 @@ export function renderizarTransacoesDoMes() {
         if (!faturasAgrupadas[dc.cartaoId]) {
           faturasAgrupadas[dc.cartaoId] = {
             cartaoId: dc.cartaoId,
-            cartaoNome: cInfo.nome || "Cartão Desconhecido",
+            cartaoNome: cInfo.nome || "Cartão",
             diaVencimentoFatura: cInfo.diaVencimentoFatura || 1,
             vencimentoNoMesSeguinte: cInfo.vencimentoNoMesSeguinte || false,
             totalValor: 0,
             todasPagas: true,
-            isDeletado: cInfo.deletado === true, // Garante a captura do status de exclusão
           };
         }
         faturasAgrupadas[dc.cartaoId].totalValor += dc.valor;
@@ -640,11 +639,6 @@ export function renderizarTransacoesDoMes() {
         mes - 1 + ajusteDeMes,
         fatura.diaVencimentoFatura,
       );
-      const isConferida = state.faturasConferidas.some(
-        (f) =>
-          f.cartaoId === fatura.cartaoId && f.mesAno === mesAnoReferenciaAtual,
-      );
-
       itensParaRenderizar.push({
         id: fatura.cartaoId,
         tipoDisplay: CONSTS.TIPO_RENDERIZACAO.FATURA,
@@ -658,12 +652,10 @@ export function renderizarTransacoesDoMes() {
         dataVencimentoDisplay: dataVenc.toISOString().split("T")[0],
         paga: fatura.todasPagas,
         mesAnoReferencia: mesAnoReferenciaAtual,
-        isConferida: isConferida,
-        isDeletado: fatura.isDeletado, // Passa a propriedade para a função visual
       });
     });
 
-    // 4. Orçamentos (Prioridade 2)
+    // 4. Orçamentos (Prioridade Master 2)
     state.orcamentos
       .filter((o) => o.mesAnoReferencia === mesAnoReferenciaAtual)
       .forEach((orc) => {
@@ -684,6 +676,7 @@ export function renderizarTransacoesDoMes() {
             .filter((t) => t.categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA)
             .reduce((total, t) => total + t.valor, 0);
 
+        const [ano, mes] = mesAnoReferenciaAtual.split("-").map(Number);
         itensParaRenderizar.push({
           id: `orcamento-${orc.id}`,
           orcamentoId: orc.id,
@@ -694,11 +687,11 @@ export function renderizarTransacoesDoMes() {
           valorTotalOrcamento: orc.valor,
           isFixedOrdinary: orc.isFixedOrdinary || false,
           isFixed: orc.isFixed || false,
-          dataOrdenacao: new Date(0),
+          dataOrdenacao: new Date(ano, mes - 1, orc.dia),
         });
       });
   } else {
-    // ABA PATRIMONIAIS
+    // ABA PATRIMONIAIS (Prioridade Master Única 1)
     transacoesDoMesVisivel
       .filter(
         (t) =>
@@ -715,15 +708,28 @@ export function renderizarTransacoesDoMes() {
       );
   }
 
-  // --- 3. ORDENAÇÃO RÍGIDA ---
+  // --- 3. ORDENAÇÃO RÍGIDA (TIPO > DATA > VALOR) ---
   itensParaRenderizar.sort((a, b) => {
+    // A. Primeiro critério: Tipo (ordemMaster)
     if (a.ordemMaster !== b.ordemMaster) return a.ordemMaster - b.ordemMaster;
+
+    // B. Segundo critério: Data (Crescente)
+    const dataA =
+      a.dataOrdenacao instanceof Date ? a.dataOrdenacao.getTime() : 0;
+    const dataB =
+      b.dataOrdenacao instanceof Date ? b.dataOrdenacao.getTime() : 0;
+    if (dataA !== dataB) return dataA - dataB;
+
+    // C. Terceiro critério: Valor (Decrescente) - Desempate para mesma Data e Tipo
+    // Lógica especial para orçamentos: Gastos Ordinários sempre no topo
     if (a.tipoDisplay === CONSTS.TIPO_RENDERIZACAO.ORCAMENTO) {
       if (a.isFixedOrdinary) return -1;
       if (b.isFixedOrdinary) return 1;
-      return b.valorTotalOrcamento - a.valorTotalOrcamento;
+      return (b.valorTotalOrcamento || 0) - (a.valorTotalOrcamento || 0);
     }
-    return a.dataOrdenacao - b.dataOrdenacao;
+
+    // Para Receitas, Despesas e Patrimoniais
+    return (b.valor || 0) - (a.valor || 0);
   });
 
   itensParaRenderizar.forEach((item) => {
