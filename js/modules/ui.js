@@ -462,10 +462,12 @@ export function criarElementoFatura(item, actionsDiv) {
       )
     : "N/D";
 
+  // Selo de Cartão Excluído (Soft Delete)
   const seloExcluido = item.isDeletado
     ? '<span class="status-excluido" style="background: #95a5a6; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.75em; margin-left: 5px;">Excluído</span>'
     : "";
 
+  // Selo de Fatura Conferida com o Banco
   const seloConferida = item.isConferida
     ? '<span class="status-conferida" style="background: #3498db; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.75em; margin-left: 5px;">Conferida</span>'
     : "";
@@ -620,11 +622,12 @@ export function renderizarTransacoesDoMes() {
         if (!faturasAgrupadas[dc.cartaoId]) {
           faturasAgrupadas[dc.cartaoId] = {
             cartaoId: dc.cartaoId,
-            cartaoNome: cInfo.nome || "Cartão",
+            cartaoNome: cInfo.nome || "Cartão Desconhecido",
             diaVencimentoFatura: cInfo.diaVencimentoFatura || 1,
             vencimentoNoMesSeguinte: cInfo.vencimentoNoMesSeguinte || false,
             totalValor: 0,
             todasPagas: true,
+            isDeletado: cInfo.deletado === true,
           };
         }
         faturasAgrupadas[dc.cartaoId].totalValor += dc.valor;
@@ -639,6 +642,13 @@ export function renderizarTransacoesDoMes() {
         mes - 1 + ajusteDeMes,
         fatura.diaVencimentoFatura,
       );
+
+      // LOGICA DE CONFERÊNCIA: Busca se existe registro no state.faturasConferidas
+      const isConferida = state.faturasConferidas.some(
+        (f) =>
+          f.cartaoId === fatura.cartaoId && f.mesAno === mesAnoReferenciaAtual,
+      );
+
       itensParaRenderizar.push({
         id: fatura.cartaoId,
         tipoDisplay: CONSTS.TIPO_RENDERIZACAO.FATURA,
@@ -652,6 +662,8 @@ export function renderizarTransacoesDoMes() {
         dataVencimentoDisplay: dataVenc.toISOString().split("T")[0],
         paga: fatura.todasPagas,
         mesAnoReferencia: mesAnoReferenciaAtual,
+        isDeletado: fatura.isDeletado,
+        isConferida: isConferida, // Passa o status de conferência para a criação do elemento
       });
     });
 
@@ -708,38 +720,31 @@ export function renderizarTransacoesDoMes() {
       );
   }
 
-  // --- 3. ORDENAÇÃO RÍGIDA (MÁXIMA PRECISÃO) ---
+  // --- 3. ORDENAÇÃO RÍGIDA ---
   itensParaRenderizar.sort((a, b) => {
-    // A. Primeiro critério: Tipo (ordemMaster)
     if (a.ordemMaster !== b.ordemMaster) return a.ordemMaster - b.ordemMaster;
-
-    // B. Segundo critério: Data (Crescente)
     const dataA =
       a.dataOrdenacao instanceof Date ? a.dataOrdenacao.getTime() : 0;
     const dataB =
       b.dataOrdenacao instanceof Date ? b.dataOrdenacao.getTime() : 0;
     if (dataA !== dataB) return dataA - dataB;
 
-    // C. Terceiro critério: Prioridade de Operação (Específico para Patrimoniais na mesma data)
     if (
       a.tipoDisplay === CONSTS.TIPO_RENDERIZACAO.PATRIMONIO &&
       b.tipoDisplay === CONSTS.TIPO_RENDERIZACAO.PATRIMONIO
     ) {
-      // Peso: Aporte(1), Amortização(2), Resgate(3)
       const pesoOperacao = { aporte: 1, amortizacao: 2, resgate: 3 };
       const pA = pesoOperacao[a.operacao] || 99;
       const pB = pesoOperacao[b.operacao] || 99;
       if (pA !== pB) return pA - pB;
     }
 
-    // D. Quarto critério: Desempate por Valor ou Regras Especiais
     if (a.tipoDisplay === CONSTS.TIPO_RENDERIZACAO.ORCAMENTO) {
       if (a.isFixedOrdinary) return -1;
       if (b.isFixedOrdinary) return 1;
       return (b.valorTotalOrcamento || 0) - (a.valorTotalOrcamento || 0);
     }
 
-    // Para Receitas, Despesas e Faturas
     return (b.valor || 0) - (a.valor || 0);
   });
 
