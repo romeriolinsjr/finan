@@ -445,7 +445,7 @@ export function criarElementoDespesa(item, actionsDiv) {
                     <span class="transaction-value">- ${formatCurrency(
                       item.valor,
                     )}</span>
-                    <span class="transaction-date">Venc: ${dataFormatada}</span>
+                    <span class="transaction-date">${dataFormatada}</span>
                     ${item.paga ? '<span class="status-paga">Paga</span>' : ""}
                 </div>`;
 }
