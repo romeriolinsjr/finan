@@ -2387,3 +2387,27 @@ body.modal-aberto {
     padding-right: 60px;
   }
 }
+
+/* --- ESTILIZAÇÃO DOS BOTÕES DE AÇÃO DO PATRIMÔNIO NA HOME --- */
+.patrimonio-home-actions {
+  margin-top: 25px;
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.btn-pat-home {
+  padding: 12px 25px !important; /* Aumenta o tamanho interno (maior que o anterior) */
+  font-size: 0.95em !important; /* Aumenta o texto (era 0.85em) */
+  border-radius: 8px !important; /* Bordas arredondadas padrão Finan */
+  font-weight: 600 !important;
+  width: auto !important; /* Garante que não ocupe a largura total */
+  border: none;
+  cursor: pointer;
+  transition: transform 0.1s ease;
+}
+
+.btn-pat-home:active {
+  transform: scale(0.96);
+}
