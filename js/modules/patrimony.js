@@ -18,7 +18,6 @@ export function renderizarListaPatrimonioHierarquica(
   const categorias = state.patrimonioCategorias || [];
   const subcategorias = state.patrimonioSubcategorias || [];
 
-  // Função de cálculo atualizada para incluir a Amortização como saída do item
   const calcularSaldoRealItem = (sub) => {
     let saldo = Number(sub.saldoInicial) || 0;
     const historico = (state.transacoes || []).filter(
@@ -29,7 +28,7 @@ export function renderizarListaPatrimonioHierarquica(
       if (t.operacao === "aporte") saldo += v;
       else if (t.operacao === "resgate") saldo -= v;
       else if (t.operacao === "ajuste") saldo += v;
-      else if (t.operacao === "amortizacao") saldo -= v; // Amortização retira dinheiro da conta de patrimônio
+      else if (t.operacao === "amortizacao") saldo -= v;
     });
     return saldo;
   };
@@ -66,21 +65,21 @@ export function renderizarListaPatrimonioHierarquica(
 
             const botoesOperacionais = isHome
               ? `
-            <div class="patrimonio-op-group" style="display:flex; gap:8px; margin-right: 15px;">
-              <button class="btn-pat-op" data-id="${sub.id}" data-op="aporte" title="Aporte (+)" style="color:#27ae60; font-size:1.2em; font-weight:bold; background:none; border:none; cursor:pointer;">⊕</button>
-              <button class="btn-pat-op" data-id="${sub.id}" data-op="resgate" title="Resgate (-)" style="color:#e74c3c; font-size:1.2em; font-weight:bold; background:none; border:none; cursor:pointer;">⊖</button>
-              <button class="btn-pat-op" data-id="${sub.id}" data-op="ajuste" title="Ajuste de Valor (≈)" style="color:#3498db; font-size:1.2em; font-weight:bold; background:none; border:none; cursor:pointer;">≈</button>
-              <button class="btn-pat-op" data-id="${sub.id}" data-op="amortizacao" title="Amortização (↓)" style="color:#008080; font-size:1.2em; font-weight:bold; background:none; border:none; cursor:pointer;">↓</button>
+            <div class="patrimonio-op-group">
+              <button class="btn-pat-op" data-id="${sub.id}" data-op="aporte" title="Aporte (+)" style="color:#27ae60;">⊕</button>
+              <button class="btn-pat-op" data-id="${sub.id}" data-op="resgate" title="Resgate (-)" style="color:#e74c3c;">⊖</button>
+              <button class="btn-pat-op" data-id="${sub.id}" data-op="ajuste" title="Ajuste de Valor (≈)" style="color:#3498db;">≈</button>
+              <button class="btn-pat-op" data-id="${sub.id}" data-op="amortizacao" title="Amortização (↓)" style="color:#008080;">↓</button>
             </div>`
               : "";
 
             containerItens.push(`
-            <li class="patrimonio-item-row" style="display:flex; justify-content:space-between; align-items:center; padding:12px 15px 12px 40px; border-bottom:1px solid #eee; background: #fff;">
-              <div class="patrimonio-info" data-id="${sub.id}" style="flex-grow:1; cursor:pointer;">
-                <span style="font-size: 1em; color: #333; font-weight: 500;">${sub.nome}</span>
-                <span style="font-size:0.85em; color:#7f8c8d; display:block;">Saldo: <strong>${formatCurrency(saldoReal)}</strong></span>
+            <li class="patrimonio-item-row">
+              <div class="patrimonio-info" data-id="${sub.id}">
+                <span class="patrimonio-item-nome">${sub.nome}</span>
+                <span class="patrimonio-item-valor">${formatCurrency(saldoReal)}</span>
               </div>
-              <div style="display:flex; align-items:center;">
+              <div class="patrimonio-item-actions-wrapper">
                 ${botoesOperacionais}
                 <div class="transaction-actions">
                   <button class="btn-edit-pat-sub" data-id="${sub.id}" title="Editar Item">✎</button>
@@ -91,11 +90,14 @@ export function renderizarListaPatrimonioHierarquica(
           });
 
         const liCat = document.createElement("li");
-        liCat.style.cssText =
-          "background: #f1f2f6; padding: 10px 15px; font-weight: bold; border-bottom: 1px solid #dfe4ea; display: flex; justify-content: space-between; margin-top: 10px; border-radius: 5px 5px 0 0;";
-        liCat.innerHTML = `<span>📂 ${cat.nome}</span> <span>${formatCurrency(totalCategoria)}</span>
+        liCat.className = "patrimonio-category-row";
+        liCat.innerHTML = `
+          <div class="patrimonio-category-info">
+            <span class="patrimonio-category-nome">📂 ${cat.nome}</span> 
+            <span class="patrimonio-category-valor">${formatCurrency(totalCategoria)}</span>
+          </div>
           <div class="transaction-actions">
-            <button class="btn-edit-pat-cat" data-id="${cat.id}" title="Editar Categoria" style="margin-left:10px;">✎</button>
+            <button class="btn-edit-pat-cat" data-id="${cat.id}" title="Editar Categoria">✎</button>
             <button class="btn-delete-pat-cat" data-id="${cat.id}" title="Excluir Categoria">✖</button>
           </div>`;
 
@@ -109,7 +111,8 @@ export function renderizarListaPatrimonioHierarquica(
       });
 
       const headerSecao = document.createElement("li");
-      headerSecao.style.cssText = `background: ${corDestaque}; color: white; padding: 12px 15px; font-weight: bold; font-size: 1em; text-transform: uppercase; border-radius: 4px; margin-top: 20px; display: flex; justify-content: space-between; align-items: center;`;
+      headerSecao.className = "patrimonio-section-header";
+      headerSecao.style.backgroundColor = corDestaque;
       headerSecao.innerHTML = `<span>${tituloSecao}</span> <span>${formatCurrency(totalSecao)}</span>`;
 
       targetUl.appendChild(headerSecao);
@@ -120,7 +123,6 @@ export function renderizarListaPatrimonioHierarquica(
     renderizarSecao(listaAmortizacao, "Recursos para Amortização", "#3498db");
   }
 
-  // Atualiza os resumos (Home ou Modal)
   const totalGeralCalculo = subcategorias.reduce(
     (acc, sub) => acc + calcularSaldoRealItem(sub),
     0,
