@@ -92,75 +92,61 @@ document.addEventListener("DOMContentLoaded", () => {
   async function inicializarErenderizarApp() {
     elements.currentMonthDisplay.textContent = "Carregando dados...";
     elements.listaTransacoesUl.innerHTML = "<li>Carregando...</li>";
+
+    // 1. Carrega os meses da janela (Anterior, Atual, Próximo)
     await carregarDadosIniciais();
 
-    // --- LÓGICA: Garantir existência dos orçamentos fixos para o mês atual ---
-    const mesAnoAtual = utils.getMesAnoChave(state.currentDate);
-    const orcamentoFixoCartao = state.orcamentos.find(
-      (o) => o.isFixed === true && o.mesAnoReferencia === mesAnoAtual,
-    );
-    const orcamentoFixoOrdinario = state.orcamentos.find(
-      (o) => o.isFixedOrdinary === true && o.mesAnoReferencia === mesAnoAtual,
-    );
+    // 2. BLINDAGEM: Garantir orçamentos fixos para todos os meses carregados no início
+    if (state.currentUser) {
+      const promessasFixos = [];
+      const mesesNaJanela = [];
+      const hoje = new Date();
+      for (let i = -1; i <= 1; i++) {
+        const d = new Date(hoje.getFullYear(), hoje.getMonth() + i, 1);
+        mesesNaJanela.push(utils.getMesAnoChave(d));
+      }
 
-    const promessasCriacao = [];
+      for (const mes of mesesNaJanela) {
+        const temFixoCartao = state.orcamentos.some(
+          (o) => o.isFixed && o.mesAnoReferencia === mes,
+        );
+        const temFixoOrd = state.orcamentos.some(
+          (o) => o.isFixedOrdinary && o.mesAnoReferencia === mes,
+        );
 
-    if (!orcamentoFixoCartao && state.currentUser) {
-      promessasCriacao.push(
-        db
-          .collection("users")
-          .doc(state.currentUser.uid)
-          .collection("orcamentos")
-          .add({
-            nome: "Outros Gastos",
-            valor: 0,
-            dia: 1,
-            isFixed: true,
-            mesAnoReferencia: mesAnoAtual,
-          })
-          .then((docRef) => {
-            state.orcamentos.push({
-              id: docRef.id,
-              nome: "Outros Gastos",
-              valor: 0,
-              dia: 1,
-              isFixed: true,
-              mesAnoReferencia: mesAnoAtual,
-            });
-          }),
-      );
+        if (!temFixoCartao) {
+          promessasFixos.push(
+            db
+              .collection("users")
+              .doc(state.currentUser.uid)
+              .collection("orcamentos")
+              .add({
+                nome: "Outros Gastos",
+                valor: 0,
+                dia: 1,
+                isFixed: true,
+                mesAnoReferencia: mes,
+              }),
+          );
+        }
+        if (!temFixoOrd) {
+          promessasFixos.push(
+            db
+              .collection("users")
+              .doc(state.currentUser.uid)
+              .collection("orcamentos")
+              .add({
+                nome: "Gastos Ordinários",
+                valor: 0,
+                dia: 1,
+                isFixedOrdinary: true,
+                mesAnoReferencia: mes,
+              }),
+          );
+        }
+      }
+      if (promessasFixos.length > 0) await Promise.all(promessasFixos);
     }
-
-    if (!orcamentoFixoOrdinario && state.currentUser) {
-      promessasCriacao.push(
-        db
-          .collection("users")
-          .doc(state.currentUser.uid)
-          .collection("orcamentos")
-          .add({
-            nome: "Gastos Ordinários",
-            valor: 0,
-            dia: 1,
-            isFixedOrdinary: true,
-            mesAnoReferencia: mesAnoAtual,
-          })
-          .then((docRef) => {
-            state.orcamentos.push({
-              id: docRef.id,
-              nome: "Gastos Ordinários",
-              valor: 0,
-              dia: 1,
-              isFixedOrdinary: true,
-              mesAnoReferencia: mesAnoAtual,
-            });
-          }),
-      );
-    }
-
-    if (promessasCriacao.length > 0) {
-      await Promise.all(promessasCriacao);
-    }
-    // --- FIM DA LÓGICA DE CRIAÇÃO ---
 
     ui.updateMonthDisplay(ui.renderizarTransacoesDoMes);
     carregarDadosDoFirestore();
@@ -266,7 +252,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // NOVA FUNÇÃO: Carrega um mês específico se ele não estiver no cache
   async function garantirDadosDoMes(mesAno) {
     if (state.mesesCarregados.includes(mesAno)) return;
 
@@ -275,49 +260,82 @@ document.addEventListener("DOMContentLoaded", () => {
       elements.loadingSpinnerOverlay.style.display = "flex";
 
     try {
-      const userCollections = db.collection("users").doc(state.currentUser.uid);
-
+      const userRef = db.collection("users").doc(state.currentUser.uid);
       const [snapTrans, snapOrc] = await Promise.all([
-        userCollections
+        userRef
           .collection("transacoes")
           .where("mesAnoReferencia", "==", mesAno)
           .get(),
-        userCollections
+        userRef
           .collection("orcamentos")
           .where("mesAnoReferencia", "==", mesAno)
           .get(),
       ]);
 
-      const novasTransacoes = snapTrans.docs.map((doc) => ({
-        ...doc.data(),
-        id: doc.id,
-      }));
-      const transacoesFiltradas = novasTransacoes.filter(
-        (nova) =>
-          !state.transacoes.some((existente) => existente.id === nova.id),
-      );
-      state.transacoes = [...state.transacoes, ...transacoesFiltradas];
+      const novasTrans = snapTrans.docs.map((d) => ({ ...d.data(), id: d.id }));
+      state.transacoes = [
+        ...state.transacoes,
+        ...novasTrans.filter(
+          (nt) => !state.transacoes.some((et) => et.id === nt.id),
+        ),
+      ];
 
-      let orcamentosDoMes = snapOrc.docs.map((doc) => ({
-        ...doc.data(),
-        id: doc.id,
-      }));
+      let orcsMes = snapOrc.docs.map((d) => ({ ...d.data(), id: d.id }));
 
-      // LÓGICA DE PROPAGAÇÃO MELHORADA
-      if (orcamentosDoMes.length === 0) {
-        console.log(`Mês ${mesAno} vazio. Iniciando propagação...`);
-        orcamentosDoMes = await budgets.propagarOrcamentos(null, mesAno);
+      // BLINDAGEM: Garantir fixos se o mês não for totalmente vazio (propagação não disparada)
+      if (orcsMes.length > 0) {
+        const temFixoCartao = orcsMes.some((o) => o.isFixed);
+        const temFixoOrd = orcsMes.some((o) => o.isFixedOrdinary);
+
+        if (!temFixoCartao) {
+          const doc = await userRef
+            .collection("orcamentos")
+            .add({
+              nome: "Outros Gastos",
+              valor: 0,
+              dia: 1,
+              isFixed: true,
+              mesAnoReferencia: mesAno,
+            });
+          orcsMes.push({
+            id: doc.id,
+            nome: "Outros Gastos",
+            valor: 0,
+            dia: 1,
+            isFixed: true,
+            mesAnoReferencia: mesAno,
+          });
+        }
+        if (!temFixoOrd) {
+          const doc = await userRef
+            .collection("orcamentos")
+            .add({
+              nome: "Gastos Ordinários",
+              valor: 0,
+              dia: 1,
+              isFixedOrdinary: true,
+              mesAnoReferencia: mesAno,
+            });
+          orcsMes.push({
+            id: doc.id,
+            nome: "Gastos Ordinários",
+            valor: 0,
+            dia: 1,
+            isFixedOrdinary: true,
+            mesAnoReferencia: mesAno,
+          });
+        }
+      } else {
+        // Se o mês estiver vazio, a propagação já cuida de criar os fixos baseados no mês anterior
+        orcsMes = await budgets.propagarOrcamentos(null, mesAno);
       }
 
-      // Adiciona ao estado local removendo qualquer lixo que pudesse existir daquele mês
-      state.orcamentos = state.orcamentos.filter(
-        (o) => o.mesAnoReferencia !== mesAno,
-      );
-      state.orcamentos = [...state.orcamentos, ...orcamentosDoMes];
-
-      if (!state.mesesCarregados.includes(mesAno)) {
+      state.orcamentos = [
+        ...state.orcamentos.filter((o) => o.mesAnoReferencia !== mesAno),
+        ...orcsMes,
+      ];
+      if (!state.mesesCarregados.includes(mesAno))
         state.mesesCarregados.push(mesAno);
-      }
     } catch (error) {
       console.error(`Erro ao carregar mês ${mesAno}:`, error);
     } finally {
