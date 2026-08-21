@@ -69,12 +69,11 @@ export async function gerarExtratoMensalPDF() {
     (t) => t.mesAnoReferencia === mesAno,
   );
 
-  // 1.1 Receitas (Para listagem analítica)
   const receitasLista = transacoes
     .filter((t) => t.tipo === CONSTS.TIPO_TRANSACAO.RECEITA)
     .sort((a, b) => b.valor - a.valor);
 
-  // 1.2 Estoque Patrimonial (Calculado aqui para fotografia histórica do PDF)
+  // 1.2 Estoque Patrimonial (Calculado para fotografia histórica)
   let saldoAcumuladoAtivos = 0;
   let totalAjustesAtivosMes = 0;
   let totalAmortizacoesAtivosMes = 0;
@@ -128,7 +127,6 @@ export async function gerarExtratoMensalPDF() {
         ? 100
         : 0;
 
-  // 1.3 Orçamentos (Para listagem analítica)
   const activeBudgetIds = state.orcamentos.map((o) => o.id);
   const dadosOrcamentosTabela = state.orcamentos
     .filter((o) => o.mesAnoReferencia === mesAno)
@@ -173,7 +171,7 @@ export async function gerarExtratoMensalPDF() {
 
   currentY = 30;
 
-  // 1. RESUMO GERAL (Sincronizado com o menu Relatórios)
+  // 1. RESUMO GERAL
   currentY = drawSectionHeader("Resumo Geral", currentY);
   doc.autoTable({
     startY: currentY,
@@ -431,7 +429,28 @@ export async function gerarExtratoMensalPDF() {
     columnStyles: { 1: { halign: "right", fontStyle: "bold" } },
   });
 
-  currentY = doc.lastAutoTable.finalY + 15;
+  // --- RESTAURAÇÃO DA LEGENDA GERENCIAL ---
+  currentY = doc.lastAutoTable.finalY + 5;
+  doc.setFontSize(7);
+  doc.setFont("helvetica", "italic");
+  doc.setTextColor(100, 100, 100);
+  doc.text(
+    "(a) Investimento líquido: Aportes realizados menos resgates efetuados.",
+    margin,
+    currentY,
+  );
+  doc.text(
+    "(b) Índice de destinação: Amortizações em relação ao total de saídas do patrimônio (Resgates + Amortizações).",
+    margin,
+    currentY + 4,
+  );
+  doc.text(
+    "(c) Taxa de investimento líquido: Percentual do rendimento mensal destinado ao aumento do patrimônio.",
+    margin,
+    currentY + 8,
+  );
+
+  currentY += 15;
 
   // 6. POSIÇÃO PATRIMONIAL ACUMULADA
   currentY = drawSectionHeader("Posição patrimonial acumulada", currentY);
