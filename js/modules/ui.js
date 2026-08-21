@@ -10,6 +10,7 @@ import {
   isOrcamentoFechado,
   registrarUltimaAlteracao,
 } from "./utils.js";
+import { obterDadosFinanceirosAgrupados } from "./reports.js";
 
 export function updateMonthDisplay(callbackRender) {
   if (!elements.monthPicker) return;
@@ -37,90 +38,27 @@ export function atualizarResumoFinanceiro() {
     return;
 
   const mesAnoAtual = getMesAnoChave(state.currentDate);
-  const transacoesDoMes = state.transacoes.filter(
-    (t) => t.mesAnoReferencia === mesAnoAtual,
-  );
   const orcamentosDoMes = state.orcamentos.filter(
     (o) => o.mesAnoReferencia === mesAnoAtual,
   );
 
-  // 1. Receitas de Renda (Salário, etc)
-  const receitasTotais = transacoesDoMes
-    .filter((t) => t.tipo === CONSTS.TIPO_TRANSACAO.RECEITA)
-    .reduce((acc, t) => acc + (Number(t.valor) || 0), 0);
-
-  // 2. Movimentações de Patrimônio (Aportes vs Resgates)
-  const aportesDoMes = transacoesDoMes
-    .filter(
-      (t) =>
-        t.tipo === CONSTS.TIPO_TRANSACAO.PATRIMONIO && t.operacao === "aporte",
-    )
-    .reduce((acc, t) => acc + (Number(t.valor) || 0), 0);
-
-  const resgatesDoMes = transacoesDoMes
-    .filter(
-      (t) =>
-        t.tipo === CONSTS.TIPO_TRANSACAO.PATRIMONIO && t.operacao === "resgate",
-    )
-    .reduce((acc, t) => acc + (Number(t.valor) || 0), 0);
-
-  // NOTA: A amortização não entra mais no cálculo de Saldo do Mês (Dedução Mensal),
-  // pois o dinheiro já saiu do saldo no momento do Aporte para a conta de recursos.
-
-  // 3. Lógica de Despesas e Orçamentos
-  const activeBudgetIds = orcamentosDoMes.map((o) => o.id);
-  let despesasProjetadasTotais = 0;
-
-  orcamentosDoMes.forEach((orc) => {
-    const orcValorPlan = Number(orc.valor) || 0;
-    let gastoRealNoOrc = transacoesDoMes
-      .filter((t) => t.orcamentoId === orc.id)
-      .reduce((acc, t) => acc + (Number(t.valor) || 0), 0);
-
-    if (orc.isFixed) {
-      gastoRealNoOrc += transacoesDoMes
-        .filter(
-          (t) =>
-            t.categoria === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO &&
-            (!t.orcamentoId || !activeBudgetIds.includes(t.orcamentoId)),
-        )
-        .reduce((acc, t) => acc + (Number(t.valor) || 0), 0);
-    }
-    if (orc.isFixedOrdinary) {
-      gastoRealNoOrc += transacoesDoMes
-        .filter((t) => t.categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA)
-        .reduce((acc, t) => acc + (Number(t.valor) || 0), 0);
-    }
-
-    if (isOrcamentoFechado(orc.id, mesAnoAtual)) {
-      despesasProjetadasTotais += gastoRealNoOrc;
-    } else {
-      despesasProjetadasTotais += Math.max(orcValorPlan, gastoRealNoOrc);
-    }
-  });
-
-  const totalAjustes = state.ajustesFatura
-    .filter((a) => a.mesAnoReferencia === mesAnoAtual)
-    .reduce((acc, a) => acc + (Number(a.valor) || 0), 0);
-  despesasProjetadasTotais -= totalAjustes;
-
-  // LÓGICA FINAL: Saldo = (Receitas + Resgates) - (Despesas + Aportes)
-  // Amortizações agora são neutras para o caixa do mês (saem apenas do Patrimônio)
-  const saldoFinal =
-    receitasTotais + resgatesDoMes - (despesasProjetadasTotais + aportesDoMes);
+  // CONSUMO DO MOTOR CENTRALIZADO
+  const dados = obterDadosFinanceirosAgrupados(state.currentDate);
 
   // --- ATUALIZAÇÃO VISUAL ---
-  elements.totalReceitasDisplay.textContent = formatCurrency(receitasTotais);
+  elements.totalReceitasDisplay.textContent = formatCurrency(
+    dados.totalReceitas,
+  );
 
   // Linha condicional de Resgates na Sidebar
   let containerResgate = document.getElementById("linhaResumoResgates");
-  if (resgatesDoMes > 0) {
+  if (dados.totalResgates > 0) {
     if (!containerResgate) {
       containerResgate = document.createElement("div");
       containerResgate.id = "linhaResumoResgates";
       containerResgate.className = "summary-item";
       containerResgate.style.color = "#9b59b6";
-      containerResgate.innerHTML = `<span>Resgates do mês:</span> <span id="totalResgates">${formatCurrency(resgatesDoMes)}</span>`;
+      containerResgate.innerHTML = `<span>Resgates do mês:</span> <span id="totalResgates">${formatCurrency(dados.totalResgates)}</span>`;
       elements.totalReceitasDisplay.parentElement.insertAdjacentElement(
         "afterend",
         containerResgate,
@@ -128,25 +66,25 @@ export function atualizarResumoFinanceiro() {
     } else {
       containerResgate.style.display = "flex";
       const elTotal = document.getElementById("totalResgates");
-      if (elTotal) elTotal.textContent = formatCurrency(resgatesDoMes);
+      if (elTotal) elTotal.textContent = formatCurrency(dados.totalResgates);
     }
   } else if (containerResgate) {
     containerResgate.style.display = "none";
   }
 
   elements.totalDespesasDisplay.textContent = formatCurrency(
-    despesasProjetadasTotais,
+    dados.despesasTotaisLiquidas,
   );
 
   // Linha condicional de Aportes na Sidebar
   let containerAporte = document.getElementById("linhaResumoAportes");
-  if (aportesDoMes > 0) {
+  if (dados.totalAportesGeral > 0) {
     if (!containerAporte) {
       containerAporte = document.createElement("div");
       containerAporte.id = "linhaResumoAportes";
       containerAporte.className = "summary-item";
       containerAporte.style.color = "#3498db";
-      containerAporte.innerHTML = `<span>Aportes do mês:</span> <span id="totalAportes">${formatCurrency(aportesDoMes)}</span>`;
+      containerAporte.innerHTML = `<span>Aportes do mês:</span> <span id="totalAportes">${formatCurrency(dados.totalAportesGeral)}</span>`;
       elements.totalDespesasDisplay.parentElement.insertAdjacentElement(
         "afterend",
         containerAporte,
@@ -154,19 +92,22 @@ export function atualizarResumoFinanceiro() {
     } else {
       containerAporte.style.display = "flex";
       const elTotal = document.getElementById("totalAportes");
-      if (elTotal) elTotal.textContent = formatCurrency(aportesDoMes);
+      if (elTotal)
+        elTotal.textContent = formatCurrency(dados.totalAportesGeral);
     }
   } else if (containerAporte) {
     containerAporte.style.display = "none";
   }
 
-  // Linha de Amortização OMITIDA do resumo financeiro mensal para manter a neutralidade de caixa.
-
-  elements.saldoMesDisplay.textContent = formatCurrency(saldoFinal);
+  elements.saldoMesDisplay.textContent = formatCurrency(dados.saldoFinal);
 
   if (!state.areValuesHidden) {
     elements.saldoMesDisplay.style.color =
-      saldoFinal > 0 ? "#27ae60" : saldoFinal < 0 ? "#e74c3c" : "#3498db";
+      dados.saldoFinal > 0
+        ? "#27ae60"
+        : dados.saldoFinal < 0
+          ? "#e74c3c"
+          : "#3498db";
   } else {
     elements.saldoMesDisplay.style.color = "";
   }
@@ -214,7 +155,6 @@ export function abrirModalEspecifico(
         if (callbacks.resetForm) callbacks.resetForm();
       }
     } else if (tipoModal === "patrimonioHistorico") {
-      // Novo caso para o Extrato do Ativo - Passa o idParaEditar para o renderizador
       if (callbacks.popularHistorico) callbacks.popularHistorico(idParaEditar);
     } else if (tipoModal === "cartaoCadastroEdicao") {
       state.isCartaoEditMode = !!idParaEditar;
@@ -268,8 +208,6 @@ export function fecharModalEspecifico(modalElement) {
       state.isQuickAddMode = false;
       state.isModoTerceiros = false;
       state.isEditMode = false;
-      // Nota: state.currentFaturaDate NÃO deve ser resetado aqui,
-      // pois o modal de detalhes da fatura ainda pode estar aberto ao fundo.
       state.editingTransactionId = null;
       state.editingSerieId = null;
       if (elements.tipoTransacaoSelect)
@@ -328,7 +266,6 @@ export function criarElementoReceita(item, actionsDiv) {
 }
 
 export function criarElementoPatrimonio(item, actionsDiv) {
-  // 1. Identificar Natureza Real (Consulta Dinâmica para garantir fidelidade)
   let naturezaFinal = item.natureza;
 
   if (item.patrimonioId) {
@@ -348,7 +285,6 @@ export function criarElementoPatrimonio(item, actionsDiv) {
       ? "Formação de Ativos"
       : "Recursos para Amortização";
 
-  // 2. Mapeamento da Operação (Título principal)
   const operacaoMap = {
     aporte: "Aporte",
     resgate: "Resgate",
@@ -364,7 +300,6 @@ export function criarElementoPatrimonio(item, actionsDiv) {
       })
     : "N/D";
 
-  // 3. Botões de Ação
   const editButton = document.createElement("button");
   editButton.className = "btn-edit";
   editButton.innerHTML = "✎";
@@ -377,7 +312,6 @@ export function criarElementoPatrimonio(item, actionsDiv) {
   deleteButton.dataset.id = item.id;
   actionsDiv.appendChild(deleteButton);
 
-  // 4. Subtexto formatado: Natureza - Nome do Item (Parcela)
   const parcelaInfo =
     item.frequencia === CONSTS.FREQUENCIA.PARCELADA && item.totalParcelas
       ? ` (${item.parcelaAtual}/${item.totalParcelas})`
@@ -462,12 +396,10 @@ export function criarElementoFatura(item, actionsDiv) {
       )
     : "N/D";
 
-  // Selo de Cartão Excluído (Soft Delete)
   const seloExcluido = item.isDeletado
     ? '<span class="status-excluido" style="background: #95a5a6; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.75em; margin-left: 5px;">Excluído</span>'
     : "";
 
-  // Selo de Fatura Conferida com o Banco
   const seloConferida = item.isConferida
     ? '<span class="status-conferida" style="background: #3498db; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.75em; margin-left: 5px;">Conferida</span>'
     : "";
@@ -537,7 +469,6 @@ export function renderizarTransacoesDoMes() {
   const mesAnoReferenciaAtual = getMesAnoChave(state.currentDate);
   const isGestaoContexto = state.modoVisualizacao === "gestao-patrimonio";
 
-  // --- 1. CONTROLE DE VISIBILIDADE POR CONTEXTO ---
   if (isGestaoContexto) {
     if (elements.headerContextTransacoes)
       elements.headerContextTransacoes.style.display = "none";
@@ -568,14 +499,12 @@ export function renderizarTransacoesDoMes() {
     elements.listaTransacoesUl.innerHTML = "";
   }
 
-  // --- 2. PREPARAÇÃO DA LISTA DE FLUXO ---
   const transacoesDoMesVisivel = state.transacoes.filter(
     (t) => t.mesAnoReferencia === mesAnoReferenciaAtual,
   );
   let itensParaRenderizar = [];
 
   if (abaAtivaAtual === "gerais") {
-    // 1. Receitas (Prioridade Master 1)
     transacoesDoMesVisivel
       .filter((t) => t.tipo === CONSTS.TIPO_TRANSACAO.RECEITA)
       .forEach((r) =>
@@ -587,7 +516,6 @@ export function renderizarTransacoesDoMes() {
         }),
       );
 
-    // 2. Despesas Ordinárias (Prioridade Master 3)
     transacoesDoMesVisivel
       .filter(
         (t) =>
@@ -603,7 +531,6 @@ export function renderizarTransacoesDoMes() {
         }),
       );
 
-    // 3. Faturas de Cartão (Prioridade Master 3)
     const faturasAgrupadas = {};
     transacoesDoMesVisivel
       .filter(
@@ -643,7 +570,6 @@ export function renderizarTransacoesDoMes() {
         fatura.diaVencimentoFatura,
       );
 
-      // LOGICA DE CONFERÊNCIA: Busca se existe registro no state.faturasConferidas
       const isConferida = state.faturasConferidas.some(
         (f) =>
           f.cartaoId === fatura.cartaoId && f.mesAno === mesAnoReferenciaAtual,
@@ -663,11 +589,10 @@ export function renderizarTransacoesDoMes() {
         paga: fatura.todasPagas,
         mesAnoReferencia: mesAnoReferenciaAtual,
         isDeletado: fatura.isDeletado,
-        isConferida: isConferida, // Passa o status de conferência para a criação do elemento
+        isConferida: isConferida,
       });
     });
 
-    // 4. Orçamentos (Prioridade Master 2)
     state.orcamentos
       .filter((o) => o.mesAnoReferencia === mesAnoReferenciaAtual)
       .forEach((orc) => {
@@ -703,7 +628,6 @@ export function renderizarTransacoesDoMes() {
         });
       });
   } else {
-    // ABA PATRIMONIAIS
     transacoesDoMesVisivel
       .filter(
         (t) =>
@@ -720,7 +644,6 @@ export function renderizarTransacoesDoMes() {
       );
   }
 
-  // --- 3. ORDENAÇÃO RÍGIDA ---
   itensParaRenderizar.sort((a, b) => {
     if (a.ordemMaster !== b.ordemMaster) return a.ordemMaster - b.ordemMaster;
     const dataA =
