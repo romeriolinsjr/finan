@@ -21,7 +21,6 @@ export function obterDadosFinanceirosAgrupados(date) {
 
   // 2. Patrimônio - Função de apoio para Natureza (Segura contra itens excluídos)
   const obterNaturezaTransacao = (t) => {
-    // Tenta buscar no estado atual (árvore viva)
     const sub = (state.patrimonioSubcategorias || []).find(
       (s) => s.id === t.patrimonioId,
     );
@@ -31,25 +30,14 @@ export function obterDadosFinanceirosAgrupados(date) {
       );
       if (cat) return cat.tipo;
     }
-    // Se o item foi excluído, usa a natureza gravada na transação como fallback
     return t.natureza || null;
   };
 
-  const totalAportesAtivos = transacoesDoMes
+  // CÁLCULO SOBERANO DE APORTES E RESGATES (Sem filtros de natureza para não quebrar o saldo)
+  const totalAportesGeral = transacoesDoMes
     .filter(
       (t) =>
-        t.tipo === CONSTS.TIPO_TRANSACAO.PATRIMONIO &&
-        t.operacao === "aporte" &&
-        obterNaturezaTransacao(t) === "ativo",
-    )
-    .reduce((s, t) => s + t.valor, 0);
-
-  const totalAportesReducao = transacoesDoMes
-    .filter(
-      (t) =>
-        t.tipo === CONSTS.TIPO_TRANSACAO.PATRIMONIO &&
-        t.operacao === "aporte" &&
-        obterNaturezaTransacao(t) === "passivo",
+        t.tipo === CONSTS.TIPO_TRANSACAO.PATRIMONIO && t.operacao === "aporte",
     )
     .reduce((s, t) => s + t.valor, 0);
 
@@ -68,12 +56,23 @@ export function obterDadosFinanceirosAgrupados(date) {
     )
     .reduce((s, t) => s + t.valor, 0);
 
-  const totalAportesGeral = totalAportesAtivos + totalAportesReducao;
+  // Separação apenas para fins de exibição no relatório
+  const totalAportesAtivos = transacoesDoMes
+    .filter(
+      (t) =>
+        t.tipo === CONSTS.TIPO_TRANSACAO.PATRIMONIO &&
+        t.operacao === "aporte" &&
+        obterNaturezaTransacao(t) === "ativo",
+    )
+    .reduce((s, t) => s + t.valor, 0);
+
+  const totalAportesReducao = totalAportesGeral - totalAportesAtivos;
 
   // 3. Despesas e Orçamentos
   let totalGastoRealCartao = 0;
   let totalGastoRealOrdinario = 0;
   let totalPrevistoOrcamentos = 0;
+  let totalGastoRealOrcamentos = 0; // Para o rodapé do relatório
   let somaDespesasProjetadas = 0;
 
   transacoesDoMes.forEach((t) => {
@@ -106,6 +105,7 @@ export function obterDadosFinanceirosAgrupados(date) {
         .reduce((s, t) => s + t.valor, 0);
     }
 
+    totalGastoRealOrcamentos += gastoDesteOrc;
     somaDespesasProjetadas += isOrcamentoFechado(orc.id, mesAno)
       ? gastoDesteOrc
       : Math.max(orc.valor, gastoDesteOrc);
@@ -115,7 +115,7 @@ export function obterDadosFinanceirosAgrupados(date) {
     .filter((a) => a.mesAnoReferencia === mesAno)
     .reduce((s, a) => s + a.valor, 0);
 
-  // 4. Saldos Finais
+  // 4. Saldos Finais (Fórmulas idênticas à UI.JS)
   const despesasTotaisLiquidas = somaDespesasProjetadas - totalAjustesDoMes;
   const saldoFinal =
     totalReceitas +
@@ -139,6 +139,7 @@ export function obterDadosFinanceirosAgrupados(date) {
     totalGastoRealCartao,
     totalGastoRealOrdinario,
     totalPrevistoOrcamentos,
+    totalGastoRealOrcamentos,
     somaDespesasProjetadas,
     totalAjustesDoMes,
     despesasTotaisLiquidas,
@@ -177,7 +178,6 @@ export function popularModalRelatorio(date) {
     return;
   }
 
-  // Chamar o motor de cálculo central
   const dados = obterDadosFinanceirosAgrupados(date);
 
   elements.relatorioCorpo.innerHTML =
@@ -193,7 +193,6 @@ export function popularModalRelatorio(date) {
     (t) => t.tipo === CONSTS.TIPO_TRANSACAO.DESPESA,
   );
 
-  // --- RENDERIZAÇÃO: RESUMO GERAL ---
   document.getElementById("relatorio-secao-resumo").innerHTML =
     `<section class="relatorio-secao"><h3>Resumo Geral</h3><div class="relatorio-grid">
     <div class="relatorio-item"><span>Receitas Totais</span><strong class="valor-receita">${formatCurrency(dados.totalReceitas)}</strong></div>
@@ -205,7 +204,6 @@ export function popularModalRelatorio(date) {
     <div class="relatorio-item"><span>Saldo Real</span><strong style="color:${dados.saldoReal >= 0 ? "#27ae60" : "#e74c3c"}">${formatCurrency(dados.saldoReal)}</strong></div>
   </div></section>`;
 
-  // --- RENDERIZAÇÃO: ANÁLISE DE PATRIMÔNIO ---
   const analisePatrimonioHTML = `
     <section class="relatorio-secao">
       <h3>Análise de Patrimônio</h3>
@@ -239,7 +237,6 @@ export function popularModalRelatorio(date) {
   document.getElementById("relatorio-secao-analise-patrimonio").innerHTML =
     analisePatrimonioHTML;
 
-  // --- RENDERIZAÇÃO: ANÁLISE DE DESPESAS ---
   const calcularSubtotais = (categoria) => {
     const despesasFiltradas = despesasDoMes.filter(
       (d) => d.categoria === categoria,
@@ -301,7 +298,6 @@ export function popularModalRelatorio(date) {
   document.getElementById("relatorio-secao-analise-despesas").innerHTML =
     analiseDespesasHTML;
 
-  // --- RENDERIZAÇÃO: ANÁLISE DE ORÇAMENTOS ---
   let orcamentosHTML = "";
   const activeBudgetIds = state.orcamentos.map((o) => o.id);
   const orcamentosRelatorio = state.orcamentos.filter(
@@ -336,7 +332,7 @@ export function popularModalRelatorio(date) {
   });
 
   document.getElementById("relatorio-secao-analise-orcamentos").innerHTML =
-    `<section class="relatorio-secao"><h3>Análise de Orçamentos</h3><div class="relatorio-orcamento-lista">${orcamentosHTML}</div><div class="relatorio-orcamento-total"><span>TOTAIS</span><div class="orcamento-valores"><small>Prev: ${formatCurrency(dados.totalPrevistoOrcamentos)}</small><small>Gasto: ${formatCurrency(dados.totalPrevistoOrcamentos - (dados.totalPrevistoOrcamentos - dados.somaDespesasProjetadas)) /* Simplificação para manter lógica */}</small><strong>Saldo: ${formatCurrency(dados.totalPrevistoOrcamentos - (dados.totalPrevistoOrcamentos - (dados.totalPrevistoOrcamentos - dados.somaDespesasProjetadas)))}</strong></div></div></section>`;
+    `<section class="relatorio-secao"><h3>Análise de Orçamentos</h3><div class="relatorio-orcamento-lista">${orcamentosHTML}</div><div class="relatorio-orcamento-total"><span>TOTAIS</span><div class="orcamento-valores"><small>Prev: ${formatCurrency(dados.totalPrevistoOrcamentos)}</small><small>Gasto: ${formatCurrency(dados.totalGastoRealOrcamentos)}</small><strong>Saldo: ${formatCurrency(dados.totalPrevistoOrcamentos - dados.totalGastoRealOrcamentos)}</strong></div></div></section>`;
 }
 
 export function abrirDetalhesFiltroRelatorio(
@@ -384,7 +380,6 @@ export function abrirDetalhesFiltroRelatorio(
         const cat = sub
           ? state.patrimonioCategorias.find((c) => c.id === sub.categoriaId)
           : null;
-        // Fallback para natureza gravada se o item sumiu
         const naturezaEfetiva = cat ? cat.tipo : t.natureza;
         const tipoAlvo =
           tipoPatrimonio === "aporte-ativo" ? "ativo" : "passivo";
