@@ -468,12 +468,16 @@ export function renderizarTransacoesDoMes() {
   const abaAtivaAtual = state.homeActiveTab || "gerais";
   const mesAnoReferenciaAtual = getMesAnoChave(state.currentDate);
   const isGestaoContexto = state.modoVisualizacao === "gestao-patrimonio";
+  const isRelatoriosContexto = state.modoVisualizacao === "relatorios";
 
+  // --- 1. CONTROLE DE VISIBILIDADE POR CONTEXTO ---
   if (isGestaoContexto) {
     if (elements.headerContextTransacoes)
       elements.headerContextTransacoes.style.display = "none";
     if (elements.containerBuscaTransacoes)
       elements.containerBuscaTransacoes.style.display = "none";
+    if (elements.containerRelatorioHome)
+      elements.containerRelatorioHome.style.display = "none";
     elements.listaTransacoesUl.style.display = "none";
     if (elements.headerContextPatrimonio)
       elements.headerContextPatrimonio.style.display = "block";
@@ -487,11 +491,32 @@ export function renderizarTransacoesDoMes() {
     });
     atualizarResumoFinanceiro();
     return;
+  } else if (isRelatoriosContexto) {
+    if (elements.headerContextTransacoes)
+      elements.headerContextTransacoes.style.display = "none";
+    if (elements.containerBuscaTransacoes)
+      elements.containerBuscaTransacoes.style.display = "none";
+    if (elements.containerPatrimonioHome)
+      elements.containerPatrimonioHome.style.display = "none";
+    if (elements.headerContextPatrimonio)
+      elements.headerContextPatrimonio.style.display = "none";
+    elements.listaTransacoesUl.style.display = "none";
+
+    if (elements.containerRelatorioHome)
+      elements.containerRelatorioHome.style.display = "block";
+
+    import("./reports.js").then((m) => {
+      m.popularModalRelatorio(state.currentDate);
+    });
+    atualizarResumoFinanceiro();
+    return;
   } else {
     if (elements.headerContextTransacoes)
       elements.headerContextTransacoes.style.display = "block";
     if (elements.containerBuscaTransacoes)
       elements.containerBuscaTransacoes.style.display = "block";
+    if (elements.containerRelatorioHome)
+      elements.containerRelatorioHome.style.display = "none";
     elements.listaTransacoesUl.style.display = "block";
     if (elements.headerContextPatrimonio)
       elements.headerContextPatrimonio.style.display = "none";
@@ -499,12 +524,14 @@ export function renderizarTransacoesDoMes() {
     elements.listaTransacoesUl.innerHTML = "";
   }
 
+  // --- 2. PREPARAÇÃO DA LISTA DE FLUXO ---
   const transacoesDoMesVisivel = state.transacoes.filter(
     (t) => t.mesAnoReferencia === mesAnoReferenciaAtual,
   );
   let itensParaRenderizar = [];
 
   if (abaAtivaAtual === "gerais") {
+    // 1. Receitas (Prioridade Master 1)
     transacoesDoMesVisivel
       .filter((t) => t.tipo === CONSTS.TIPO_TRANSACAO.RECEITA)
       .forEach((r) =>
@@ -516,6 +543,7 @@ export function renderizarTransacoesDoMes() {
         }),
       );
 
+    // 2. Despesas Ordinárias (Prioridade Master 3)
     transacoesDoMesVisivel
       .filter(
         (t) =>
@@ -531,6 +559,7 @@ export function renderizarTransacoesDoMes() {
         }),
       );
 
+    // 3. Faturas de Cartão (Prioridade Master 3)
     const faturasAgrupadas = {};
     transacoesDoMesVisivel
       .filter(
@@ -570,6 +599,7 @@ export function renderizarTransacoesDoMes() {
         fatura.diaVencimentoFatura,
       );
 
+      // LOGICA DE CONFERÊNCIA: Busca se existe registro no state.faturasConferidas
       const isConferida = state.faturasConferidas.some(
         (f) =>
           f.cartaoId === fatura.cartaoId && f.mesAno === mesAnoReferenciaAtual,
@@ -589,10 +619,11 @@ export function renderizarTransacoesDoMes() {
         paga: fatura.todasPagas,
         mesAnoReferencia: mesAnoReferenciaAtual,
         isDeletado: fatura.isDeletado,
-        isConferida: isConferida,
+        isConferida: isConferida, // Passa o status de conferência para a criação do elemento
       });
     });
 
+    // 4. Orçamentos (Prioridade Master 2)
     state.orcamentos
       .filter((o) => o.mesAnoReferencia === mesAnoReferenciaAtual)
       .forEach((orc) => {
@@ -628,6 +659,7 @@ export function renderizarTransacoesDoMes() {
         });
       });
   } else {
+    // ABA PATRIMONIAIS
     transacoesDoMesVisivel
       .filter(
         (t) =>
@@ -644,6 +676,7 @@ export function renderizarTransacoesDoMes() {
       );
   }
 
+  // --- 3. ORDENAÇÃO RÍGIDA ---
   itensParaRenderizar.sort((a, b) => {
     if (a.ordemMaster !== b.ordemMaster) return a.ordemMaster - b.ordemMaster;
     const dataA =

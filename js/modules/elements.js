@@ -198,6 +198,10 @@ export const elements = {
   relatorioCorpo: document.getElementById("relatorioCorpo"),
   btnRelatorioAnterior: document.getElementById("btnRelatorioAnterior"),
   btnRelatorioProximo: document.getElementById("btnRelatorioProximo"),
+  // CONTEXTO RELATÓRIOS HOME
+  containerRelatorioHome: document.getElementById("containerRelatorioHome"),
+  relatorioCorpoHome: document.getElementById("relatorioCorpoHome"),
+  btnDownloadPDFHome: document.getElementById("btnDownloadPDFHome"),
   modalDetalhesFiltroRelatorio: document.getElementById(
     "modalDetalhesFiltroRelatorio",
   ),

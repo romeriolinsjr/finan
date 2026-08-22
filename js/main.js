@@ -288,15 +288,13 @@ document.addEventListener("DOMContentLoaded", () => {
         const temFixoOrd = orcsMes.some((o) => o.isFixedOrdinary);
 
         if (!temFixoCartao) {
-          const doc = await userRef
-            .collection("orcamentos")
-            .add({
-              nome: "Outros Gastos",
-              valor: 0,
-              dia: 1,
-              isFixed: true,
-              mesAnoReferencia: mesAno,
-            });
+          const doc = await userRef.collection("orcamentos").add({
+            nome: "Outros Gastos",
+            valor: 0,
+            dia: 1,
+            isFixed: true,
+            mesAnoReferencia: mesAno,
+          });
           orcsMes.push({
             id: doc.id,
             nome: "Outros Gastos",
@@ -307,15 +305,13 @@ document.addEventListener("DOMContentLoaded", () => {
           });
         }
         if (!temFixoOrd) {
-          const doc = await userRef
-            .collection("orcamentos")
-            .add({
-              nome: "Gastos Ordinários",
-              valor: 0,
-              dia: 1,
-              isFixedOrdinary: true,
-              mesAnoReferencia: mesAno,
-            });
+          const doc = await userRef.collection("orcamentos").add({
+            nome: "Gastos Ordinários",
+            valor: 0,
+            dia: 1,
+            isFixedOrdinary: true,
+            mesAnoReferencia: mesAno,
+          });
           orcsMes.push({
             id: doc.id,
             nome: "Gastos Ordinários",
@@ -1432,18 +1428,23 @@ document.addEventListener("DOMContentLoaded", () => {
     budgets.alternarTodosOrcamentosDoMes();
   });
 
-  if (elements.btnDownloadPDF) {
-    elements.btnDownloadPDF.addEventListener("click", () => {
-      // Sincroniza a data da Home com a do Relatório apenas para a geração do PDF
-      // Isso garante que o PDF seja gerado para o mês visível no modal de relatórios
+  if (elements.btnDownloadPDF || elements.btnDownloadPDFHome) {
+    const handlerDownload = () => {
       const originalDate = new Date(state.currentDate);
-      state.currentDate = new Date(state.reportDate);
+      // Se estiver no modal, sincroniza com a data do modal, senão usa a data da Home
+      if (elements.modalRelatorios.style.display === "flex") {
+        state.currentDate = new Date(state.reportDate);
+      }
 
       exportMod.gerarExtratoMensalPDF().then(() => {
-        // Restaura a data original da Home após gerar o PDF
         state.currentDate = originalDate;
       });
-    });
+    };
+
+    if (elements.btnDownloadPDF)
+      elements.btnDownloadPDF.addEventListener("click", handlerDownload);
+    if (elements.btnDownloadPDFHome)
+      elements.btnDownloadPDFHome.addEventListener("click", handlerDownload);
   }
 
   if (elements.btnQuickAddOrdinary) {
@@ -1593,12 +1594,17 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Relatórios (Navegação Inteligente com Lazy Loading)
-  elements.btnRelatorios.addEventListener("click", () =>
-    ui.abrirModalEspecifico(elements.modalRelatorios, null, "relatorios", {
-      popularModalRelatorio: reports.popularModalRelatorio,
-    }),
-  );
+  // --- NAVEGAÇÃO DE CONTEXTO: RELATÓRIOS (SIDEBAR) ---
+  if (elements.btnRelatorios) {
+    elements.btnRelatorios.addEventListener("click", () => {
+      state.modoVisualizacao = "relatorios";
+      // Remove destaque de outras abas
+      if (elements.homeTabBtns) {
+        elements.homeTabBtns.forEach((b) => b.classList.remove("active"));
+      }
+      ui.renderizarTransacoesDoMes();
+    });
+  }
 
   elements.btnRelatorioAnterior.addEventListener("click", async () => {
     state.reportDate.setMonth(state.reportDate.getMonth() - 1);

@@ -154,15 +154,32 @@ export function obterDadosFinanceirosAgrupados(date) {
 }
 
 export function popularModalRelatorio(date) {
-  if (!elements.relatorioTitulo || !elements.relatorioCorpo) return;
+  const isHomeContext = state.modoVisualizacao === "relatorios";
+  const targetCorpo = isHomeContext
+    ? elements.relatorioCorpoHome
+    : elements.relatorioCorpo;
+  const targetTitulo = isHomeContext
+    ? document.querySelector("#headerContextRelatorio h2")
+    : elements.relatorioTitulo;
+
+  if (!targetCorpo || !targetTitulo) return;
+
   const mesAno = getMesAnoChave(date);
   const nomeMes = date.toLocaleString("pt-BR", { month: "long" });
-  elements.relatorioTitulo.textContent = `Relatório de ${nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1)}/${date.getFullYear()}`;
+  const tituloTexto = `Relatório de ${nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1)}/${date.getFullYear()}`;
 
-  const limitDate = new Date();
-  limitDate.setMonth(limitDate.getMonth() + 24);
-  elements.btnRelatorioProximo.disabled =
-    getMesAnoChave(date) >= getMesAnoChave(limitDate);
+  targetTitulo.textContent = isHomeContext
+    ? "Relatórios e Performance"
+    : tituloTexto;
+
+  // No modo Home, a navegação de data é feita pelos botões globais do header.
+  // Gerenciamos os botões do modal apenas se ele estiver ativo.
+  if (!isHomeContext && elements.btnRelatorioProximo) {
+    const limitDate = new Date();
+    limitDate.setMonth(limitDate.getMonth() + 24);
+    elements.btnRelatorioProximo.disabled =
+      getMesAnoChave(date) >= getMesAnoChave(limitDate);
+  }
 
   let primeiroMesAno =
     state.transacoes.length > 0
@@ -173,14 +190,14 @@ export function popularModalRelatorio(date) {
       : null;
 
   if (primeiroMesAno && mesAno < primeiroMesAno) {
-    elements.relatorioCorpo.innerHTML =
+    targetCorpo.innerHTML =
       '<p style="text-align:center;padding:20px;color:#777;">Sem dados.</p>';
     return;
   }
 
   const dados = obterDadosFinanceirosAgrupados(date);
 
-  elements.relatorioCorpo.innerHTML =
+  targetCorpo.innerHTML =
     '<div id="relatorio-secao-resumo"></div>' +
     '<div id="relatorio-secao-analise-patrimonio"></div>' +
     '<div id="relatorio-secao-analise-despesas"></div>' +
@@ -193,6 +210,7 @@ export function popularModalRelatorio(date) {
     (t) => t.tipo === CONSTS.TIPO_TRANSACAO.DESPESA,
   );
 
+  // --- RENDERIZAÇÃO: RESUMO GERAL ---
   document.getElementById("relatorio-secao-resumo").innerHTML =
     `<section class="relatorio-secao"><h3>Resumo Geral</h3><div class="relatorio-grid">
     <div class="relatorio-item"><span>Receitas Totais</span><strong class="valor-receita">${formatCurrency(dados.totalReceitas)}</strong></div>
@@ -204,6 +222,7 @@ export function popularModalRelatorio(date) {
     <div class="relatorio-item"><span>Saldo Real</span><strong style="color:${dados.saldoReal >= 0 ? "#27ae60" : "#e74c3c"}">${formatCurrency(dados.saldoReal)}</strong></div>
   </div></section>`;
 
+  // --- RENDERIZAÇÃO: ANÁLISE DE PATRIMÔNIO ---
   const analisePatrimonioHTML = `
     <section class="relatorio-secao">
       <h3>Análise de Patrimônio</h3>
@@ -229,7 +248,7 @@ export function popularModalRelatorio(date) {
             <span>Investimento Líquido</span> <strong>${formatCurrency(dados.investimentoLiquido)}</strong>
           </div>
           <div class="relatorio-item-analise" style="font-weight: bold; border-left-color: #f1c40f;">
-            <span>Taxa de Investimento Líquido</span> <strong>${dados.taxaInvestimento.toFixed(1)}%</strong>
+            <span>Taxa de Investimento Líquido</span> <strong>${dados.taxaInvestmento ? dados.taxaInvestmento.toFixed(1) : dados.taxaInvestimento.toFixed(1)}%</strong>
           </div>
         </div>
       </div>
