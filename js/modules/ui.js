@@ -469,6 +469,7 @@ export function renderizarTransacoesDoMes() {
   const mesAnoReferenciaAtual = getMesAnoChave(state.currentDate);
   const isGestaoContexto = state.modoVisualizacao === "gestao-patrimonio";
   const isRelatoriosContexto = state.modoVisualizacao === "relatorios";
+  const isTrackerContexto = state.modoVisualizacao === "weekly-tracker";
 
   // --- 1. CONTROLE DE VISIBILIDADE POR CONTEXTO ---
   if (isGestaoContexto) {
@@ -478,6 +479,8 @@ export function renderizarTransacoesDoMes() {
       elements.containerBuscaTransacoes.style.display = "none";
     if (elements.containerRelatorioHome)
       elements.containerRelatorioHome.style.display = "none";
+    if (elements.containerWeeklyTrackerHome)
+      elements.containerWeeklyTrackerHome.style.display = "none";
     elements.listaTransacoesUl.style.display = "none";
     if (elements.headerContextPatrimonio)
       elements.headerContextPatrimonio.style.display = "block";
@@ -500,6 +503,8 @@ export function renderizarTransacoesDoMes() {
       elements.containerPatrimonioHome.style.display = "none";
     if (elements.headerContextPatrimonio)
       elements.headerContextPatrimonio.style.display = "none";
+    if (elements.containerWeeklyTrackerHome)
+      elements.containerWeeklyTrackerHome.style.display = "none";
     elements.listaTransacoesUl.style.display = "none";
 
     if (elements.containerRelatorioHome)
@@ -510,6 +515,27 @@ export function renderizarTransacoesDoMes() {
     });
     atualizarResumoFinanceiro();
     return;
+  } else if (isTrackerContexto) {
+    if (elements.headerContextTransacoes)
+      elements.headerContextTransacoes.style.display = "none";
+    if (elements.containerBuscaTransacoes)
+      elements.containerBuscaTransacoes.style.display = "none";
+    if (elements.containerPatrimonioHome)
+      elements.containerPatrimonioHome.style.display = "none";
+    if (elements.headerContextPatrimonio)
+      elements.headerContextPatrimonio.style.display = "none";
+    if (elements.containerRelatorioHome)
+      elements.containerRelatorioHome.style.display = "none";
+    elements.listaTransacoesUl.style.display = "none";
+
+    if (elements.containerWeeklyTrackerHome)
+      elements.containerWeeklyTrackerHome.style.display = "block";
+
+    import("./weekly-tracker.js").then((m) => {
+      m.renderizarTracker();
+    });
+    atualizarResumoFinanceiro();
+    return;
   } else {
     if (elements.headerContextTransacoes)
       elements.headerContextTransacoes.style.display = "block";
@@ -517,6 +543,8 @@ export function renderizarTransacoesDoMes() {
       elements.containerBuscaTransacoes.style.display = "block";
     if (elements.containerRelatorioHome)
       elements.containerRelatorioHome.style.display = "none";
+    if (elements.containerWeeklyTrackerHome)
+      elements.containerWeeklyTrackerHome.style.display = "none";
     elements.listaTransacoesUl.style.display = "block";
     if (elements.headerContextPatrimonio)
       elements.headerContextPatrimonio.style.display = "none";
@@ -599,7 +627,6 @@ export function renderizarTransacoesDoMes() {
         fatura.diaVencimentoFatura,
       );
 
-      // LOGICA DE CONFERÊNCIA: Busca se existe registro no state.faturasConferidas
       const isConferida = state.faturasConferidas.some(
         (f) =>
           f.cartaoId === fatura.cartaoId && f.mesAno === mesAnoReferenciaAtual,
@@ -619,7 +646,7 @@ export function renderizarTransacoesDoMes() {
         paga: fatura.todasPagas,
         mesAnoReferencia: mesAnoReferenciaAtual,
         isDeletado: fatura.isDeletado,
-        isConferida: isConferida, // Passa o status de conferência para a criação do elemento
+        isConferida: isConferida,
       });
     });
 

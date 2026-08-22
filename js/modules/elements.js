@@ -202,6 +202,12 @@ export const elements = {
   containerRelatorioHome: document.getElementById("containerRelatorioHome"),
   relatorioCorpoHome: document.getElementById("relatorioCorpoHome"),
   btnDownloadPDFHome: document.getElementById("btnDownloadPDFHome"),
+  // CONTEXTO TRACKER HOME
+  containerWeeklyTrackerHome: document.getElementById(
+    "containerWeeklyTrackerHome",
+  ),
+  trackerTabsContainerHome: document.getElementById("trackerTabsContainerHome"),
+  trackerCorpoHome: document.getElementById("trackerCorpoHome"),
   modalDetalhesFiltroRelatorio: document.getElementById(
     "modalDetalhesFiltroRelatorio",
   ),

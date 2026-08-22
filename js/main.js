@@ -499,8 +499,11 @@ document.addEventListener("DOMContentLoaded", () => {
     state.activeUnsubscribers.push(
       userRef.collection("ciclos_tracker").onSnapshot((s) => {
         state.ciclosTracker = s.docs.map((d) => ({ ...d.data(), id: d.id }));
-        console.log("Ciclos Tracker atualizados:", state.ciclosTracker.length);
-        if (elements.modalWeeklyTracker.style.display === "flex") {
+        // REATIVIDADE: Atualiza se o modal estiver aberto OU se estivermos no contexto da Home
+        if (
+          elements.modalWeeklyTracker.style.display === "flex" ||
+          state.modoVisualizacao === "weekly-tracker"
+        ) {
           tracker.renderizarTracker();
         }
       }),
@@ -509,14 +512,16 @@ document.addEventListener("DOMContentLoaded", () => {
     state.activeUnsubscribers.push(
       userRef.collection("votos_tracker").onSnapshot((s) => {
         state.votosTracker = s.docs.map((d) => ({ ...d.data(), id: d.id }));
-        if (elements.modalWeeklyTracker.style.display === "flex") {
+        // REATIVIDADE: Atualiza se o modal estiver aberto OU se estivermos no contexto da Home
+        if (
+          elements.modalWeeklyTracker.style.display === "flex" ||
+          state.modoVisualizacao === "weekly-tracker"
+        ) {
           tracker.renderizarTracker();
         }
       }),
     );
   }
-
-  // --- GATILHOS DE INTERFACE (VITAIS) ---
 
   // --- GATILHOS DE INTERFACE (VITAIS) ---
 
@@ -1992,12 +1997,15 @@ document.addEventListener("DOMContentLoaded", () => {
   //      EVENTOS DO WEEKLY TRACKER
   // =========================================
 
-  // Abrir o Painel Principal do Weekly Tracker
+  // --- NAVEGAÇÃO DE CONTEXTO: WEEKLY TRACKER (SIDEBAR) ---
   if (elements.btnWeeklyTracker) {
-    elements.btnWeeklyTracker.addEventListener("click", async () => {
-      // Usamos await para garantir que transações fora do cache sejam carregadas
-      await tracker.renderizarTracker();
-      ui.abrirModalEspecifico(elements.modalWeeklyTracker);
+    elements.btnWeeklyTracker.addEventListener("click", () => {
+      state.modoVisualizacao = "weekly-tracker";
+      // Remove destaque de outras abas
+      if (elements.homeTabBtns) {
+        elements.homeTabBtns.forEach((b) => b.classList.remove("active"));
+      }
+      ui.renderizarTransacoesDoMes();
     });
   }
 
@@ -2049,19 +2057,31 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  if (elements.containerCiclosTracker) {
-    elements.containerCiclosTracker.addEventListener("click", (e) => {
-      const btnTransfer = e.target.closest(".btn-transfer");
-      const btnRemove = e.target.closest(".btn-remove-item-tracker");
+  // --- INTERATIVIDADE DO WEEKLY TRACKER (MODAL E HOME) ---
+  const handlerInteracaoTracker = (e) => {
+    const btnTransfer = e.target.closest(".btn-transfer");
+    const btnRemove = e.target.closest(".btn-remove-item-tracker");
 
-      if (btnTransfer) {
-        const { transId, currentCiclo } = btnTransfer.dataset;
-        tracker.transferirItem(transId, currentCiclo);
-      } else if (btnRemove) {
-        const { transId } = btnRemove.dataset;
-        tracker.removerItemDoTracker(transId);
-      }
-    });
+    if (btnTransfer) {
+      const { transId, currentCiclo } = btnTransfer.dataset;
+      tracker.transferirItem(transId, currentCiclo);
+    } else if (btnRemove) {
+      const { transId } = btnRemove.dataset;
+      tracker.removerItemDoTracker(transId);
+    }
+  };
+
+  if (elements.containerCiclosTracker) {
+    elements.containerCiclosTracker.addEventListener(
+      "click",
+      handlerInteracaoTracker,
+    );
+  }
+  if (elements.trackerCorpoHome) {
+    elements.trackerCorpoHome.addEventListener(
+      "click",
+      handlerInteracaoTracker,
+    );
   }
 
   window.trackerMod = {

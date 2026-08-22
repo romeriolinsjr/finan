@@ -12,12 +12,20 @@ import {
  * Renderiza o painel do Weekly Tracker no modal.
  */
 export async function renderizarTracker() {
-  const container =
-    document.getElementById("containerCiclosTracker") ||
-    elements.containerCiclosTracker;
-  if (!container) return;
+  const isHomeContext = state.modoVisualizacao === "weekly-tracker";
 
-  // 1. Sincronização de Transações
+  // Define os alvos de injeção baseados no contexto ativo
+  const targetCiclos = isHomeContext
+    ? elements.trackerCorpoHome
+    : document.getElementById("containerCiclosTracker") ||
+      elements.containerCiclosTracker;
+  const targetTabs = isHomeContext
+    ? elements.trackerTabsContainerHome
+    : elements.trackerTabsContainer;
+
+  if (!targetCiclos) return;
+
+  // 1. Sincronização de Transações (Lazy Loading para transações do Tracker)
   const transacoesIdsNecessarias = state.votosTracker.map((v) => v.transacaoId);
   const idsFaltantes = transacoesIdsNecessarias.filter(
     (id) => !state.transacoes.some((t) => t.id === id),
@@ -39,11 +47,11 @@ export async function renderizarTracker() {
     });
   }
 
-  // 2. Limpeza Total
-  container.innerHTML = "";
-  if (elements.trackerTabsContainer) {
-    elements.trackerTabsContainer.innerHTML = "";
-    elements.trackerTabsContainer.style.display = "none";
+  // 2. Limpeza Total dos Containers
+  targetCiclos.innerHTML = "";
+  if (targetTabs) {
+    targetTabs.innerHTML = "";
+    targetTabs.style.display = "none";
   }
 
   const ciclosAtivos = state.ciclosTracker
@@ -52,7 +60,7 @@ export async function renderizarTracker() {
 
   if (ciclosAtivos.length === 0) {
     state.trackerActiveTabIndex = null;
-    container.innerHTML = `
+    targetCiclos.innerHTML = `
       <div style="text-align:center; padding:40px; color:#7f8c8d;">
         <p>Nenhum ciclo de acompanhamento ativo.</p>
         <button class="btn-tracker-main" onclick="window.trackerMod.abrirNovoCiclo()" style="margin-top:15px; border:none;">Abrir Novo Ciclo</button>
@@ -79,12 +87,12 @@ export async function renderizarTracker() {
       };
       nav.appendChild(btn);
     });
-    if (elements.trackerTabsContainer) {
-      elements.trackerTabsContainer.style.display = "flex";
-      elements.trackerTabsContainer.appendChild(nav);
+    if (targetTabs) {
+      targetTabs.style.display = "flex";
+      targetTabs.appendChild(nav);
     }
     const cicloParaMostrar = ciclosAtivos[state.trackerActiveTabIndex];
-    container.appendChild(
+    targetCiclos.appendChild(
       construirHTMLCiclo(
         cicloParaMostrar,
         state.trackerActiveTabIndex,
@@ -93,7 +101,7 @@ export async function renderizarTracker() {
     );
   } else {
     state.trackerActiveTabIndex = 0;
-    container.appendChild(construirHTMLCiclo(ciclosAtivos[0], 0, 1));
+    targetCiclos.appendChild(construirHTMLCiclo(ciclosAtivos[0], 0, 1));
   }
 }
 
