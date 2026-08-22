@@ -173,7 +173,6 @@ export function popularModalRelatorio(date) {
     : tituloTexto;
 
   // No modo Home, a navegação de data é feita pelos botões globais do header.
-  // Gerenciamos os botões do modal apenas se ele estiver ativo.
   if (!isHomeContext && elements.btnRelatorioProximo) {
     const limitDate = new Date();
     limitDate.setMonth(limitDate.getMonth() + 24);
@@ -248,7 +247,7 @@ export function popularModalRelatorio(date) {
             <span>Investimento Líquido</span> <strong>${formatCurrency(dados.investimentoLiquido)}</strong>
           </div>
           <div class="relatorio-item-analise" style="font-weight: bold; border-left-color: #f1c40f;">
-            <span>Taxa de Investimento Líquido</span> <strong>${dados.taxaInvestmento ? dados.taxaInvestmento.toFixed(1) : dados.taxaInvestimento.toFixed(1)}%</strong>
+            <span>Taxa de Investimento Líquido</span> <strong>${dados.taxaInvestimento.toFixed(1)}%</strong>
           </div>
         </div>
       </div>

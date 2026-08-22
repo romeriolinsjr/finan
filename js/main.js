@@ -1622,22 +1622,33 @@ document.addEventListener("DOMContentLoaded", () => {
     reports.popularModalRelatorio(state.reportDate);
   });
 
-  // Interatividade Drill-down nos Relatórios (Atualizado para Patrimônio)
-  elements.relatorioCorpo.addEventListener("click", (e) => {
+  // --- INTERATIVIDADE DRILL-DOWN NOS RELATÓRIOS (MODAL E HOME) ---
+  const handlerDrillDownRelatorios = (e) => {
     const itemClicavel = e.target.closest(".relatorio-item-analise.clicavel");
     if (itemClicavel) {
-      // Captura categoria, frequência OU o novo tipoPatrimonio do dataset do elemento
       const { cat, freq, tipoPatrimonio } = itemClicavel.dataset;
-
       reports.abrirDetalhesFiltroRelatorio(
         cat,
         freq,
         state.reportDate,
         ui.abrirModalEspecifico,
-        tipoPatrimonio, // Passa o parâmetro de patrimônio para a função lógica
+        tipoPatrimonio,
       );
     }
-  });
+  };
+
+  if (elements.relatorioCorpo) {
+    elements.relatorioCorpo.addEventListener(
+      "click",
+      handlerDrillDownRelatorios,
+    );
+  }
+  if (elements.relatorioCorpoHome) {
+    elements.relatorioCorpoHome.addEventListener(
+      "click",
+      handlerDrillDownRelatorios,
+    );
+  }
 
   // --- NOVO: Gerenciamento de Pessoas (Ajustado para o novo local no rodapé) ---
   const btnPessoas = document.getElementById("btnAbrirConsultaPessoas");
