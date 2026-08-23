@@ -208,6 +208,20 @@ export const elements = {
   ),
   trackerTabsContainerHome: document.getElementById("trackerTabsContainerHome"),
   trackerCorpoHome: document.getElementById("trackerCorpoHome"),
+  // CONTEXTO TERCEIROS HOME
+  containerTerceirosHome: document.getElementById("containerTerceirosHome"),
+  resumoDividasTerceirosHome: document.getElementById(
+    "resumoDividasTerceirosHome",
+  ),
+  listaDividasTerceirosHomeUl: document.getElementById(
+    "listaDividasTerceirosHome",
+  ),
+  btnAbrirConsultaPessoasHome: document.getElementById(
+    "btnAbrirConsultaPessoasHome",
+  ),
+  btnAbrirCadastroTerceirosHome: document.getElementById(
+    "btnAbrirCadastroTerceirosHome",
+  ),
   modalDetalhesFiltroRelatorio: document.getElementById(
     "modalDetalhesFiltroRelatorio",
   ),

@@ -470,6 +470,7 @@ export function renderizarTransacoesDoMes() {
   const isGestaoContexto = state.modoVisualizacao === "gestao-patrimonio";
   const isRelatoriosContexto = state.modoVisualizacao === "relatorios";
   const isTrackerContexto = state.modoVisualizacao === "weekly-tracker";
+  const isTerceirosContexto = state.modoVisualizacao === "terceiros";
 
   // --- 1. CONTROLE DE VISIBILIDADE POR CONTEXTO ---
   if (isGestaoContexto) {
@@ -481,6 +482,8 @@ export function renderizarTransacoesDoMes() {
       elements.containerRelatorioHome.style.display = "none";
     if (elements.containerWeeklyTrackerHome)
       elements.containerWeeklyTrackerHome.style.display = "none";
+    if (elements.containerTerceirosHome)
+      elements.containerTerceirosHome.style.display = "none";
     elements.listaTransacoesUl.style.display = "none";
     if (elements.headerContextPatrimonio)
       elements.headerContextPatrimonio.style.display = "block";
@@ -505,8 +508,9 @@ export function renderizarTransacoesDoMes() {
       elements.headerContextPatrimonio.style.display = "none";
     if (elements.containerWeeklyTrackerHome)
       elements.containerWeeklyTrackerHome.style.display = "none";
+    if (elements.containerTerceirosHome)
+      elements.containerTerceirosHome.style.display = "none";
     elements.listaTransacoesUl.style.display = "none";
-
     if (elements.containerRelatorioHome)
       elements.containerRelatorioHome.style.display = "block";
 
@@ -526,13 +530,37 @@ export function renderizarTransacoesDoMes() {
       elements.headerContextPatrimonio.style.display = "none";
     if (elements.containerRelatorioHome)
       elements.containerRelatorioHome.style.display = "none";
+    if (elements.containerTerceirosHome)
+      elements.containerTerceirosHome.style.display = "none";
     elements.listaTransacoesUl.style.display = "none";
-
     if (elements.containerWeeklyTrackerHome)
       elements.containerWeeklyTrackerHome.style.display = "block";
 
     import("./weekly-tracker.js").then((m) => {
       m.renderizarTracker();
+    });
+    atualizarResumoFinanceiro();
+    return;
+  } else if (isTerceirosContexto) {
+    if (elements.headerContextTransacoes)
+      elements.headerContextTransacoes.style.display = "none";
+    if (elements.containerBuscaTransacoes)
+      elements.containerBuscaTransacoes.style.display = "none";
+    if (elements.containerPatrimonioHome)
+      elements.containerPatrimonioHome.style.display = "none";
+    if (elements.headerContextPatrimonio)
+      elements.headerContextPatrimonio.style.display = "none";
+    if (elements.containerRelatorioHome)
+      elements.containerRelatorioHome.style.display = "none";
+    if (elements.containerWeeklyTrackerHome)
+      elements.containerWeeklyTrackerHome.style.display = "none";
+    elements.listaTransacoesUl.style.display = "none";
+    if (elements.containerTerceirosHome)
+      elements.containerTerceirosHome.style.display = "block";
+
+    import("./third-party.js").then((m) => {
+      state.dividasTerceirosDate = new Date(state.currentDate);
+      m.renderizarDividasDoMes();
     });
     atualizarResumoFinanceiro();
     return;
@@ -545,6 +573,8 @@ export function renderizarTransacoesDoMes() {
       elements.containerRelatorioHome.style.display = "none";
     if (elements.containerWeeklyTrackerHome)
       elements.containerWeeklyTrackerHome.style.display = "none";
+    if (elements.containerTerceirosHome)
+      elements.containerTerceirosHome.style.display = "none";
     elements.listaTransacoesUl.style.display = "block";
     if (elements.headerContextPatrimonio)
       elements.headerContextPatrimonio.style.display = "none";
@@ -559,7 +589,6 @@ export function renderizarTransacoesDoMes() {
   let itensParaRenderizar = [];
 
   if (abaAtivaAtual === "gerais") {
-    // 1. Receitas (Prioridade Master 1)
     transacoesDoMesVisivel
       .filter((t) => t.tipo === CONSTS.TIPO_TRANSACAO.RECEITA)
       .forEach((r) =>
@@ -571,7 +600,6 @@ export function renderizarTransacoesDoMes() {
         }),
       );
 
-    // 2. Despesas Ordinárias (Prioridade Master 3)
     transacoesDoMesVisivel
       .filter(
         (t) =>
@@ -587,7 +615,6 @@ export function renderizarTransacoesDoMes() {
         }),
       );
 
-    // 3. Faturas de Cartão (Prioridade Master 3)
     const faturasAgrupadas = {};
     transacoesDoMesVisivel
       .filter(
@@ -620,10 +647,10 @@ export function renderizarTransacoesDoMes() {
 
     Object.values(faturasAgrupadas).forEach((fatura) => {
       const [ano, mes] = mesAnoReferenciaAtual.split("-").map(Number);
-      const ajusteDeMes = fatura.vencimentoNoMesSeguinte ? 1 : 0;
+      const ajusteMes = fatura.vencimentoNoMesSeguinte ? 1 : 0;
       const dataVenc = new Date(
         ano,
-        mes - 1 + ajusteDeMes,
+        mes - 1 + ajusteMes,
         fatura.diaVencimentoFatura,
       );
 
@@ -650,7 +677,6 @@ export function renderizarTransacoesDoMes() {
       });
     });
 
-    // 4. Orçamentos (Prioridade Master 2)
     state.orcamentos
       .filter((o) => o.mesAnoReferencia === mesAnoReferenciaAtual)
       .forEach((orc) => {
@@ -686,7 +712,6 @@ export function renderizarTransacoesDoMes() {
         });
       });
   } else {
-    // ABA PATRIMONIAIS
     transacoesDoMesVisivel
       .filter(
         (t) =>
@@ -703,7 +728,6 @@ export function renderizarTransacoesDoMes() {
       );
   }
 
-  // --- 3. ORDENAÇÃO RÍGIDA ---
   itensParaRenderizar.sort((a, b) => {
     if (a.ordemMaster !== b.ordemMaster) return a.ordemMaster - b.ordemMaster;
     const dataA =
@@ -711,23 +735,11 @@ export function renderizarTransacoesDoMes() {
     const dataB =
       b.dataOrdenacao instanceof Date ? b.dataOrdenacao.getTime() : 0;
     if (dataA !== dataB) return dataA - dataB;
-
-    if (
-      a.tipoDisplay === CONSTS.TIPO_RENDERIZACAO.PATRIMONIO &&
-      b.tipoDisplay === CONSTS.TIPO_RENDERIZACAO.PATRIMONIO
-    ) {
-      const pesoOperacao = { aporte: 1, amortizacao: 2, resgate: 3 };
-      const pA = pesoOperacao[a.operacao] || 99;
-      const pB = pesoOperacao[b.operacao] || 99;
-      if (pA !== pB) return pA - pB;
-    }
-
     if (a.tipoDisplay === CONSTS.TIPO_RENDERIZACAO.ORCAMENTO) {
       if (a.isFixedOrdinary) return -1;
       if (b.isFixedOrdinary) return 1;
       return (b.valorTotalOrcamento || 0) - (a.valorTotalOrcamento || 0);
     }
-
     return (b.valor || 0) - (a.valor || 0);
   });
 

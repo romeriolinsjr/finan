@@ -1458,12 +1458,17 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Terceiros: Atalho Direto para Consulta de Dívidas
-  elements.btnDespesasTerceiros.addEventListener("click", () => {
-    state.dividasTerceirosDate = new Date(state.currentDate);
-    third.renderizarDividasDoMes();
-    ui.abrirModalEspecifico(elements.modalConsultarTerceiros);
-  });
+  // --- NAVEGAÇÃO DE CONTEXTO: TERCEIROS (SIDEBAR) ---
+  if (elements.btnDespesasTerceiros) {
+    elements.btnDespesasTerceiros.addEventListener("click", () => {
+      state.modoVisualizacao = "terceiros";
+      // Remove destaque de outras abas
+      if (elements.homeTabBtns) {
+        elements.homeTabBtns.forEach((b) => b.classList.remove("active"));
+      }
+      ui.renderizarTransacoesDoMes();
+    });
+  }
 
   // Cadastro de Nova Dívida a partir da Consulta
   if (elements.btnAbrirCadastroTerceiros) {
@@ -1497,27 +1502,25 @@ document.addEventListener("DOMContentLoaded", () => {
     third.renderizarDividasDoMes();
   });
 
-  // Clique na Lista de Dívidas (Checkbox Mestre, Individual e Ações)
-  elements.listaDividasTerceirosUl.addEventListener("click", (e) => {
-    // 1. Checkbox Mestre (Por pessoa)
+  // --- INTERATIVIDADE DE DÍVIDAS DE TERCEIROS (MODAL E HOME) ---
+  const handlerInteracaoTerceiros = (e) => {
     if (e.target.classList.contains("master-checkbox-pessoa")) {
       e.stopPropagation();
-      const pessoaId = e.target.dataset.pessoaId;
-      third.atualizarReembolsoEmLote(pessoaId, e.target.checked);
+      third.atualizarReembolsoEmLote(
+        e.target.dataset.pessoaId,
+        e.target.checked,
+      );
       return;
     }
-
     const id =
       e.target.dataset.dividaId || e.target.closest("button")?.dataset.dividaId;
     if (!id) return;
 
-    // 2. Checkbox Individual
     if (e.target.type === "checkbox") {
       third.atualizarStatusReembolso(id, e.target.checked);
       return;
     }
 
-    // 3. Botões de Ação
     if (e.target.closest(".btn-delete-divida")) {
       const d = state.dividasTerceiros.find((x) => x.id === id);
       if (d && d.frequencia === "unica") third.excluirDividaTerceiroUnica(id);
@@ -1530,23 +1533,60 @@ document.addEventListener("DOMContentLoaded", () => {
         );
     } else if (e.target.closest(".btn-edit-divida")) {
       const d = state.dividasTerceiros.find((x) => x.id === id);
-      if (d && d.frequencia === "unica") {
+      const callbackFechar = () => {
+        ui.fecharModalEspecifico(elements.modalConsultarTerceiros);
+        // Se estiver na Home, não precisa fechar nada, o modo já é 'terceiros'
+      };
+      if (d && d.frequencia === "unica")
         third.abrirModalEdicaoDivida(
           id,
           "unica",
-          () => ui.fecharModalEspecifico(elements.modalConsultarTerceiros),
+          callbackFechar,
           ui.abrirModalEspecifico,
         );
-      } else if (d) {
+      else if (d)
         ui.abrirModalConfirmarAcaoSerie(
           id,
           CONSTS.ACAO_SERIE.EDITAR,
           "dividaTerceiro",
           ui.abrirModalEspecifico,
         );
-      }
     }
-  });
+  };
+
+  if (elements.listaDividasTerceirosUl)
+    elements.listaDividasTerceirosUl.addEventListener(
+      "click",
+      handlerInteracaoTerceiros,
+    );
+  if (elements.listaDividasTerceirosHomeUl)
+    elements.listaDividasTerceirosHomeUl.addEventListener(
+      "click",
+      handlerInteracaoTerceiros,
+    );
+
+  // Botões de Ação na Home (Terceiros)
+  if (elements.btnAbrirConsultaPessoasHome) {
+    elements.btnAbrirConsultaPessoasHome.addEventListener("click", () => {
+      ui.abrirModalEspecifico(
+        elements.modalGerenciarPessoas,
+        null,
+        "gerenciarPessoas",
+        { renderizarListaPessoas: third.renderizarListaPessoas },
+      );
+    });
+  }
+  if (elements.btnAbrirCadastroTerceirosHome) {
+    elements.btnAbrirCadastroTerceirosHome.addEventListener("click", () => {
+      state.isEditMode = false;
+      state.isModoTerceiros = true;
+      trans.popularSeletoresFixos();
+      ui.abrirModalEspecifico(elements.modalNovaTransacao, null, "transacao", {
+        resetModalNovaTransacao: trans.resetModalNovaTransacao,
+        preencherModalParaEdicao: trans.preencherModalParaEdicao,
+      });
+    });
+  }
   elements.btnSalvarPessoaModal.addEventListener("click", async () => {
     const n = elements.nomePessoaInputModal.value.trim();
     if (!n) return;

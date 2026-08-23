@@ -316,6 +316,46 @@
               <!-- Conteúdo injetado via JS -->
             </div>
           </div>
+
+          <!-- CONTEXTO 5: DESPESAS DE TERCEIROS NA HOME -->
+          <div id="containerTerceirosHome" style="display: none">
+            <div
+              id="headerContextTerceiros"
+              style="
+                margin-bottom: 20px;
+                border-bottom: 1px solid #e0e0e0;
+                padding-bottom: 10px;
+              "
+            >
+              <h2 style="color: #2c3e50; font-size: 1.3em">
+                Dívidas de Terceiros
+              </h2>
+            </div>
+            <!-- Sub-containers para manter paridade com o Modal -->
+            <div
+              id="resumoDividasTerceirosHome"
+              class="resumo-terceiros-container"
+            ></div>
+            <hr />
+            <ul id="listaDividasTerceirosHome">
+              <!-- Lista de dívidas injetada via JS -->
+            </ul>
+            <div
+              class="terceiros-home-actions"
+              style="margin-top: 20px; display: flex; gap: 10px"
+            >
+              <button
+                id="btnAbrirConsultaPessoasHome"
+                class="btn-primary"
+                style="background-color: #34495e"
+              >
+                Consultar Pessoas
+              </button>
+              <button id="btnAbrirCadastroTerceirosHome" class="btn-primary">
+                Cadastrar Nova Dívida
+              </button>
+            </div>
+          </div>
         </section>
       </main>
     </div>

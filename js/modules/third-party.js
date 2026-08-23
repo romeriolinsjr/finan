@@ -5,9 +5,17 @@ import { db } from "./firebase-config.js";
 import { formatCurrency, getMesAnoChave } from "./utils.js";
 
 export function renderizarDividasDoMes() {
-  const listaUl = elements.listaDividasTerceirosUl;
-  const tituloEl = elements.terceirosTitulo;
-  const resumoEl = elements.resumoDividasTerceiros;
+  const isHomeContext = state.modoVisualizacao === "terceiros";
+
+  const listaUl = isHomeContext
+    ? elements.listaDividasTerceirosHomeUl
+    : elements.listaDividasTerceirosUl;
+  const tituloEl = isHomeContext
+    ? document.querySelector("#headerContextTerceiros h2")
+    : elements.terceirosTitulo;
+  const resumoEl = isHomeContext
+    ? elements.resumoDividasTerceirosHome
+    : elements.resumoDividasTerceiros;
 
   if (!listaUl || !tituloEl || !resumoEl) return;
 
@@ -16,7 +24,10 @@ export function renderizarDividasDoMes() {
     month: "long",
   });
   const ano = state.dividasTerceirosDate.getFullYear();
-  tituloEl.textContent = `Dívidas de ${nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1)}/${ano}`;
+
+  tituloEl.textContent = isHomeContext
+    ? "Dívidas de Terceiros"
+    : `Dívidas de ${nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1)}/${ano}`;
 
   if (elements.btnTerceirosProximo) {
     const limitDate = new Date();
@@ -29,21 +40,18 @@ export function renderizarDividasDoMes() {
     (d) => d.mesAnoReferencia === mesAno,
   );
 
-  // --- CÁLCULOS DO NOVO RESUMO ---
+  // --- CÁLCULOS DO RESUMO ---
   let totalGeral = 0;
   let totalFaltaReceber = 0;
   let totalOrdinarias = 0;
-  let totaisPorCartao = {}; // { "ID_CARTAO": { nome: "Nubank", valor: 0 } }
+  let totaisPorCartao = {};
 
   dividasDoMes.forEach((divida) => {
     totalGeral += divida.valor;
-    if (!divida.reembolsado) {
-      totalFaltaReceber += divida.valor;
-    }
-
-    if (divida.categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA) {
+    if (!divida.reembolsado) totalFaltaReceber += divida.valor;
+    if (divida.categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA)
       totalOrdinarias += divida.valor;
-    } else if (divida.categoria === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO) {
+    else if (divida.categoria === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO) {
       if (!totaisPorCartao[divida.cartaoId]) {
         const cartaoInfo = state.cartoes.find((c) => c.id === divida.cartaoId);
         totaisPorCartao[divida.cartaoId] = {
@@ -56,7 +64,7 @@ export function renderizarDividasDoMes() {
   });
 
   // --- CONSTRUÇÃO DO HTML DO RESUMO ---
-  let resumoHTML = `
+  resumoEl.innerHTML = `
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #dee2e6;">
             <div>
                 <p style="margin: 0; color: #7f8c8d; font-size: 0.85em;">Total no Mês:</p>
@@ -80,9 +88,8 @@ export function renderizarDividasDoMes() {
             </div>
         </div>
     `;
-  resumoEl.innerHTML = resumoHTML;
 
-  // --- RENDERIZAÇÃO DA LISTA (GRUPOS POR PESSOA) ---
+  // --- RENDERIZAÇÃO DA LISTA ---
   listaUl.innerHTML = "";
   if (dividasDoMes.length === 0) {
     listaUl.innerHTML =
@@ -102,71 +109,51 @@ export function renderizarDividasDoMes() {
     return acc;
   }, {});
 
-  const listaOrdenada = Object.values(dividasAgrupadas).sort((a, b) =>
-    a.nomePessoa.localeCompare(b.nomePessoa),
-  );
+  Object.values(dividasAgrupadas)
+    .sort((a, b) => a.nomePessoa.localeCompare(b.nomePessoa))
+    .forEach((grupo) => {
+      const totalPessoa = grupo.dividas.reduce((soma, d) => soma + d.valor, 0);
+      const todasReembolsadas = grupo.dividas.every((d) => d.reembolsado);
+      const pessoaId = grupo.dividas[0].pessoaId;
 
-  listaOrdenada.forEach((grupo) => {
-    const totalPessoa = grupo.dividas.reduce((soma, d) => soma + d.valor, 0);
-    const todasReembolsadas = grupo.dividas.every((d) => d.reembolsado);
-    const pessoaId = grupo.dividas[0].pessoaId;
-
-    // Cabeçalho do Grupo (Agora clicável para expandir/recolher)
-    const headerPessoa = document.createElement("div");
-    headerPessoa.className = "divida-grupo-header";
-    headerPessoa.style.cssText =
-      "padding: 10px 15px; margin: 15px 0 5px; background-color: #e9ecef; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; cursor: pointer;";
-
-    headerPessoa.innerHTML = `
+      const headerPessoa = document.createElement("div");
+      headerPessoa.className = "divida-grupo-header";
+      headerPessoa.style.cssText =
+        "padding: 10px 15px; margin: 15px 0 5px; background-color: #e9ecef; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; cursor: pointer;";
+      headerPessoa.innerHTML = `
         <div style="display: flex; align-items: center; gap: 10px;">
-            <input type="checkbox" class="master-checkbox-pessoa" data-pessoa-id="${pessoaId}" ${todasReembolsadas ? "checked" : ""} style="transform: scale(1.2); cursor: pointer;" title="Marcar/Desmarcar todas desta pessoa">
+            <input type="checkbox" class="master-checkbox-pessoa" data-pessoa-id="${pessoaId}" ${todasReembolsadas ? "checked" : ""} style="transform: scale(1.2); cursor: pointer;">
             <h4 style="margin: 0; font-size: 1em; color: #2c3e50;">${grupo.nomePessoa}</h4>
             <span class="seta-toggle" style="font-size: 0.8em; transition: transform 0.2s;">▶</span>
         </div>
         <span style="font-weight: bold; color: #2c3e50; font-size: 0.95em;">Total: ${formatCurrency(totalPessoa)}</span>
     `;
 
-    // Container dos Itens (Recolhido por padrão)
-    const containerItens = document.createElement("div");
-    containerItens.className = "divida-grupo-conteudo recolhido";
-    containerItens.style.display = "none";
-    containerItens.id = `grupo-itens-${pessoaId}`;
+      const containerItens = document.createElement("div");
+      containerItens.className = "divida-grupo-conteudo recolhido";
+      containerItens.style.display = "none";
+      containerItens.id = `grupo-itens-${pessoaId}`;
 
-    // Lógica de Clique no Cabeçalho para Expandir/Recolher
-    headerPessoa.addEventListener("click", (e) => {
-      // Se clicou no checkbox mestre, não faz nada aqui (o main.js resolve)
-      if (e.target.classList.contains("master-checkbox-pessoa")) return;
+      headerPessoa.addEventListener("click", (e) => {
+        if (e.target.classList.contains("master-checkbox-pessoa")) return;
+        const estaRecolhido = containerItens.classList.contains("recolhido");
+        const seta = headerPessoa.querySelector(".seta-toggle");
+        containerItens.classList.toggle("recolhido", !estaRecolhido);
+        containerItens.style.display = estaRecolhido ? "block" : "none";
+        seta.style.transform = estaRecolhido ? "rotate(90deg)" : "rotate(0deg)";
+      });
 
-      const estaRecolhido = containerItens.classList.contains("recolhido");
-      const seta = headerPessoa.querySelector(".seta-toggle");
-
-      if (estaRecolhido) {
-        containerItens.classList.remove("recolhido");
-        containerItens.style.display = "block";
-        seta.style.transform = "rotate(90deg)";
-      } else {
-        containerItens.classList.add("recolhido");
-        containerItens.style.display = "none";
-        seta.style.transform = "rotate(0deg)";
-      }
-    });
-
-    listaUl.appendChild(headerPessoa);
-
-    const dividasOrdenadas = [...grupo.dividas].sort(
-      (a, b) => b.valor - a.valor,
-    );
-
-    dividasOrdenadas.forEach((divida) => {
-      const li = document.createElement("li");
-      li.className = "divida-terceiro-item";
-      if (divida.reembolsado) li.classList.add("reembolsado");
-
-      let detalhes = divida.nomeTransacao;
-      if (divida.frequencia === "parcelada")
-        detalhes += ` (${divida.parcelaAtual}/${divida.totalParcelas})`;
-
-      li.innerHTML = `
+      listaUl.appendChild(headerPessoa);
+      [...grupo.dividas]
+        .sort((a, b) => b.valor - a.valor)
+        .forEach((divida) => {
+          const li = document.createElement("li");
+          li.className = "divida-terceiro-item";
+          if (divida.reembolsado) li.classList.add("reembolsado");
+          let detalhes = divida.nomeTransacao;
+          if (divida.frequencia === "parcelada")
+            detalhes += ` (${divida.parcelaAtual}/${divida.totalParcelas})`;
+          li.innerHTML = `
                 <input type="checkbox" data-divida-id="${divida.id}" ${divida.reembolsado ? "checked" : ""}>
                 <div class="divida-info">
                     <span class="transacao-detalhes">${detalhes}</span>
@@ -177,11 +164,10 @@ export function renderizarDividasDoMes() {
                     <button class="btn-delete btn-delete-divida" data-divida-id="${divida.id}" title="Excluir">✖</button>
                 </div>
             `;
-      containerItens.appendChild(li);
+          containerItens.appendChild(li);
+        });
+      listaUl.appendChild(containerItens);
     });
-
-    listaUl.appendChild(containerItens);
-  });
 }
 
 export async function atualizarStatusReembolso(dividaId, novoStatus) {
