@@ -872,18 +872,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // Cartões
-  elements.btnGerenciarCartoes.addEventListener("click", () =>
-    ui.abrirModalEspecifico(
-      elements.modalGerenciarCartoes,
-      null,
-      "gerenciarCartoes",
-      {
-        renderizarListaCartoesCadastrados:
-          cards.renderizarListaCartoesCadastrados,
-      },
-    ),
-  );
+  // (Gatilho de modal removido: migrado para navegação de contexto)
   elements.btnAbrirModalCadastroCartao.addEventListener("click", () => {
     ui.fecharModalEspecifico(elements.modalGerenciarCartoes);
     elements.modalCadastrarCartao.dataset.returnTo = "modalGerenciarCartoes";
@@ -953,7 +942,7 @@ document.addEventListener("DOMContentLoaded", () => {
         elements.cartaoDespesa.value = cartaoId;
       }
 
-      // Se deve retornar ao gerenciador, garante que a lista está atualizada
+      // Se deve retornar ao gerenciador, reabre ele (Fluxo de Modal)
       if (returnTo === "modalGerenciarCartoes") {
         ui.abrirModalEspecifico(
           elements.modalGerenciarCartoes,
@@ -966,8 +955,11 @@ document.addEventListener("DOMContentLoaded", () => {
         );
       }
 
-      // Caso o modal gerenciador esteja aberto ao fundo, força o refresh da lista
-      if (elements.modalGerenciarCartoes.style.display === "flex") {
+      // REATIVIDADE: Força o refresh da lista se o modal estiver aberto OU se estivermos no contexto da Home
+      if (
+        elements.modalGerenciarCartoes.style.display === "flex" ||
+        state.modoVisualizacao === "cartoes"
+      ) {
         cards.renderizarListaCartoesCadastrados();
       }
     } catch (error) {
@@ -1078,13 +1070,17 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  elements.listaCartoesCadastradosUl.addEventListener("click", async (e) => {
+  // --- INTERATIVIDADE DE GESTÃO DE CARTÕES (MODAL E HOME) ---
+  const handlerInteracaoCartoes = async (e) => {
     const cartaoId =
       e.target.closest(".cartao-info")?.dataset.id ||
       e.target.closest("button")?.dataset.id;
     const nome = e.target.closest("button")?.dataset.nome;
+    if (!cartaoId) return;
+
     if (e.target.closest(".cartao-info")) {
-      ui.fecharModalEspecifico(elements.modalGerenciarCartoes);
+      if (state.modoVisualizacao !== "cartoes")
+        ui.fecharModalEspecifico(elements.modalGerenciarCartoes);
       cards.abrirModalDetalhesFatura(
         cartaoId,
         utils.getMesAnoChave(state.currentDate),
@@ -1092,7 +1088,6 @@ document.addEventListener("DOMContentLoaded", () => {
         cards.popularModalDetalhesFatura,
       );
     } else if (e.target.closest(".btn-add-despesa-cartao")) {
-      // PADRONIZAÇÃO: Não fechamos mais o gerenciador, permitindo o empilhamento do modal
       trans.abrirModalDespesaCartaoRapida(
         cartaoId,
         nome,
@@ -1101,7 +1096,11 @@ document.addEventListener("DOMContentLoaded", () => {
         trans.carregarFormularioDespesaCartao,
       );
     } else if (e.target.closest(".btn-edit-cartao")) {
-      ui.fecharModalEspecifico(elements.modalGerenciarCartoes);
+      const returnTo =
+        state.modoVisualizacao === "cartoes" ? "" : "modalGerenciarCartoes";
+      if (returnTo === "modalGerenciarCartoes")
+        ui.fecharModalEspecifico(elements.modalGerenciarCartoes);
+      elements.modalCadastrarCartao.dataset.returnTo = returnTo;
       ui.abrirModalEspecifico(
         elements.modalCadastrarCartao,
         cartaoId,
@@ -1112,10 +1111,22 @@ document.addEventListener("DOMContentLoaded", () => {
         },
       );
     } else if (e.target.closest(".btn-delete-cartao")) {
-      // Ajustado para esperar a busca da última parcela no banco
       await cards.prepararSoftDeleteCartao(cartaoId, ui.abrirModalEspecifico);
     }
-  });
+  };
+
+  if (elements.listaCartoesCadastradosUl)
+    elements.listaCartoesCadastradosUl.addEventListener(
+      "click",
+      handlerInteracaoCartoes,
+    );
+  if (elements.listaCartoesHomeUl)
+    elements.listaCartoesHomeUl.addEventListener(
+      "click",
+      handlerInteracaoCartoes,
+    );
+
+  // (Removido por duplicidade: Já configurado no início do arquivo)
 
   // Faturas (Navegação Inteligente com Lazy Loading)
   elements.btnFaturaAnterior.addEventListener("click", async () => {
@@ -1240,11 +1251,40 @@ document.addEventListener("DOMContentLoaded", () => {
   if (elements.btnMenuOrcamentos) {
     elements.btnMenuOrcamentos.addEventListener("click", () => {
       state.modoVisualizacao = "orcamentos";
-      // Remove destaque de outras abas
       if (elements.homeTabBtns) {
         elements.homeTabBtns.forEach((b) => b.classList.remove("active"));
       }
       ui.renderizarTransacoesDoMes();
+    });
+  }
+
+  // --- NAVEGAÇÃO DE CONTEXTO: CARTÕES (SIDEBAR) ---
+  if (elements.btnGerenciarCartoes) {
+    elements.btnGerenciarCartoes.addEventListener("click", () => {
+      state.modoVisualizacao = "cartoes";
+      if (elements.homeTabBtns) {
+        elements.homeTabBtns.forEach((b) => b.classList.remove("active"));
+      }
+      ui.renderizarTransacoesDoMes();
+    });
+  }
+
+  // Botão Novo Cartão na Home
+  if (elements.btnAbrirModalCadastroCartaoHome) {
+    elements.btnAbrirModalCadastroCartaoHome.addEventListener("click", () => {
+      elements.modalCadastrarCartao.dataset.returnTo = "";
+      ui.abrirModalEspecifico(
+        elements.modalCadastrarCartao,
+        null,
+        "cartaoCadastroEdicao",
+        {
+          resetModalCartao: () => {
+            elements.nomeCartaoInputModal.value = "";
+            elements.diaVencimentoFaturaInputModal.value = "";
+            elements.modalCartaoTitulo.textContent = "Cadastrar Novo Cartão";
+          },
+        },
+      );
     });
   }
 

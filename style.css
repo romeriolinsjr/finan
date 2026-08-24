@@ -769,7 +769,8 @@ body.modal-aberto {
 
 #listaCartoesCadastrados,
 #listaOrcamentos,
-#listaOrcamentosHome {
+#listaOrcamentosHome,
+#listaCartoesHome {
   list-style-type: none;
   padding: 0;
   max-height: 400px;
@@ -777,7 +778,8 @@ body.modal-aberto {
 }
 #listaCartoesCadastrados li,
 #listaOrcamentos li,
-#listaOrcamentosHome li {
+#listaOrcamentosHome li,
+#listaCartoesHome li {
   display: flex;
   justify-content: space-between;
   align-items: center;

@@ -202,13 +202,18 @@ export function popularModalDetalhesFatura(cartaoId, mesAnoFatura) {
 }
 
 export function renderizarListaCartoesCadastrados() {
-  if (!elements.listaCartoesCadastradosUl) return;
-  elements.listaCartoesCadastradosUl.innerHTML = "";
+  const isHomeContext = state.modoVisualizacao === "cartoes";
+  const listaUl = isHomeContext
+    ? elements.listaCartoesHomeUl
+    : elements.listaCartoesCadastradosUl;
+
+  if (!listaUl) return;
+  listaUl.innerHTML = "";
 
   const cartoesAtivos = state.cartoes.filter((c) => !c.deletado);
   if (cartoesAtivos.length === 0) {
-    elements.listaCartoesCadastradosUl.innerHTML =
-      "<li>Nenhum cartão ativo.</li>";
+    listaUl.innerHTML =
+      '<li style="text-align: center; padding: 20px; color: #777;">Nenhum cartão ativo.</li>';
     return;
   }
 
@@ -218,7 +223,6 @@ export function renderizarListaCartoesCadastrados() {
   );
 
   cartoesOrdenados.forEach((cartao) => {
-    // Cálculo do total total (Meu + Terceiros) para o mês atual
     const minhas = state.transacoes.filter(
       (t) => t.cartaoId === cartao.id && t.mesAnoReferencia === mesAnoAtual,
     );
@@ -245,7 +249,7 @@ export function renderizarListaCartoesCadastrados() {
                     <button class="btn-edit-cartao" data-id="${cartao.id}" title="Editar">✎</button>
                     <button class="btn-delete-cartao" data-id="${cartao.id}" title="Excluir">✖</button>
                 </div>`;
-    elements.listaCartoesCadastradosUl.appendChild(li);
+    listaUl.appendChild(li);
   });
 }
 

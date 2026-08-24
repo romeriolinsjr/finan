@@ -281,11 +281,11 @@
             </div>
             <div
               class="relatorio-home-footer"
-              style="margin-top: 20px; display: flex; gap: 10px"
+              style="margin-top: 25px; display: flex; justify-content: center"
             >
               <button
                 id="btnDownloadPDFHome"
-                class="btn-primary"
+                class="btn-primary btn-pat-home"
                 style="background-color: #27ae60"
               >
                 📥 Baixar Extrato (PDF)
@@ -342,16 +342,25 @@
             </ul>
             <div
               class="terceiros-home-actions"
-              style="margin-top: 20px; display: flex; gap: 10px"
+              style="
+                margin-top: 25px;
+                display: flex;
+                justify-content: center;
+                gap: 12px;
+                flex-wrap: wrap;
+              "
             >
               <button
                 id="btnAbrirConsultaPessoasHome"
-                class="btn-primary"
+                class="btn-primary btn-pat-home"
                 style="background-color: #34495e"
               >
                 Consultar Pessoas
               </button>
-              <button id="btnAbrirCadastroTerceirosHome" class="btn-primary">
+              <button
+                id="btnAbrirCadastroTerceirosHome"
+                class="btn-primary btn-pat-home"
+              >
                 Cadastrar Nova Dívida
               </button>
             </div>
@@ -374,12 +383,45 @@
             <ul id="listaOrcamentosHome">
               <!-- Lista de orçamentos injetada via JS -->
             </ul>
-            <div class="orcamentos-home-actions" style="margin-top: 20px">
+            <div
+              class="orcamentos-home-actions"
+              style="margin-top: 25px; display: flex; justify-content: center"
+            >
               <button
                 id="btnAbrirModalCadastroOrcamentoHome"
-                class="btn-primary"
+                class="btn-primary btn-pat-home"
               >
                 Cadastrar Novo Orçamento
+              </button>
+            </div>
+          </div>
+
+          <!-- CONTEXTO 7: GERENCIAR CARTÕES NA HOME -->
+          <div id="containerCartoesHome" style="display: none">
+            <div
+              id="headerContextCartoes"
+              style="
+                margin-bottom: 20px;
+                border-bottom: 1px solid #e0e0e0;
+                padding-bottom: 10px;
+              "
+            >
+              <h2 style="color: #2c3e50; font-size: 1.3em">
+                Gerenciar Cartões de Crédito
+              </h2>
+            </div>
+            <ul id="listaCartoesHome">
+              <!-- Lista de cartões injetada via JS -->
+            </ul>
+            <div
+              class="cartoes-home-actions"
+              style="margin-top: 25px; display: flex; justify-content: center"
+            >
+              <button
+                id="btnAbrirModalCadastroCartaoHome"
+                class="btn-primary btn-pat-home"
+              >
+                Cadastrar Novo Cartão
               </button>
             </div>
           </div>

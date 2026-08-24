@@ -24,7 +24,8 @@ export function renderizarListaOrcamentos() {
   );
 
   if (orcamentosDoMes.length === 0) {
-    listaUl.innerHTML = "<li>Nenhum orçamento para este mês.</li>";
+    listaUl.innerHTML =
+      '<li style="text-align: center; padding: 20px; color: #777;">Nenhum orçamento para este mês.</li>';
     return;
   }
 
@@ -45,6 +46,7 @@ export function renderizarListaOrcamentos() {
       orcamento.isFixed || orcamento.isFixedOrdinary
         ? ""
         : `<button class="btn-delete-orcamento" data-id="${orcamento.id}" title="Excluir Orçamento">✖</button>`;
+
     li.innerHTML = `
                 <div class="orcamento-info">
                     <span class="orcamento-nome">${orcamento.nome}</span>

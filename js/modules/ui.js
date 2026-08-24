@@ -472,6 +472,7 @@ export function renderizarTransacoesDoMes() {
   const isTrackerContexto = state.modoVisualizacao === "weekly-tracker";
   const isTerceirosContexto = state.modoVisualizacao === "terceiros";
   const isOrcamentosContexto = state.modoVisualizacao === "orcamentos";
+  const isCartoesContexto = state.modoVisualizacao === "cartoes";
 
   // --- 1. CONTROLE DE VISIBILIDADE POR CONTEXTO ---
   if (isGestaoContexto) {
@@ -487,6 +488,8 @@ export function renderizarTransacoesDoMes() {
       elements.containerTerceirosHome.style.display = "none";
     if (elements.containerOrcamentosHome)
       elements.containerOrcamentosHome.style.display = "none";
+    if (elements.containerCartoesHome)
+      elements.containerCartoesHome.style.display = "none";
     elements.listaTransacoesUl.style.display = "none";
     if (elements.headerContextPatrimonio)
       elements.headerContextPatrimonio.style.display = "block";
@@ -515,6 +518,8 @@ export function renderizarTransacoesDoMes() {
       elements.containerTerceirosHome.style.display = "none";
     if (elements.containerOrcamentosHome)
       elements.containerOrcamentosHome.style.display = "none";
+    if (elements.containerCartoesHome)
+      elements.containerCartoesHome.style.display = "none";
     elements.listaTransacoesUl.style.display = "none";
     if (elements.containerRelatorioHome)
       elements.containerRelatorioHome.style.display = "block";
@@ -539,6 +544,8 @@ export function renderizarTransacoesDoMes() {
       elements.containerTerceirosHome.style.display = "none";
     if (elements.containerOrcamentosHome)
       elements.containerOrcamentosHome.style.display = "none";
+    if (elements.containerCartoesHome)
+      elements.containerCartoesHome.style.display = "none";
     elements.listaTransacoesUl.style.display = "none";
     if (elements.containerWeeklyTrackerHome)
       elements.containerWeeklyTrackerHome.style.display = "block";
@@ -563,6 +570,8 @@ export function renderizarTransacoesDoMes() {
       elements.containerWeeklyTrackerHome.style.display = "none";
     if (elements.containerOrcamentosHome)
       elements.containerOrcamentosHome.style.display = "none";
+    if (elements.containerCartoesHome)
+      elements.containerCartoesHome.style.display = "none";
     elements.listaTransacoesUl.style.display = "none";
     if (elements.containerTerceirosHome)
       elements.containerTerceirosHome.style.display = "block";
@@ -588,13 +597,40 @@ export function renderizarTransacoesDoMes() {
       elements.containerWeeklyTrackerHome.style.display = "none";
     if (elements.containerTerceirosHome)
       elements.containerTerceirosHome.style.display = "none";
+    if (elements.containerCartoesHome)
+      elements.containerCartoesHome.style.display = "none";
     elements.listaTransacoesUl.style.display = "none";
-
     if (elements.containerOrcamentosHome)
       elements.containerOrcamentosHome.style.display = "block";
 
     import("./budgets.js").then((m) => {
       m.renderizarListaOrcamentos();
+    });
+    atualizarResumoFinanceiro();
+    return;
+  } else if (isCartoesContexto) {
+    if (elements.headerContextTransacoes)
+      elements.headerContextTransacoes.style.display = "none";
+    if (elements.containerBuscaTransacoes)
+      elements.containerBuscaTransacoes.style.display = "none";
+    if (elements.containerPatrimonioHome)
+      elements.containerPatrimonioHome.style.display = "none";
+    if (elements.headerContextPatrimonio)
+      elements.headerContextPatrimonio.style.display = "none";
+    if (elements.containerRelatorioHome)
+      elements.containerRelatorioHome.style.display = "none";
+    if (elements.containerWeeklyTrackerHome)
+      elements.containerWeeklyTrackerHome.style.display = "none";
+    if (elements.containerTerceirosHome)
+      elements.containerTerceirosHome.style.display = "none";
+    if (elements.containerOrcamentosHome)
+      elements.containerOrcamentosHome.style.display = "none";
+    elements.listaTransacoesUl.style.display = "none";
+    if (elements.containerCartoesHome)
+      elements.containerCartoesHome.style.display = "block";
+
+    import("./cards.js").then((m) => {
+      m.renderizarListaCartoesCadastrados();
     });
     atualizarResumoFinanceiro();
     return;
@@ -611,6 +647,8 @@ export function renderizarTransacoesDoMes() {
       elements.containerTerceirosHome.style.display = "none";
     if (elements.containerOrcamentosHome)
       elements.containerOrcamentosHome.style.display = "none";
+    if (elements.containerCartoesHome)
+      elements.containerCartoesHome.style.display = "none";
     elements.listaTransacoesUl.style.display = "block";
     if (elements.headerContextPatrimonio)
       elements.headerContextPatrimonio.style.display = "none";
@@ -748,7 +786,6 @@ export function renderizarTransacoesDoMes() {
         });
       });
   } else {
-    // ABA PATRIMONIAIS
     transacoesDoMesVisivel
       .filter(
         (t) =>
@@ -765,7 +802,6 @@ export function renderizarTransacoesDoMes() {
       );
   }
 
-  // --- 3. ORDENAÇÃO RÍGIDA ---
   itensParaRenderizar.sort((a, b) => {
     if (a.ordemMaster !== b.ordemMaster) return a.ordemMaster - b.ordemMaster;
     const dataA =

@@ -228,6 +228,12 @@ export const elements = {
   btnAbrirModalCadastroOrcamentoHome: document.getElementById(
     "btnAbrirModalCadastroOrcamentoHome",
   ),
+  // CONTEXTO CARTÕES HOME
+  containerCartoesHome: document.getElementById("containerCartoesHome"),
+  listaCartoesHomeUl: document.getElementById("listaCartoesHome"),
+  btnAbrirModalCadastroCartaoHome: document.getElementById(
+    "btnAbrirModalCadastroCartaoHome",
+  ),
   modalDetalhesFiltroRelatorio: document.getElementById(
     "modalDetalhesFiltroRelatorio",
   ),
