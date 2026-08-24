@@ -471,6 +471,7 @@ export function renderizarTransacoesDoMes() {
   const isRelatoriosContexto = state.modoVisualizacao === "relatorios";
   const isTrackerContexto = state.modoVisualizacao === "weekly-tracker";
   const isTerceirosContexto = state.modoVisualizacao === "terceiros";
+  const isOrcamentosContexto = state.modoVisualizacao === "orcamentos";
 
   // --- 1. CONTROLE DE VISIBILIDADE POR CONTEXTO ---
   if (isGestaoContexto) {
@@ -484,6 +485,8 @@ export function renderizarTransacoesDoMes() {
       elements.containerWeeklyTrackerHome.style.display = "none";
     if (elements.containerTerceirosHome)
       elements.containerTerceirosHome.style.display = "none";
+    if (elements.containerOrcamentosHome)
+      elements.containerOrcamentosHome.style.display = "none";
     elements.listaTransacoesUl.style.display = "none";
     if (elements.headerContextPatrimonio)
       elements.headerContextPatrimonio.style.display = "block";
@@ -510,6 +513,8 @@ export function renderizarTransacoesDoMes() {
       elements.containerWeeklyTrackerHome.style.display = "none";
     if (elements.containerTerceirosHome)
       elements.containerTerceirosHome.style.display = "none";
+    if (elements.containerOrcamentosHome)
+      elements.containerOrcamentosHome.style.display = "none";
     elements.listaTransacoesUl.style.display = "none";
     if (elements.containerRelatorioHome)
       elements.containerRelatorioHome.style.display = "block";
@@ -532,6 +537,8 @@ export function renderizarTransacoesDoMes() {
       elements.containerRelatorioHome.style.display = "none";
     if (elements.containerTerceirosHome)
       elements.containerTerceirosHome.style.display = "none";
+    if (elements.containerOrcamentosHome)
+      elements.containerOrcamentosHome.style.display = "none";
     elements.listaTransacoesUl.style.display = "none";
     if (elements.containerWeeklyTrackerHome)
       elements.containerWeeklyTrackerHome.style.display = "block";
@@ -554,6 +561,8 @@ export function renderizarTransacoesDoMes() {
       elements.containerRelatorioHome.style.display = "none";
     if (elements.containerWeeklyTrackerHome)
       elements.containerWeeklyTrackerHome.style.display = "none";
+    if (elements.containerOrcamentosHome)
+      elements.containerOrcamentosHome.style.display = "none";
     elements.listaTransacoesUl.style.display = "none";
     if (elements.containerTerceirosHome)
       elements.containerTerceirosHome.style.display = "block";
@@ -561,6 +570,31 @@ export function renderizarTransacoesDoMes() {
     import("./third-party.js").then((m) => {
       state.dividasTerceirosDate = new Date(state.currentDate);
       m.renderizarDividasDoMes();
+    });
+    atualizarResumoFinanceiro();
+    return;
+  } else if (isOrcamentosContexto) {
+    if (elements.headerContextTransacoes)
+      elements.headerContextTransacoes.style.display = "none";
+    if (elements.containerBuscaTransacoes)
+      elements.containerBuscaTransacoes.style.display = "none";
+    if (elements.containerPatrimonioHome)
+      elements.containerPatrimonioHome.style.display = "none";
+    if (elements.headerContextPatrimonio)
+      elements.headerContextPatrimonio.style.display = "none";
+    if (elements.containerRelatorioHome)
+      elements.containerRelatorioHome.style.display = "none";
+    if (elements.containerWeeklyTrackerHome)
+      elements.containerWeeklyTrackerHome.style.display = "none";
+    if (elements.containerTerceirosHome)
+      elements.containerTerceirosHome.style.display = "none";
+    elements.listaTransacoesUl.style.display = "none";
+
+    if (elements.containerOrcamentosHome)
+      elements.containerOrcamentosHome.style.display = "block";
+
+    import("./budgets.js").then((m) => {
+      m.renderizarListaOrcamentos();
     });
     atualizarResumoFinanceiro();
     return;
@@ -575,6 +609,8 @@ export function renderizarTransacoesDoMes() {
       elements.containerWeeklyTrackerHome.style.display = "none";
     if (elements.containerTerceirosHome)
       elements.containerTerceirosHome.style.display = "none";
+    if (elements.containerOrcamentosHome)
+      elements.containerOrcamentosHome.style.display = "none";
     elements.listaTransacoesUl.style.display = "block";
     if (elements.headerContextPatrimonio)
       elements.headerContextPatrimonio.style.display = "none";
@@ -712,6 +748,7 @@ export function renderizarTransacoesDoMes() {
         });
       });
   } else {
+    // ABA PATRIMONIAIS
     transacoesDoMesVisivel
       .filter(
         (t) =>
@@ -728,6 +765,7 @@ export function renderizarTransacoesDoMes() {
       );
   }
 
+  // --- 3. ORDENAÇÃO RÍGIDA ---
   itensParaRenderizar.sort((a, b) => {
     if (a.ordemMaster !== b.ordemMaster) return a.ordemMaster - b.ordemMaster;
     const dataA =

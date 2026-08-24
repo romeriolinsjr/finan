@@ -222,6 +222,12 @@ export const elements = {
   btnAbrirCadastroTerceirosHome: document.getElementById(
     "btnAbrirCadastroTerceirosHome",
   ),
+  // CONTEXTO ORÇAMENTOS HOME
+  containerOrcamentosHome: document.getElementById("containerOrcamentosHome"),
+  listaOrcamentosHomeUl: document.getElementById("listaOrcamentosHome"),
+  btnAbrirModalCadastroOrcamentoHome: document.getElementById(
+    "btnAbrirModalCadastroOrcamentoHome",
+  ),
   modalDetalhesFiltroRelatorio: document.getElementById(
     "modalDetalhesFiltroRelatorio",
   ),

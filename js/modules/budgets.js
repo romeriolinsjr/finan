@@ -10,8 +10,13 @@ import {
 } from "./utils.js";
 
 export function renderizarListaOrcamentos() {
-  if (!elements.listaOrcamentosUl) return;
-  elements.listaOrcamentosUl.innerHTML = "";
+  const isHomeContext = state.modoVisualizacao === "orcamentos";
+  const listaUl = isHomeContext
+    ? elements.listaOrcamentosHomeUl
+    : elements.listaOrcamentosUl;
+
+  if (!listaUl) return;
+  listaUl.innerHTML = "";
 
   const mesAnoAtual = getMesAnoChave(state.currentDate);
   const orcamentosDoMes = state.orcamentos.filter(
@@ -19,8 +24,7 @@ export function renderizarListaOrcamentos() {
   );
 
   if (orcamentosDoMes.length === 0) {
-    elements.listaOrcamentosUl.innerHTML =
-      "<li>Nenhum orçamento para este mês.</li>";
+    listaUl.innerHTML = "<li>Nenhum orçamento para este mês.</li>";
     return;
   }
 
@@ -50,7 +54,7 @@ export function renderizarListaOrcamentos() {
                     <button class="btn-edit-orcamento" data-id="${orcamento.id}" title="Editar Orçamento">✎</button>
                     ${btnDeleteHTML}
                 </div>`;
-    elements.listaOrcamentosUl.appendChild(li);
+    listaUl.appendChild(li);
   });
 }
 

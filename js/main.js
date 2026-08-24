@@ -1236,12 +1236,17 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Orçamentos
-  elements.btnMenuOrcamentos.addEventListener("click", () =>
-    ui.abrirModalEspecifico(elements.modalOrcamentos, null, "orcamentos", {
-      renderizarListaOrcamentos: budgets.renderizarListaOrcamentos,
-    }),
-  );
+  // --- NAVEGAÇÃO DE CONTEXTO: ORÇAMENTOS (SIDEBAR) ---
+  if (elements.btnMenuOrcamentos) {
+    elements.btnMenuOrcamentos.addEventListener("click", () => {
+      state.modoVisualizacao = "orcamentos";
+      // Remove destaque de outras abas
+      if (elements.homeTabBtns) {
+        elements.homeTabBtns.forEach((b) => b.classList.remove("active"));
+      }
+      ui.renderizarTransacoesDoMes();
+    });
+  }
 
   // Novo: Abre o modal de cadastro/edição (Padronizado com Cartões)
   elements.btnAbrirModalCadastroOrcamento.addEventListener("click", () => {
@@ -1343,16 +1348,19 @@ document.addEventListener("DOMContentLoaded", () => {
   elements.btnOrcamentoCancelar.addEventListener("click", () =>
     ui.fecharModalEspecifico(elements.modalConfirmarEscopoOrcamento),
   );
-  // Ouvinte para a lista de orçamentos (Edição e Exclusão)
-  elements.listaOrcamentosUl.addEventListener("click", (e) => {
+  // --- INTERATIVIDADE DE GESTÃO DE ORÇAMENTOS (MODAL E HOME) ---
+  const handlerInteracaoOrcamentos = (e) => {
     const button = e.target.closest("button");
     const id = button?.dataset.id;
     if (!id) return;
 
     if (button.classList.contains("btn-edit-orcamento")) {
-      ui.fecharModalEspecifico(elements.modalOrcamentos);
-      elements.modalCadastrarOrcamento.dataset.returnTo = "modalOrcamentos";
+      const returnTo =
+        state.modoVisualizacao === "orcamentos" ? "" : "modalOrcamentos";
+      if (returnTo === "modalOrcamentos")
+        ui.fecharModalEspecifico(elements.modalOrcamentos);
 
+      elements.modalCadastrarOrcamento.dataset.returnTo = returnTo;
       ui.abrirModalEspecifico(
         elements.modalCadastrarOrcamento,
         id,
@@ -1365,21 +1373,41 @@ document.addEventListener("DOMContentLoaded", () => {
     } else if (button.classList.contains("btn-delete-orcamento")) {
       const orcamento = state.orcamentos.find((o) => o.id === id);
       if (!orcamento) return;
-
-      // Armazena o ID do orçamento no dataset do modal para uso posterior
       elements.modalConfirmarExclusaoEscopoOrcamento.dataset.orcamentoIdParaExcluir =
         id;
-      elements.modalConfirmarExclusaoEscopoOrcamento.dataset.orcamentoNomeParaExcluir =
-        orcamento.nome;
-
       document.getElementById(
         "textoConfirmarExclusaoEscopoOrcamento",
       ).textContent =
         `Como você deseja excluir o orçamento "${orcamento.nome}"?`;
-
       ui.abrirModalEspecifico(elements.modalConfirmarExclusaoEscopoOrcamento);
     }
-  });
+  };
+
+  if (elements.listaOrcamentosUl)
+    elements.listaOrcamentosUl.addEventListener(
+      "click",
+      handlerInteracaoOrcamentos,
+    );
+  if (elements.listaOrcamentosHomeUl)
+    elements.listaOrcamentosHomeUl.addEventListener(
+      "click",
+      handlerInteracaoOrcamentos,
+    );
+
+  if (elements.btnAbrirModalCadastroOrcamentoHome) {
+    elements.btnAbrirModalCadastroOrcamentoHome.addEventListener(
+      "click",
+      () => {
+        elements.modalCadastrarOrcamento.dataset.returnTo = "";
+        ui.abrirModalEspecifico(
+          elements.modalCadastrarOrcamento,
+          null,
+          "orcamentoCadastroEdicao",
+          { resetFormOrcamento: budgets.resetFormOrcamento },
+        );
+      },
+    );
+  }
 
   // Função auxiliar para processar a exclusão após a escolha
   async function executarExclusaoOrcamento(tipoExclusao) {
