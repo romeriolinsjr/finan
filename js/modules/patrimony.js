@@ -357,7 +357,6 @@ export function abrirHistoricoPatrimonio(id, callbackAbrir) {
           li.innerHTML = `
             <div style="display:flex; flex-direction:column; flex-grow: 1;">
               <span style="font-size:0.8em; color:#7f8c8d;">${dataFmt} - ${op.toUpperCase()}</span>
-              <span style="font-weight:500; color:#2c3e50;">${t.nome || sub.nome}</span>
               <small style="color:#95a5a6;">Saldo: ${formatCurrency(saldoCorrente)}</small>
             </div>
             <div style="display:flex; align-items:center; gap:5px;">
