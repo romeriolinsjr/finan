@@ -1198,6 +1198,7 @@ export function exibirSaldoItemNoModal() {
   if (!sub) return;
 
   // Cálculo de Saldo (Reutilizando a lógica do patrimony.js localmente)
+  // CORREÇÃO: Agora inclui a operação de amortização para deduzir do saldo do estoque
   let saldo = Number(sub.saldoInicial) || 0;
   const historico = (state.transacoes || []).filter(
     (t) => t.patrimonioId === subId,
@@ -1207,6 +1208,7 @@ export function exibirSaldoItemNoModal() {
     if (t.operacao === "aporte") saldo += v;
     else if (t.operacao === "resgate") saldo -= v;
     else if (t.operacao === "ajuste") saldo += v;
+    else if (t.operacao === "amortizacao") saldo -= v;
   });
 
   // Injeta o aviso no modal
@@ -1222,7 +1224,7 @@ export function exibirSaldoItemNoModal() {
     infoHTML,
   );
 
-  // Atalho para Resgate Total
+  // Atalho para preenchimento automático
   document
     .getElementById("infoSaldoPatrimonioModal")
     .addEventListener("click", () => {
