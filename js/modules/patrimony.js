@@ -322,9 +322,9 @@ export function abrirHistoricoPatrimonio(id, callbackAbrir) {
             cor = "#3498db";
             saldoCorrente += v;
           } else if (op === "amortizacao") {
-            sinal = "-"; // CORREÇÃO: Sinal de menos, pois retira do estoque de recursos
-            cor = "#008080"; // Cor Teal para Amortização
-            saldoCorrente -= v; // CORREÇÃO: Deduz do saldo do item (estoque)
+            sinal = "-";
+            cor = "#008080";
+            saldoCorrente -= v;
           }
 
           const dataFmt = t.dataOperacao
@@ -333,14 +333,22 @@ export function abrirHistoricoPatrimonio(id, callbackAbrir) {
           const li = document.createElement("li");
           li.style.cssText =
             "display:flex; justify-content:space-between; align-items:center; padding:12px; border-bottom:1px solid #f1f1f1;";
+
+          // LÓGICA DE EXCLUSÃO: Apenas se for 'ajuste'
+          const btnExcluirAjuste =
+            op === "ajuste"
+              ? `<button class="btn-delete-ajuste-pat" data-id="${t.id}" title="Excluir este ajuste" style="background:none; border:none; color:#e74c3c; cursor:pointer; font-size:1.1em; padding:5px; margin-left:10px;">✖</button>`
+              : "";
+
           li.innerHTML = `
-            <div style="display:flex; flex-direction:column;">
+            <div style="display:flex; flex-direction:column; flex-grow: 1;">
               <span style="font-size:0.8em; color:#7f8c8d;">${dataFmt} - ${op.toUpperCase()}</span>
               <span style="font-weight:500; color:#2c3e50;">${t.nome || sub.nome}</span>
-            </div>
-            <div style="text-align:right;">
-              <span style="color:${cor}; font-weight:bold; display:block;">${sinal} ${formatCurrency(v)}</span>
               <small style="color:#95a5a6;">Saldo: ${formatCurrency(saldoCorrente)}</small>
+            </div>
+            <div style="display:flex; align-items:center; gap:5px;">
+              <span style="color:${cor}; font-weight:bold; display:block; text-align:right;">${sinal} ${formatCurrency(v)}</span>
+              ${btnExcluirAjuste}
             </div>`;
           elements.listaHistoricoPatrimonioUl.appendChild(li);
         });

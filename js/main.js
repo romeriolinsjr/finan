@@ -2329,4 +2329,30 @@ document.addEventListener("DOMContentLoaded", () => {
       );
     });
   }
+
+  // --- OUVINTE PARA EXCLUSÃO DE AJUSTES NO EXTRATO DE PATRIMÔNIO ---
+  if (elements.listaHistoricoPatrimonioUl) {
+    elements.listaHistoricoPatrimonioUl.addEventListener("click", async (e) => {
+      const btnDelete = e.target.closest(".btn-delete-ajuste-pat");
+      if (btnDelete) {
+        const transId = btnDelete.dataset.id;
+        if (confirm("Deseja excluir este ajuste de valor?")) {
+          // Utiliza a função de exclusão integral
+          await trans.excluirTransacaoUnica(transId);
+
+          // REATIVIDADE: Identifica qual item estava aberto para atualizar a lista
+          const titulo = elements.tituloDetalhesPatrimonio.textContent;
+          const nomeItem = titulo.replace("Extrato: ", "");
+          const sub = state.patrimonioSubcategorias.find(
+            (s) => s.nome === nomeItem,
+          );
+
+          if (sub) {
+            // Re-renderiza o histórico imediatamente para mostrar o saldo corrigido
+            patrimony.abrirHistoricoPatrimonio(sub.id, ui.abrirModalEspecifico);
+          }
+        }
+      }
+    });
+  }
 }); // Fim do DOMContentLoaded
