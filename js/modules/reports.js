@@ -168,9 +168,8 @@ export function popularModalRelatorio(date) {
   const nomeMes = date.toLocaleString("pt-BR", { month: "long" });
   const tituloTexto = `Relatório de ${nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1)}/${date.getFullYear()}`;
 
-  targetTitulo.textContent = isHomeContext
-    ? "Relatórios e Performance"
-    : tituloTexto;
+  // Padronização: Na Home exibe apenas "Relatórios", no Modal mantém o detalhamento do mês
+  targetTitulo.textContent = isHomeContext ? "Relatórios" : tituloTexto;
 
   // No modo Home, a navegação de data é feita pelos botões globais do header.
   if (!isHomeContext && elements.btnRelatorioProximo) {

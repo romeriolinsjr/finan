@@ -25,8 +25,9 @@ export function renderizarDividasDoMes() {
   });
   const ano = state.dividasTerceirosDate.getFullYear();
 
+  // Padronização: Na Home exibe apenas "Despesas de Terceiros"
   tituloEl.textContent = isHomeContext
-    ? "Dívidas de Terceiros"
+    ? "Despesas de Terceiros"
     : `Dívidas de ${nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1)}/${ano}`;
 
   if (elements.btnTerceirosProximo) {

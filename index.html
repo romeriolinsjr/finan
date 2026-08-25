@@ -182,7 +182,7 @@
             </button>
           </div>
 
-          <!-- CONTEXTO 2: GESTÃO PATRIMONIAL (ÁRVORE) -->
+          <!-- CONTEXTO 2: PATRIMÔNIO -->
           <div
             id="headerContextPatrimonio"
             style="
@@ -192,10 +192,10 @@
               padding-bottom: 10px;
             "
           >
-            <h2 style="color: #2c3e50; font-size: 1.3em">Gestão Patrimonial</h2>
+            <h2 style="color: #2c3e50; font-size: 1.3em">Patrimônio</h2>
           </div>
 
-          <!-- Barra de Busca (Visível apenas no contexto de Transações) -->
+          <!-- Barra de Busca -->
           <div id="containerBuscaTransacoes" class="search-container">
             <input
               type="search"
@@ -218,11 +218,9 @@
             </button>
           </div>
 
-          <ul id="listaTransacoes">
-            <!-- Transações via JS -->
-          </ul>
+          <ul id="listaTransacoes"></ul>
 
-          <!-- NOVO: Espaço para a Árvore de Patrimônio na Home -->
+          <!-- CONTEXTO PATRIMÔNIO (ÁRVORE) -->
           <div id="containerPatrimonioHome" style="display: none">
             <div
               id="resumoPatrimonioLiquidoHome"
@@ -245,9 +243,7 @@
             <ul
               id="listaPatrimonioHierarquicaHome"
               class="lista-detalhes-limpa"
-            >
-              <!-- Árvore hierárquica injetada via JS -->
-            </ul>
+            ></ul>
             <div class="patrimonio-home-actions">
               <button
                 id="btnHomeNovaCategoriaPat"
@@ -262,7 +258,7 @@
             </div>
           </div>
 
-          <!-- CONTEXTO 3: RELATÓRIOS E PERFORMANCE NA HOME -->
+          <!-- CONTEXTO 3: RELATÓRIOS -->
           <div id="containerRelatorioHome" style="display: none">
             <div
               id="headerContextRelatorio"
@@ -272,13 +268,9 @@
                 padding-bottom: 10px;
               "
             >
-              <h2 style="color: #2c3e50; font-size: 1.3em">
-                Relatórios e Performance
-              </h2>
+              <h2 style="color: #2c3e50; font-size: 1.3em">Relatórios</h2>
             </div>
-            <div id="relatorioCorpoHome">
-              <!-- Conteúdo do relatório injetado via JS -->
-            </div>
+            <div id="relatorioCorpoHome"></div>
             <div
               class="relatorio-home-footer"
               style="margin-top: 25px; display: flex; justify-content: center"
@@ -293,7 +285,7 @@
             </div>
           </div>
 
-          <!-- CONTEXTO 4: WEEKLY TRACKER NA HOME -->
+          <!-- CONTEXTO 4: ACOMPANHAMENTO SEMANAL -->
           <div id="containerWeeklyTrackerHome" style="display: none">
             <div
               id="headerContextTracker"
@@ -307,17 +299,14 @@
                 Acompanhamento Semanal
               </h2>
             </div>
-            <!-- Sub-containers para manter paridade com o Modal -->
             <div
               id="trackerTabsContainerHome"
               style="margin-bottom: 20px"
             ></div>
-            <div id="trackerCorpoHome">
-              <!-- Conteúdo injetado via JS -->
-            </div>
+            <div id="trackerCorpoHome"></div>
           </div>
 
-          <!-- CONTEXTO 5: DESPESAS DE TERCEIROS NA HOME -->
+          <!-- CONTEXTO 5: DESPESAS DE TERCEIROS -->
           <div id="containerTerceirosHome" style="display: none">
             <div
               id="headerContextTerceiros"
@@ -328,18 +317,15 @@
               "
             >
               <h2 style="color: #2c3e50; font-size: 1.3em">
-                Dívidas de Terceiros
+                Despesas de Terceiros
               </h2>
             </div>
-            <!-- Sub-containers para manter paridade com o Modal -->
             <div
               id="resumoDividasTerceirosHome"
               class="resumo-terceiros-container"
             ></div>
             <hr />
-            <ul id="listaDividasTerceirosHome">
-              <!-- Lista de dívidas injetada via JS -->
-            </ul>
+            <ul id="listaDividasTerceirosHome"></ul>
             <div
               class="terceiros-home-actions"
               style="
@@ -366,7 +352,7 @@
             </div>
           </div>
 
-          <!-- CONTEXTO 6: GESTÃO DE ORÇAMENTOS NA HOME -->
+          <!-- CONTEXTO 6: ORÇAMENTOS -->
           <div id="containerOrcamentosHome" style="display: none">
             <div
               id="headerContextOrcamentos"
@@ -376,9 +362,7 @@
                 padding-bottom: 10px;
               "
             >
-              <h2 style="color: #2c3e50; font-size: 1.3em">
-                Gerenciar Orçamentos
-              </h2>
+              <h2 style="color: #2c3e50; font-size: 1.3em">Orçamentos</h2>
             </div>
             <ul id="listaOrcamentosHome"></ul>
             <div
@@ -394,7 +378,7 @@
             </div>
           </div>
 
-          <!-- CONTEXTO 7: GERENCIAR CARTÕES NA HOME -->
+          <!-- CONTEXTO 7: CARTÕES DE CRÉDITO -->
           <div id="containerCartoesHome" style="display: none">
             <div
               id="headerContextCartoes"
@@ -405,7 +389,7 @@
               "
             >
               <h2 style="color: #2c3e50; font-size: 1.3em">
-                Gerenciar Cartões de Crédito
+                Cartões de crédito
               </h2>
             </div>
             <ul id="listaCartoesHome"></ul>
