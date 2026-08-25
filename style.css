@@ -2301,7 +2301,10 @@ body.modal-aberto {
 
 .patrimonio-info {
   flex-grow: 1;
+  width: 100%; /* Garante que toda a largura da linha seja clicável no celular */
   cursor: pointer;
+  display: block; /* Reforça o comportamento de bloco para o link de clique */
+  z-index: 1; /* Garante que fique acima do fundo da linha */
 }
 
 .patrimonio-item-nome {
@@ -2361,6 +2364,7 @@ body.modal-aberto {
     align-items: flex-start;
     padding: 12px 15px;
     gap: 8px;
+    position: relative; /* Mantém a ancoragem dos botões absolutos */
   }
 
   .patrimonio-item-actions-wrapper {
