@@ -1,12 +1,41 @@
 import { state } from "./state.js";
 import { elements } from "./elements.js";
 import { db } from "./firebase-config.js";
-import { formatCurrency, registrarUltimaAlteracao } from "./utils.js";
+import {
+  formatCurrency,
+  registrarUltimaAlteracao,
+  getMesAnoChave,
+} from "./utils.js";
+
+/**
+ * Calcula o saldo real de um item considerando o histórico até um determinado mês.
+ * Útil para o motor de ajustes e para relatórios históricos.
+ */
+export function obterSaldoItemAteMes(subId, mesAnoCorte = "9999-12") {
+  const sub = state.patrimonioSubcategorias.find((s) => s.id === subId);
+  if (!sub) return 0;
+
+  let saldo = Number(sub.saldoInicial) || 0;
+  // Filtra transações de patrimônio vinculadas a este item até o mês de corte
+  const historico = (state.transacoes || []).filter(
+    (t) =>
+      t.patrimonioId === subId &&
+      t.mesAnoReferencia <= mesAnoCorte &&
+      t.tipo === "patrimonio",
+  );
+
+  historico.forEach((t) => {
+    const v = Number(t.valor) || 0;
+    if (t.operacao === "aporte") saldo += v;
+    else if (t.operacao === "resgate") saldo -= v;
+    else if (t.operacao === "ajuste") saldo += v;
+    else if (t.operacao === "amortizacao") saldo -= v;
+  });
+  return saldo;
+}
 
 /**
  * Renderiza a árvore hierárquica do Patrimônio.
- * @param {HTMLElement} targetUl - O elemento UL onde será renderizado (Modal ou Home).
- * @param {boolean} isHome - Se true, renderiza botões operacionais (+, -, ≈, ↓).
  */
 export function renderizarListaPatrimonioHierarquica(
   targetUl = elements.listaPatrimonioHierarquicaUl,
@@ -17,21 +46,6 @@ export function renderizarListaPatrimonioHierarquica(
 
   const categorias = state.patrimonioCategorias || [];
   const subcategorias = state.patrimonioSubcategorias || [];
-
-  const calcularSaldoRealItem = (sub) => {
-    let saldo = Number(sub.saldoInicial) || 0;
-    const historico = (state.transacoes || []).filter(
-      (t) => t.patrimonioId === sub.id,
-    );
-    historico.forEach((t) => {
-      const v = Number(t.valor) || 0;
-      if (t.operacao === "aporte") saldo += v;
-      else if (t.operacao === "resgate") saldo -= v;
-      else if (t.operacao === "ajuste") saldo += v;
-      else if (t.operacao === "amortizacao") saldo -= v;
-    });
-    return saldo;
-  };
 
   if (categorias.length === 0) {
     targetUl.innerHTML =
@@ -59,7 +73,7 @@ export function renderizarListaPatrimonioHierarquica(
         filhos
           .sort((a, b) => a.nome.localeCompare(b.nome))
           .forEach((sub) => {
-            const saldoReal = calcularSaldoRealItem(sub);
+            const saldoReal = obterSaldoItemAteMes(sub.id, "9999-12");
             totalCategoria += saldoReal;
             totalSecao += saldoReal;
 
@@ -124,7 +138,7 @@ export function renderizarListaPatrimonioHierarquica(
   }
 
   const totalGeralCalculo = subcategorias.reduce(
-    (acc, sub) => acc + calcularSaldoRealItem(sub),
+    (acc, sub) => acc + obterSaldoItemAteMes(sub.id, "9999-12"),
     0,
   );
   const elementoExibicao = isHome

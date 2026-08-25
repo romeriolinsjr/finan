@@ -7,6 +7,7 @@ import {
   parseDateString,
   registrarUltimaAlteracao,
 } from "./utils.js";
+import { obterSaldoItemAteMes } from "./patrimony.js";
 
 // Função para gerenciar o que aparece ou some no formulário (VERSÃO INTEGRAL FASE 2)
 export function atualizarVisibilidadeFormulario() {
@@ -86,6 +87,16 @@ export function atualizarVisibilidadeFormulario() {
 
       const operacao = elements.operacaoPatrimonioSelect?.value;
       const isAmortizacao = operacao === "amortizacao";
+      const isAjuste = operacao === "ajuste";
+
+      // --- MUDANÇA DE RÓTULO PARA AJUSTE ---
+      // Localiza o label que precede o input de valor do patrimônio
+      const labelValorPat = elements.valorPatrimonio?.previousElementSibling;
+      if (labelValorPat && labelValorPat.tagName === "LABEL") {
+        labelValorPat.textContent = isAjuste
+          ? "Saldo Atualizado da Conta (R$):"
+          : "Valor (R$):";
+      }
 
       // Campo Nome exclusivo para Amortização
       if (elements.containerNomeAmortizacao) {
@@ -94,8 +105,6 @@ export function atualizarVisibilidadeFormulario() {
           : "none";
       }
 
-      // NATUREZA E ITEM: Devem estar sempre visíveis para Patrimônio,
-      // pois agora a Amortização precisa de uma conta de origem.
       if (elements.naturezaPatrimonioSelect) {
         elements.naturezaPatrimonioSelect.parentElement.style.display = "block";
       }
@@ -722,6 +731,26 @@ export async function adicionarNovasTransacoes(dados) {
       ? getMesAnoChave(state.currentFaturaDate)
       : getMesAnoChave(state.currentDate);
 
+  // --- LÓGICA DE SIMPLIFICAÇÃO: CÁLCULO DO DELTA PARA AJUSTE ---
+  if (dados.tipo === "patrimonio" && dados.operacao === "ajuste") {
+    // 1. Obtém o saldo que o sistema conhece atualmente (estoque total)
+    const saldoNoApp = obterSaldoItemAteMes(dados.patrimonioId, "9999-12");
+
+    // 2. A diferença entre o que o usuário digitou e o que o app tem é o valor real do ajuste
+    const delta = dados.valor - saldoNoApp;
+
+    if (Math.abs(delta) < 0.01) {
+      alert("O saldo informado é idêntico ao saldo atual do sistema.");
+      return false;
+    }
+
+    // 3. Sobrescreve o valor original pelo Delta calculado
+    dados.valor = delta;
+
+    // 4. Personaliza o nome para auditoria no extrato
+    dados.nomeBase = `Ajuste (Saldo Final: ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(saldoNoApp + delta)})`;
+  }
+
   const orcamentoOriginal = state.orcamentos.find(
     (o) => o.id === dados.orcamentoId,
   );
@@ -784,11 +813,8 @@ export async function adicionarNovasTransacoes(dados) {
       });
     }
   } else {
-    // Transação Única
-    // REGRA DE OURO: Apenas despesa via atalho PIX/DÉBITO nasce paga. Patrimônio nasce desmarcado para conferência.
     const statusInicialPago =
       state.isQuickAddMode && dados.categoria === "ordinaria" ? true : false;
-
     transacoesParaAdicionar.push({
       ...dados,
       nome: dados.nomeBase,
