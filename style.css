@@ -1,4 +1,8 @@
 /* style.css */
+html {
+  overflow-y: scroll; /* Força a presença do trilho da barra de rolagem, evitando o desvio horizontal */
+}
+
 body {
   font-family:
     -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
@@ -768,13 +772,18 @@ body.modal-aberto {
 }
 
 #listaCartoesCadastrados,
-#listaOrcamentos,
-#listaOrcamentosHome,
-#listaCartoesHome {
+#listaOrcamentos {
   list-style-type: none;
   padding: 0;
   max-height: 400px;
   overflow-y: auto;
+}
+
+#listaOrcamentosHome,
+#listaCartoesHome {
+  list-style-type: none;
+  padding: 0;
+  /* Sem limite de altura na Home para usar a rolagem principal */
 }
 #listaCartoesCadastrados li,
 #listaOrcamentos li,
