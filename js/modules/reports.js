@@ -164,6 +164,10 @@ export function popularModalRelatorio(date) {
 
   if (!targetCorpo || !targetTitulo) return;
 
+  // SINCRONIZAÇÃO CRÍTICA: Garante que o estado do relatório acompanhe a data fornecida
+  // Isso resolve o erro de drill-down mostrando meses errados na Home.
+  state.reportDate = new Date(date);
+
   const mesAno = getMesAnoChave(date);
   const nomeMes = date.toLocaleString("pt-BR", { month: "long" });
   const tituloTexto = `Relatório de ${nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1)}/${date.getFullYear()}`;
