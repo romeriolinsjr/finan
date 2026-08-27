@@ -378,7 +378,13 @@ export function abrirDetalhesFiltroRelatorio(
       categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA
         ? "Ordinárias"
         : "Cartão";
-    const labelFreq = frequencia.charAt(0).toUpperCase() + frequencia.slice(1);
+
+    // CORREÇÃO: Mapeamento manual para garantir o acento em Únicas
+    const labelFreq =
+      frequencia === "unica"
+        ? "Única"
+        : frequencia.charAt(0).toUpperCase() + frequencia.slice(1);
+
     labelTitulo = `${labelCat}: ${labelFreq}s`;
   }
 
