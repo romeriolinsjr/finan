@@ -349,7 +349,7 @@ export function popularModalRelatorio(date) {
         .filter((t) => t.categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA)
         .reduce((s, t) => s + t.valor, 0);
 
-    orcamentosHTML += `<div class="relatorio-orcamento-item"><span>${orc.nome}</span><div class="orcamento-valores"><small>Prev: ${formatCurrency(orc.valor)}</small><small>Gasto: ${formatCurrency(gastoNoOrc)}</small><strong style="color:${orc.valor - gastoNoOrc >= 0 ? "#27ae60" : "#e74c3c"}">Saldo: ${formatCurrency(orc.valor - gastoNoOrc)}</strong></div></div>`;
+    orcamentosHTML += `<div class="relatorio-orcamento-item clicavel" data-orcamento-id="${orc.id}"><span>${orc.nome}</span><div class="orcamento-valores"><small>Prev: ${formatCurrency(orc.valor)}</small><small>Gasto: ${formatCurrency(gastoNoOrc)}</small><strong style="color:${orc.valor - gastoNoOrc >= 0 ? "#27ae60" : "#e74c3c"}">Saldo: ${formatCurrency(orc.valor - gastoNoOrc)}</strong></div></div>`;
   });
 
   document.getElementById("relatorio-secao-analise-orcamentos").innerHTML =

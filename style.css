@@ -2132,13 +2132,15 @@ body.modal-aberto {
   }
 }
 
-.relatorio-item-analise.clicavel {
+.relatorio-item-analise.clicavel,
+.relatorio-orcamento-item.clicavel {
   cursor: pointer;
   transition:
     background-color 0.2s,
     transform 0.1s;
 }
-.relatorio-item-analise.clicavel:hover {
+.relatorio-item-analise.clicavel:hover,
+.relatorio-orcamento-item.clicavel:hover {
   background-color: #eef2f7 !important;
   transform: scale(1.01);
 }

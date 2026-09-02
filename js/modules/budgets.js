@@ -86,16 +86,7 @@ export function abrirModalDetalhesOrcamento(
       mesBate && (vinculadoDiretamente || ehOrfaoCartao || ehGastoOrdinario)
     );
   });
-  const prioridade = {
-    [CONSTS.FREQUENCIA.RECORRENTE]: 1,
-    [CONSTS.FREQUENCIA.PARCELADA]: 2,
-    [CONSTS.FREQUENCIA.UNICA]: 3,
-  };
-  gastosVinculados.sort(
-    (a, b) =>
-      (prioridade[a.frequencia] || 4) - (prioridade[b.frequencia] || 4) ||
-      b.valor - a.valor,
-  );
+  gastosVinculados.sort((a, b) => b.valor - a.valor);
   const totalGasto = gastosVinculados.reduce(
     (total, gasto) => total + gasto.valor,
     0,
