@@ -137,6 +137,15 @@ export function resetModalNovaTransacao() {
   try {
     state.isQuickAddMode = false;
 
+    // Ajuste para pegar a data LOCAL correta (YYYY-MM-DD) sem o erro de fuso horário do toISOString
+    const hoje = new Date();
+    const dataLocal =
+      hoje.getFullYear() +
+      "-" +
+      String(hoje.getMonth() + 1).padStart(2, "0") +
+      "-" +
+      String(hoje.getDate()).padStart(2, "0");
+
     // Campos principais
     if (elements.tipoTransacaoSelect) {
       elements.tipoTransacaoSelect.value = "";
@@ -150,9 +159,7 @@ export function resetModalNovaTransacao() {
     // Reset Receita
     if (elements.valorReceita) elements.valorReceita.value = "";
     if (elements.dataEntradaReceita)
-      elements.dataEntradaReceita.value = new Date()
-        .toISOString()
-        .split("T")[0];
+      elements.dataEntradaReceita.value = dataLocal;
     if (elements.frequenciaReceita) {
       elements.frequenciaReceita.value = "unica";
       elements.frequenciaReceita.disabled = false;
@@ -193,9 +200,7 @@ export function resetModalNovaTransacao() {
     }
     if (elements.valorDespesaOrd) elements.valorDespesaOrd.value = "";
     if (elements.dataVencimentoDespesaOrd)
-      elements.dataVencimentoDespesaOrd.value = new Date()
-        .toISOString()
-        .split("T")[0];
+      elements.dataVencimentoDespesaOrd.value = dataLocal;
 
     // Reset Patrimônio
     if (elements.operacaoPatrimonioSelect)
@@ -207,8 +212,7 @@ export function resetModalNovaTransacao() {
     if (elements.tipoCadastroParcelaPatrimonio)
       elements.tipoCadastroParcelaPatrimonio.value = "valor_total";
     if (elements.valorPatrimonio) elements.valorPatrimonio.value = "";
-    if (elements.dataPatrimonio)
-      elements.dataPatrimonio.value = new Date().toISOString().split("T")[0];
+    if (elements.dataPatrimonio) elements.dataPatrimonio.value = dataLocal;
 
     // Limpa avisos e feedbacks
     const notes = elements.modalNovaTransacao?.querySelectorAll(
@@ -1141,9 +1145,17 @@ export function abrirModalDespesaOrdinariaRapida(callbackAbrirModal) {
   // 3. Ativa o sinalizador de adição rápida (para que a despesa nasça "Paga")
   state.isQuickAddMode = true;
 
-  // 4. Preenche os campos de atalho
+  // 4. Preenche os campos de atalho e bloqueia campos fixos para evitar erros
   elements.tipoTransacaoSelect.value = "despesa";
+  elements.tipoTransacaoSelect.disabled = true;
+
   elements.categoriaDespesa.value = "ordinaria";
+  elements.categoriaDespesa.disabled = true;
+
+  if (elements.frequenciaDespesaOrd) {
+    elements.frequenciaDespesaOrd.value = "unica";
+    elements.frequenciaDespesaOrd.disabled = true;
+  }
 
   // 4. ESSENCIAL: Dispara manualmente a atualização da visibilidade (cascata)
   // Isso garante que os campos de Valor, Data e o botão Salvar apareçam corretamente

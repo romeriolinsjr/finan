@@ -36,6 +36,8 @@ export function obterSaldoItemAteMes(subId, mesAnoCorte = "9999-12") {
 
 /**
  * Renderiza a árvore hierárquica do Patrimônio.
+ * @param {HTMLElement} targetUl - O elemento UL onde será renderizado (Modal ou Home).
+ * @param {boolean} isHome - Se true, renderiza botões operacionais (+, -, ≈, ↓).
  */
 export function renderizarListaPatrimonioHierarquica(
   targetUl = elements.listaPatrimonioHierarquicaUl,
@@ -46,6 +48,22 @@ export function renderizarListaPatrimonioHierarquica(
 
   const categorias = state.patrimonioCategorias || [];
   const subcategorias = state.patrimonioSubcategorias || [];
+
+  // Função de cálculo atualizada para incluir a Amortização como saída do item
+  const calcularSaldoRealItem = (sub) => {
+    let saldo = Number(sub.saldoInicial) || 0;
+    const historico = (state.transacoes || []).filter(
+      (t) => t.patrimonioId === sub.id,
+    );
+    historico.forEach((t) => {
+      const v = Number(t.valor) || 0;
+      if (t.operacao === "aporte") saldo += v;
+      else if (t.operacao === "resgate") saldo -= v;
+      else if (t.operacao === "ajuste") saldo += v;
+      else if (t.operacao === "amortizacao") saldo -= v; // Amortização retira dinheiro da conta de patrimônio
+    });
+    return saldo;
+  };
 
   if (categorias.length === 0) {
     targetUl.innerHTML =
@@ -70,10 +88,11 @@ export function renderizarListaPatrimonioHierarquica(
         let totalCategoria = 0;
         const containerItens = [];
 
+        // ALTERAÇÃO: Ordena os itens por Saldo Real (Decrescente) em vez de Ordem Alfabética
         filhos
-          .sort((a, b) => a.nome.localeCompare(b.nome))
+          .sort((a, b) => calcularSaldoRealItem(b) - calcularSaldoRealItem(a))
           .forEach((sub) => {
-            const saldoReal = obterSaldoItemAteMes(sub.id, "9999-12");
+            const saldoReal = calcularSaldoRealItem(sub);
             totalCategoria += saldoReal;
             totalSecao += saldoReal;
 
@@ -137,8 +156,9 @@ export function renderizarListaPatrimonioHierarquica(
     renderizarSecao(listaAmortizacao, "Recursos para Amortização", "#3498db");
   }
 
+  // Atualiza os resumos (Home ou Modal)
   const totalGeralCalculo = subcategorias.reduce(
-    (acc, sub) => acc + obterSaldoItemAteMes(sub.id, "9999-12"),
+    (acc, sub) => acc + calcularSaldoRealItem(sub),
     0,
   );
   const elementoExibicao = isHome

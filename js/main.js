@@ -1302,7 +1302,7 @@ document.addEventListener("DOMContentLoaded", () => {
     );
   });
 
-  // Dispara a escolha de escopo ao salvar um orçamento
+  // Salva o orçamento utilizando o escopo pré-selecionado (ou "novo" se for criação)
   elements.btnSalvarOrcamento.addEventListener("click", () => {
     const id = elements.orcamentoEditIdInput.value;
     const n = elements.nomeOrcamentoInput.value.trim();
@@ -1314,13 +1314,11 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    if (id) {
-      // Se for edição, abre o modal de escolha de escopo
-      ui.abrirModalEspecifico(elements.modalConfirmarEscopoOrcamento);
-    } else {
-      // Se for novo orçamento, dispara salvamento com flag de criação
-      executarSalvamentoOrcamento("novo");
-    }
+    // Se houver ID, usa o tipo de edição que foi armazenado no dataset do modal quando o fluxo começou
+    const tipoEdicao = id
+      ? elements.modalCadastrarOrcamento.dataset.tipoEdicao || "unico"
+      : "novo";
+    executarSalvamentoOrcamento(tipoEdicao);
   });
 
   // Função interna para processar o salvamento de orçamentos (Temporal)
@@ -1379,12 +1377,53 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // Ouvintes para o modal de confirmação de escopo de orçamento
-  elements.btnOrcamentoApenasEste.addEventListener("click", () =>
-    executarSalvamentoOrcamento("unico"),
-  );
-  elements.btnOrcamentoEsteEFuturos.addEventListener("click", () =>
-    executarSalvamentoOrcamento("futuros"),
-  );
+  elements.btnOrcamentoApenasEste.addEventListener("click", () => {
+    const fluxo = elements.modalConfirmarEscopoOrcamento.dataset.fluxo;
+    if (fluxo === "inicio-edicao") {
+      prepararFormularioEdicaoOrcamento("unico");
+    } else {
+      executarSalvamentoOrcamento("unico");
+    }
+  });
+
+  elements.btnOrcamentoEsteEFuturos.addEventListener("click", () => {
+    const fluxo = elements.modalConfirmarEscopoOrcamento.dataset.fluxo;
+    if (fluxo === "inicio-edicao") {
+      prepararFormularioEdicaoOrcamento("futuros");
+    } else {
+      executarSalvamentoOrcamento("futuros");
+    }
+  });
+
+  // Função auxiliar para abrir o formulário após a escolha do escopo (Inversão de Fluxo)
+  function prepararFormularioEdicaoOrcamento(tipoEdicao) {
+    const id =
+      elements.modalConfirmarEscopoOrcamento.dataset.orcamentoIdParaEditar;
+    const returnTo = elements.modalConfirmarEscopoOrcamento.dataset.returnTo;
+
+    // Limpa a sinalização de fluxo e fecha o modal de pergunta
+    elements.modalConfirmarEscopoOrcamento.dataset.fluxo = "";
+    ui.fecharModalEspecifico(elements.modalConfirmarEscopoOrcamento);
+
+    // Se o usuário estava no gerenciador, fecha ele para não sobrepor o formulário
+    if (returnTo === "modalOrcamentos") {
+      ui.fecharModalEspecifico(elements.modalOrcamentos);
+    }
+
+    // Armazena o tipo de edição escolhido para ser usado no clique final do "Salvar"
+    elements.modalCadastrarOrcamento.dataset.returnTo = returnTo;
+    elements.modalCadastrarOrcamento.dataset.tipoEdicao = tipoEdicao;
+
+    ui.abrirModalEspecifico(
+      elements.modalCadastrarOrcamento,
+      id,
+      "orcamentoCadastroEdicao",
+      {
+        resetFormOrcamento: budgets.resetFormOrcamento,
+        preencherModalEdicaoOrcamento: budgets.preencherModalEdicaoOrcamento,
+      },
+    );
+  }
   elements.btnOrcamentoCancelar.addEventListener("click", () =>
     ui.fecharModalEspecifico(elements.modalConfirmarEscopoOrcamento),
   );
@@ -1397,19 +1436,19 @@ document.addEventListener("DOMContentLoaded", () => {
     if (button.classList.contains("btn-edit-orcamento")) {
       const returnTo =
         state.modoVisualizacao === "orcamentos" ? "" : "modalOrcamentos";
-      if (returnTo === "modalOrcamentos")
-        ui.fecharModalEspecifico(elements.modalOrcamentos);
 
-      elements.modalCadastrarOrcamento.dataset.returnTo = returnTo;
-      ui.abrirModalEspecifico(
-        elements.modalCadastrarOrcamento,
-        id,
-        "orcamentoCadastroEdicao",
-        {
-          resetFormOrcamento: budgets.resetFormOrcamento,
-          preencherModalEdicaoOrcamento: budgets.preencherModalEdicaoOrcamento,
-        },
-      );
+      // Armazena temporariamente os dados necessários para quando o escopo for escolhido
+      elements.modalConfirmarEscopoOrcamento.dataset.orcamentoIdParaEditar = id;
+      elements.modalConfirmarEscopoOrcamento.dataset.returnTo = returnTo;
+      elements.modalConfirmarEscopoOrcamento.dataset.fluxo = "inicio-edicao";
+
+      const orcamento = state.orcamentos.find((o) => o.id === id);
+      if (document.getElementById("textoConfirmarEscopoOrcamento")) {
+        document.getElementById("textoConfirmarEscopoOrcamento").textContent =
+          `Onde você deseja aplicar a alteração no orçamento "${orcamento?.nome}"?`;
+      }
+
+      ui.abrirModalEspecifico(elements.modalConfirmarEscopoOrcamento);
     } else if (button.classList.contains("btn-delete-orcamento")) {
       const orcamento = state.orcamentos.find((o) => o.id === id);
       if (!orcamento) return;
@@ -1737,15 +1776,31 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // --- INTERATIVIDADE DRILL-DOWN NOS RELATÓRIOS (MODAL E HOME) ---
   const handlerDrillDownRelatorios = (e) => {
-    const itemClicavel = e.target.closest(".relatorio-item-analise.clicavel");
-    if (itemClicavel) {
-      const { cat, freq, tipoPatrimonio } = itemClicavel.dataset;
+    // 1. Drill-down de Categorias (Despesas e Patrimônio)
+    const itemAnalise = e.target.closest(".relatorio-item-analise.clicavel");
+    if (itemAnalise) {
+      const { cat, freq, tipoPatrimonio } = itemAnalise.dataset;
       reports.abrirDetalhesFiltroRelatorio(
         cat,
         freq,
         state.reportDate,
         ui.abrirModalEspecifico,
         tipoPatrimonio,
+      );
+      return;
+    }
+
+    // 2. Drill-down de Orçamentos (NOVO)
+    const itemOrcamento = e.target.closest(
+      ".relatorio-orcamento-item.clicavel",
+    );
+    if (itemOrcamento) {
+      const orcId = itemOrcamento.dataset.orcamentoId;
+      const mesAno = utils.getMesAnoChave(state.reportDate);
+      budgets.abrirModalDetalhesOrcamento(
+        orcId,
+        mesAno,
+        ui.abrirModalEspecifico,
       );
     }
   };
