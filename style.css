@@ -42,7 +42,8 @@ body.modal-aberto {
   flex-shrink: 0;
   height: 100vh;
   box-sizing: border-box;
-  overflow: hidden; /* Remove qualquer possibilidade de scroll ou balanço */
+  overflow-y: auto; /* Permite rolagem vertical caso o conteúdo exceda a tela */
+  overflow-x: hidden; /* Evita balanço horizontal */
 }
 
 /* Deixa a barra de rolagem vertical mais fina para não empurrar o conteúdo */
@@ -307,7 +308,20 @@ body.modal-aberto {
   font-size: 1em;
   color: #95a5a6;
   line-height: 1;
-  transition: color 0.2s ease;
+  transition:
+    color 0.2s ease,
+    transform 0.1s ease;
+}
+
+.transaction-actions .btn-move-pat-cat {
+  font-weight: bold;
+  font-size: 0.9em;
+  color: #95a5a6; /* Cinza discreto para diferenciar das operações financeiras */
+}
+
+.transaction-actions .btn-move-pat-cat:hover {
+  color: #3498db;
+  transform: scale(1.2);
 }
 
 .transaction-actions .btn-add-despesa-cartao:hover {
@@ -1672,7 +1686,7 @@ body.modal-aberto {
 /* ESTILOS PARA O RODAPÉ DA BARRA LATERAL (ZONA DE COR) */
 .sidebar-footer {
   margin-top: auto;
-  padding: 20px 0; /* Padding apenas em cima e embaixo */
+  padding: 20px 0 30px 0; /* Aumentado respiro inferior para o texto de atualização */
   background-color: #1a252f;
   border-top: 1px solid #34495e;
   display: none;

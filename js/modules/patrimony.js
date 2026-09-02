@@ -69,12 +69,20 @@ export function renderizarListaPatrimonioHierarquica(
     targetUl.innerHTML =
       '<li style="padding: 20px; text-align: center; color: #7f8c8d;">Nenhuma categoria cadastrada.</li>';
   } else {
+    // ALTERAÇÃO: Ordena as categorias pela 'posicao' (manual) e depois pelo nome (alfabético)
     const listaAtivos = categorias
       .filter((c) => c.tipo === "ativo")
-      .sort((a, b) => a.nome.localeCompare(b.nome));
+      .sort(
+        (a, b) =>
+          (a.posicao || 0) - (b.posicao || 0) || a.nome.localeCompare(b.nome),
+      );
+
     const listaAmortizacao = categorias
       .filter((c) => c.tipo === "passivo")
-      .sort((a, b) => a.nome.localeCompare(b.nome));
+      .sort(
+        (a, b) =>
+          (a.posicao || 0) - (b.posicao || 0) || a.nome.localeCompare(b.nome),
+      );
 
     const renderizarSecao = (listaDeCategorias, tituloSecao, corDestaque) => {
       if (listaDeCategorias.length === 0) return;
@@ -88,7 +96,7 @@ export function renderizarListaPatrimonioHierarquica(
         let totalCategoria = 0;
         const containerItens = [];
 
-        // ALTERAÇÃO: Ordena os itens por Saldo Real (Decrescente) em vez de Ordem Alfabética
+        // Ordena os itens por Saldo Real (Decrescente)
         filhos
           .sort((a, b) => calcularSaldoRealItem(b) - calcularSaldoRealItem(a))
           .forEach((sub) => {
@@ -124,12 +132,16 @@ export function renderizarListaPatrimonioHierarquica(
 
         const liCat = document.createElement("li");
         liCat.className = "patrimonio-category-row";
+
+        // ADICIONADO: Botões de mover ↑ e ↓ na categoria
         liCat.innerHTML = `
           <div class="patrimonio-category-info">
             <span class="patrimonio-category-nome">📂 ${cat.nome}</span> 
             <span class="patrimonio-category-valor">${formatCurrency(totalCategoria)}</span>
           </div>
           <div class="transaction-actions">
+            <button class="btn-move-pat-cat" data-id="${cat.id}" data-dir="up" title="Mover para cima">▲</button>
+            <button class="btn-move-pat-cat" data-id="${cat.id}" data-dir="down" title="Mover para baixo">▼</button>
             <button class="btn-edit-pat-cat" data-id="${cat.id}" title="Editar Categoria">✎</button>
             <button class="btn-delete-pat-cat" data-id="${cat.id}" title="Excluir Categoria">✖</button>
           </div>`;
@@ -402,4 +414,58 @@ export function abrirHistoricoPatrimonio(id, callbackAbrir) {
     "patrimonioHistorico",
     callbacksExtrato,
   );
+}
+
+/**
+ * Altera a posição de uma categoria na árvore (Reclassificação Manual).
+ */
+export async function moverCategoriaPatrimonio(id, direcao) {
+  if (!state.currentUser) return;
+  const categoriaAlvo = state.patrimonioCategorias.find((c) => c.id === id);
+  if (!categoriaAlvo) return;
+
+  // 1. Filtra categorias da mesma natureza e as ordena pela posição atual
+  const irmas = state.patrimonioCategorias
+    .filter((c) => c.tipo === categoriaAlvo.tipo)
+    .sort(
+      (a, b) =>
+        (a.posicao || 0) - (b.posicao || 0) || a.nome.localeCompare(b.nome),
+    );
+
+  const index = irmas.findIndex((c) => c.id === id);
+  if (direcao === "up" && index === 0) return;
+  if (direcao === "down" && index === irmas.length - 1) return;
+
+  const vizinhoIndex = direcao === "up" ? index - 1 : index + 1;
+  const categoriaVizinha = irmas[vizinhoIndex];
+
+  const batch = db.batch();
+  const ref = db
+    .collection("users")
+    .doc(state.currentUser.uid)
+    .collection("patrimonioCategorias");
+
+  // Troca as posições. Se não existirem (posicao 0), inicializa baseado no index.
+  const novaPosicaoAlvo = categoriaVizinha.posicao || vizinhoIndex;
+  const novaPosicaoVizinho = categoriaAlvo.posicao || index;
+
+  // Se as posições forem idênticas (ex: ambas 0), forçamos uma diferenciação
+  if (novaPosicaoAlvo === novaPosicaoVizinho) {
+    batch.update(ref.doc(categoriaAlvo.id), {
+      posicao: direcao === "up" ? vizinhoIndex : vizinhoIndex,
+    });
+    batch.update(ref.doc(categoriaVizinha.id), {
+      posicao: direcao === "up" ? index : index,
+    });
+  } else {
+    batch.update(ref.doc(categoriaAlvo.id), { posicao: novaPosicaoAlvo });
+    batch.update(ref.doc(categoriaVizinha.id), { posicao: novaPosicaoVizinho });
+  }
+
+  try {
+    await batch.commit();
+    await registrarUltimaAlteracao();
+  } catch (error) {
+    console.error("Erro ao mover categoria:", error);
+  }
 }

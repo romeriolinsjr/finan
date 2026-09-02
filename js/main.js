@@ -1042,7 +1042,10 @@ document.addEventListener("DOMContentLoaded", () => {
     if (btn) {
       const id = btn.dataset.id;
 
-      if (btn.classList.contains("btn-edit-pat-cat")) {
+      if (btn.classList.contains("btn-move-pat-cat")) {
+        const { id, dir } = btn.dataset;
+        patrimony.moverCategoriaPatrimonio(id, dir);
+      } else if (btn.classList.contains("btn-edit-pat-cat")) {
         // PADRONIZAÇÃO: Mantém o modal pai aberto ao fundo
         ui.abrirModalEspecifico(
           elements.modalCadastrarPatrimonioCategoria,
@@ -2325,7 +2328,15 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      // 3. Edição (Lápis)
+      // 3. Movimentação (↑ ↓)
+      const btnMove = e.target.closest(".btn-move-pat-cat");
+      if (btnMove) {
+        const { id, dir } = btnMove.dataset;
+        patrimony.moverCategoriaPatrimonio(id, dir);
+        return;
+      }
+
+      // 4. Edição (Lápis)
       if (btnEdit) {
         const id = btnEdit.dataset.id;
         if (btnEdit.classList.contains("btn-edit-pat-cat")) {
