@@ -17,9 +17,12 @@ body {
 }
 
 /* NOVO: Trava a rolagem da página quando um modal está aberto */
+html.modal-aberto,
 body.modal-aberto {
-  overflow: hidden; /* Trava a rolagem vertical */
-  overflow-x: hidden; /* NOVO: Trava a rolagem horizontal (elástica) */
+  overflow: hidden !important;
+  height: 100% !important;
+  width: 100% !important;
+  position: fixed; /* Impede a rolagem elástica em dispositivos móveis */
 }
 
 .app-container {
