@@ -25,9 +25,9 @@ export function renderizarDividasDoMes() {
   });
   const ano = state.dividasTerceirosDate.getFullYear();
 
-  // Padronização: Na Home exibe apenas "Despesas de Terceiros"
+  // Padronização: Na Home e no Modal exibe os novos nomes configurados
   tituloEl.textContent = isHomeContext
-    ? "Despesas de Terceiros"
+    ? "Despesas de terceiros"
     : `Dívidas de ${nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1)}/${ano}`;
 
   if (elements.btnTerceirosProximo) {
@@ -94,7 +94,7 @@ export function renderizarDividasDoMes() {
   listaUl.innerHTML = "";
   if (dividasDoMes.length === 0) {
     listaUl.innerHTML =
-      '<li style="text-align: center; padding: 20px; color: #777;">Nenhuma dívida para este mês.</li>';
+      '<li style="text-align: center; padding: 20px; color: #777;">Nenhuma despesa para este mês.</li>';
     return;
   }
 

@@ -418,7 +418,7 @@ export async function encerrarCiclo(cicloId) {
 
 export async function removerItemDoTracker(transacaoId) {
   if (!state.currentUser) return;
-  if (!confirm("Remover esta compra do acompanhamento semanal?")) return;
+  if (!confirm("Remover esta compra dos ciclos dos cartões?")) return;
   const ref = db
     .collection("users")
     .doc(state.currentUser.uid)

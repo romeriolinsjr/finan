@@ -35,14 +35,13 @@
       <aside class="sidebar">
         <h2>Menu</h2>
         <button id="btnContextTransacoes">Transações</button>
-        <button id="btnGerenciarCartoes">Cartões de crédito</button>
-        <button id="btnMenuPatrimonio">Patrimônio</button>
-        <button id="btnMenuOrcamentos">Orçamentos</button>
+        <button id="btnWeeklyTracker">Ciclos dos cartões</button>
         <button id="btnRelatorios">Relatórios</button>
-        <!-- NOVO -->
-        <button id="btnDespesasTerceiros">Despesas de Terceiros</button>
-        <button id="btnWeeklyTracker">Acompanhamento Semanal</button>
-        <!-- NOVO -->
+        <button id="btnMenuPatrimonio">Patrimônio</button>
+        <button id="btnDespesasTerceiros">Despesas de terceiros</button>
+        <button id="btnMenuOrcamentos">Orçamentos</button>
+        <button id="btnGerenciarCartoes">Cartões de crédito</button>
+
         <section class="financial-summary">
           <h2>Resumo Financeiro</h2>
           <div class="summary-item">
@@ -285,7 +284,7 @@
             </div>
           </div>
 
-          <!-- CONTEXTO 4: ACOMPANHAMENTO SEMANAL -->
+          <!-- CONTEXTO 4: CICLOS DOS CARTÕES -->
           <div id="containerWeeklyTrackerHome" style="display: none">
             <div
               id="headerContextTracker"
@@ -296,7 +295,7 @@
               "
             >
               <h2 style="color: #2c3e50; font-size: 1.3em">
-                Acompanhamento Semanal
+                Ciclos dos cartões
               </h2>
             </div>
             <div
@@ -1557,7 +1556,7 @@
         <div class="modal-header">
           <div class="modal-title-container">
             <button id="btnTerceirosAnterior" title="Mês Anterior"><</button>
-            <h2 id="terceirosTitulo">Dívidas de Terceiros</h2>
+            <h2 id="terceirosTitulo">Despesas de terceiros</h2>
             <button id="btnTerceirosProximo" title="Próximo Mês">></button>
           </div>
           <span class="close-button" data-modal-id="modalConsultarTerceiros"
@@ -1678,7 +1677,7 @@
     <div id="modalWeeklyTracker" class="modal">
       <div class="modal-content modal-large">
         <div class="modal-header">
-          <h2 id="weeklyTrackerTitulo">Acompanhamento Semanal</h2>
+          <h2 id="weeklyTrackerTitulo">Ciclos dos cartões</h2>
           <span class="close-button" data-modal-id="modalWeeklyTracker">×</span>
         </div>
         <div class="modal-body">
