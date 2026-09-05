@@ -9,13 +9,21 @@ import {
 
 /**
  * Calcula o saldo real de um item considerando o histórico até um determinado mês.
- * Útil para o motor de ajustes e para relatórios históricos.
+ * Implementa a regra da Máquina do Tempo: ignora o saldo se o mês for anterior à criação.
  */
 export function obterSaldoItemAteMes(subId, mesAnoCorte = "9999-12") {
   const sub = state.patrimonioSubcategorias.find((s) => s.id === subId);
   if (!sub) return 0;
 
+  // LÓGICA DE MÁQUINA DO TEMPO:
+  // Se o mês visualizado for anterior ao mês de criação, o saldo é ZERO.
+  // Se sub.mesAnoCriacao não existir (contas antigas), assume-se que ela já existia.
+  if (sub.mesAnoCriacao && mesAnoCorte < sub.mesAnoCriacao) {
+    return 0;
+  }
+
   let saldo = Number(sub.saldoInicial) || 0;
+
   // Filtra transações de patrimônio vinculadas a este item até o mês de corte
   const historico = (state.transacoes || []).filter(
     (t) =>
@@ -36,8 +44,7 @@ export function obterSaldoItemAteMes(subId, mesAnoCorte = "9999-12") {
 
 /**
  * Renderiza a árvore hierárquica do Patrimônio.
- * @param {HTMLElement} targetUl - O elemento UL onde será renderizado (Modal ou Home).
- * @param {boolean} isHome - Se true, renderiza botões operacionais (+, -, ≈, ↓).
+ * Implementa o desaparecimento de itens futuros com base no state.currentDate.
  */
 export function renderizarListaPatrimonioHierarquica(
   targetUl = elements.listaPatrimonioHierarquicaUl,
@@ -49,27 +56,13 @@ export function renderizarListaPatrimonioHierarquica(
   const categorias = state.patrimonioCategorias || [];
   const subcategorias = state.patrimonioSubcategorias || [];
 
-  // Função de cálculo atualizada para incluir a Amortização como saída do item
-  const calcularSaldoRealItem = (sub) => {
-    let saldo = Number(sub.saldoInicial) || 0;
-    const historico = (state.transacoes || []).filter(
-      (t) => t.patrimonioId === sub.id,
-    );
-    historico.forEach((t) => {
-      const v = Number(t.valor) || 0;
-      if (t.operacao === "aporte") saldo += v;
-      else if (t.operacao === "resgate") saldo -= v;
-      else if (t.operacao === "ajuste") saldo += v;
-      else if (t.operacao === "amortizacao") saldo -= v; // Amortização retira dinheiro da conta de patrimônio
-    });
-    return saldo;
-  };
+  // SOBERANIA TEMPORAL: Captura o mês que o usuário está vendo na Home
+  const mesAnoReferencia = getMesAnoChave(state.currentDate);
 
   if (categorias.length === 0) {
     targetUl.innerHTML =
       '<li style="padding: 20px; text-align: center; color: #7f8c8d;">Nenhuma categoria cadastrada.</li>';
   } else {
-    // ALTERAÇÃO: Ordena as categorias pela 'posicao' (manual) e depois pelo nome (alfabético)
     const listaAtivos = categorias
       .filter((c) => c.tipo === "ativo")
       .sort(
@@ -90,17 +83,25 @@ export function renderizarListaPatrimonioHierarquica(
       const secaoFragmento = document.createDocumentFragment();
 
       listaDeCategorias.forEach((cat) => {
+        // FILTRAGEM MÁQUINA DO TEMPO: Mostra apenas itens criados no mês de referência ou antes
         const filhos = subcategorias.filter(
-          (sub) => sub.categoriaId === cat.id,
+          (sub) =>
+            sub.categoriaId === cat.id &&
+            (!sub.mesAnoCriacao || sub.mesAnoCriacao <= mesAnoReferencia),
         );
+
         let totalCategoria = 0;
         const containerItens = [];
 
-        // Ordena os itens por Saldo Real (Decrescente)
+        // Ordena os itens por Saldo Real Histórico (Decrescente)
         filhos
-          .sort((a, b) => calcularSaldoRealItem(b) - calcularSaldoRealItem(a))
+          .sort(
+            (a, b) =>
+              obterSaldoItemAteMes(b.id, mesAnoReferencia) -
+              obterSaldoItemAteMes(a.id, mesAnoReferencia),
+          )
           .forEach((sub) => {
-            const saldoReal = calcularSaldoRealItem(sub);
+            const saldoReal = obterSaldoItemAteMes(sub.id, mesAnoReferencia);
             totalCategoria += saldoReal;
             totalSecao += saldoReal;
 
@@ -133,7 +134,6 @@ export function renderizarListaPatrimonioHierarquica(
         const liCat = document.createElement("li");
         liCat.className = "patrimonio-category-row";
 
-        // ADICIONADO: Botões de mover ↑ e ↓ na categoria
         liCat.innerHTML = `
           <div class="patrimonio-category-info">
             <span class="patrimonio-category-nome">📂 ${cat.nome}</span> 
@@ -168,11 +168,16 @@ export function renderizarListaPatrimonioHierarquica(
     renderizarSecao(listaAmortizacao, "Recursos para Amortização", "#3498db");
   }
 
-  // Atualiza os resumos (Home ou Modal)
-  const totalGeralCalculo = subcategorias.reduce(
-    (acc, sub) => acc + calcularSaldoRealItem(sub),
-    0,
-  );
+  // Atualiza os resumos financeiros considerando apenas os itens existentes no período visualizado
+  const totalGeralCalculo = subcategorias
+    .filter(
+      (sub) => !sub.mesAnoCriacao || sub.mesAnoCriacao <= mesAnoReferencia,
+    )
+    .reduce(
+      (acc, sub) => acc + obterSaldoItemAteMes(sub.id, mesAnoReferencia),
+      0,
+    );
+
   const elementoExibicao = isHome
     ? elements.valorPatrimonioLiquidoHome
     : elements.valorPatrimonioLiquido;
@@ -254,6 +259,12 @@ export function resetFormSubcategoria() {
   elements.patSubcategoriaEditIdInput.value = "";
   elements.nomePatSubcategoriaInput.value = "";
   elements.saldoInicialPatrimonioInput.value = "";
+  // Define o mês de criação como o mês atual da Home por padrão
+  if (elements.mesAnoCriacaoPatrimonioInput) {
+    elements.mesAnoCriacaoPatrimonioInput.value = getMesAnoChave(
+      state.currentDate,
+    );
+  }
   elements.tituloModalPatSubcategoria.textContent = "Novo Item de Patrimônio";
   popularSelectCategoriasPai();
 }
@@ -266,6 +277,10 @@ export function preencherModalEdicaoSubcategoria(id) {
     elements.selectCategoriaPai.value = sub.categoriaId;
     elements.nomePatSubcategoriaInput.value = sub.nome || "";
     elements.saldoInicialPatrimonioInput.value = sub.saldoInicial || 0;
+    // Carrega o mês de criação existente no banco
+    if (elements.mesAnoCriacaoPatrimonioInput) {
+      elements.mesAnoCriacaoPatrimonioInput.value = sub.mesAnoCriacao || "";
+    }
     elements.tituloModalPatSubcategoria.textContent = "Editar Item";
   }
 }
@@ -275,19 +290,29 @@ export async function salvarSubcategoria() {
   const catId = elements.selectCategoriaPai.value;
   const nome = elements.nomePatSubcategoriaInput.value.trim();
   const saldo = parseFloat(elements.saldoInicialPatrimonioInput.value) || 0;
+  // Captura o valor do novo campo Mês de Criação
+  const mesCriacao = elements.mesAnoCriacaoPatrimonioInput
+    ? elements.mesAnoCriacaoPatrimonioInput.value
+    : getMesAnoChave(state.currentDate);
   const id = elements.patSubcategoriaEditIdInput.value;
-  if (!catId || !nome) return alert("Preencha todos os campos.");
+
+  if (!catId || !nome || !mesCriacao) return alert("Preencha todos os campos.");
 
   const ref = db
     .collection("users")
     .doc(state.currentUser.uid)
     .collection("patrimonioSubcategorias");
   try {
-    if (id)
-      await ref
-        .doc(id)
-        .update({ categoriaId: catId, nome, saldoInicial: saldo });
-    else await ref.add({ categoriaId: catId, nome, saldoInicial: saldo });
+    const dados = {
+      categoriaId: catId,
+      nome,
+      saldoInicial: saldo,
+      mesAnoCriacao: mesCriacao, // Grava no banco
+    };
+
+    if (id) await ref.doc(id).update(dados);
+    else await ref.add(dados);
+
     await registrarUltimaAlteracao();
   } catch (e) {
     console.error(e);
@@ -313,7 +338,6 @@ export async function excluirSubcategoria(id) {
  * HISTÓRICO (EXTRATO) DO ITEM
  */
 export function abrirHistoricoPatrimonio(id, callbackAbrir) {
-  // Prepara o objeto de callbacks com a função 'popularHistorico' esperada pelo ui.js
   const callbacksExtrato = {
     popularHistorico: (idItem) => {
       const sub = (state.patrimonioSubcategorias || []).find(
@@ -328,7 +352,14 @@ export function abrirHistoricoPatrimonio(id, callbackAbrir) {
       if (!elements.listaHistoricoPatrimonioUl) return;
       elements.listaHistoricoPatrimonioUl.innerHTML = "";
 
-      // 1. Saldo Inicial
+      // 1. Saldo Inicial (Apenas se a conta já existia no mês da Home)
+      const mesAnoHome = getMesAnoChave(state.currentDate);
+      if (sub.mesAnoCriacao && mesAnoHome < sub.mesAnoCriacao) {
+        elements.listaHistoricoPatrimonioUl.innerHTML =
+          '<li style="padding: 20px; text-align: center; color: #7f8c8d;">Este item ainda não havia sido criado neste período.</li>';
+        return;
+      }
+
       const liInicial = document.createElement("li");
       liInicial.style.cssText =
         "display:flex; justify-content:space-between; padding:12px; border-bottom: 2px solid #eee; background:#f9f9f9; border-left: 5px solid #bdc3c7;";
@@ -337,16 +368,18 @@ export function abrirHistoricoPatrimonio(id, callbackAbrir) {
 
       let saldoCorrente = Number(sub.saldoInicial) || 0;
 
-      // 2. Movimentações
+      // 2. Movimentações (Filtradas pela Máquina do Tempo da Home)
       const historico = (state.transacoes || [])
-        .filter((t) => t.patrimonioId === idItem)
+        .filter(
+          (t) => t.patrimonioId === idItem && t.mesAnoReferencia <= mesAnoHome,
+        )
         .sort((a, b) => new Date(a.dataOperacao) - new Date(b.dataOperacao));
 
       if (historico.length === 0) {
         const liVazio = document.createElement("li");
         liVazio.style.cssText =
           "padding: 20px; text-align: center; color: #7f8c8d;";
-        liVazio.textContent = "Nenhuma movimentação registrada.";
+        liVazio.textContent = "Nenhuma movimentação registrada até este mês.";
         elements.listaHistoricoPatrimonioUl.appendChild(liVazio);
       } else {
         historico.forEach((t) => {
@@ -380,7 +413,6 @@ export function abrirHistoricoPatrimonio(id, callbackAbrir) {
           li.style.cssText =
             "display:flex; justify-content:space-between; align-items:center; padding:12px; border-bottom:1px solid #f1f1f1;";
 
-          // LÓGICA DE EXCLUSÃO: Apenas se for 'ajuste'
           const btnExcluirAjuste =
             op === "ajuste"
               ? `<button class="btn-delete-ajuste-pat" data-id="${t.id}" title="Excluir este ajuste" style="background:none; border:none; color:#e74c3c; cursor:pointer; font-size:1.1em; padding:5px; margin-left:10px;">✖</button>`
@@ -399,11 +431,11 @@ export function abrirHistoricoPatrimonio(id, callbackAbrir) {
         });
       }
 
-      // 3. Saldo Atual Final
+      // 3. Saldo Atual Final (No contexto do mês da Home)
       const liFinal = document.createElement("li");
       liFinal.style.cssText =
         "display:flex; justify-content:space-between; padding:15px 12px; margin-top:10px; background:#2c3e50; color:white; border-radius:5px;";
-      liFinal.innerHTML = `<span><strong>SALDO ATUAL ACUMULADO</strong></span> <strong>${formatCurrency(saldoCorrente)}</strong>`;
+      liFinal.innerHTML = `<span><strong>FECHAMENTO NO PERÍODO</strong></span> <strong>${formatCurrency(saldoCorrente)}</strong>`;
       elements.listaHistoricoPatrimonioUl.appendChild(liFinal);
     },
   };

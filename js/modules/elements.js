@@ -362,6 +362,9 @@ export const elements = {
   saldoInicialPatrimonioInput: document.getElementById(
     "saldoInicialPatrimonio",
   ),
+  mesAnoCriacaoPatrimonioInput: document.getElementById(
+    "mesAnoCriacaoPatrimonio",
+  ),
   btnSalvarPatrimonioSubcategoria: document.getElementById(
     "btnSalvarPatrimonioSubcategoria",
   ),
