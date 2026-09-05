@@ -971,6 +971,7 @@ export async function adicionarNovaDividaTerceiro(dados) {
   });
   try {
     await batch.commit();
+    await registrarUltimaAlteracao();
     return true;
   } catch (e) {
     return false;

@@ -2,7 +2,11 @@ import { CONSTS } from "./constants.js";
 import { state } from "./state.js";
 import { elements } from "./elements.js";
 import { db } from "./firebase-config.js";
-import { formatCurrency, getMesAnoChave } from "./utils.js";
+import {
+  formatCurrency,
+  getMesAnoChave,
+  registrarUltimaAlteracao,
+} from "./utils.js";
 
 export function renderizarDividasDoMes() {
   const isHomeContext = state.modoVisualizacao === "terceiros";
@@ -296,7 +300,7 @@ export function atualizarSelectPessoas(idParaSelecionar = null) {
 
 export async function adicionarNovaDividaTerceiro(dados) {
   if (!state.currentUser) {
-    alert("Erro: Nenhum usuário logado para salvar a dívida.");
+    alert("Erro: Nenhum usuário logado para salvar a despesa.");
     return false;
   }
   if (!dados.pessoaId) {
@@ -304,11 +308,11 @@ export async function adicionarNovaDividaTerceiro(dados) {
     return false;
   }
   if (!dados.nomeTransacao) {
-    alert("Por favor, informe a descrição da dívida.");
+    alert("Por favor, informe a descrição da despesa.");
     return false;
   }
   if (dados.valor <= 0) {
-    alert("O valor da dívida deve ser maior que zero.");
+    alert("O valor da despesa deve ser maior que zero.");
     return false;
   }
 
@@ -347,7 +351,6 @@ export async function adicionarNovaDividaTerceiro(dados) {
         mesAnoReferencia: getMesAnoChave(mesReferenciaParcela),
       });
     }
-    // NOVA LÓGICA PARA TRATAR DÍVIDAS RECORRENTES
   } else if (dados.frequencia === CONSTS.FREQUENCIA.RECORRENTE) {
     for (let i = 0; i < CONSTS.RECORRENCIA_MESES; i++) {
       let mesReferenciaRecorrente = new Date(state.currentDate);
