@@ -887,6 +887,7 @@ export async function adicionarNovasTransacoes(dados) {
 
   try {
     await batch.commit();
+    await registrarUltimaAlteracao();
     return transacoesParaAdicionar.length;
   } catch (e) {
     console.error("Erro ao salvar:", e);

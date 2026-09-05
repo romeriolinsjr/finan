@@ -383,13 +383,14 @@ export async function adicionarNovaDividaTerceiro(dados) {
 
   try {
     await batch.commit();
+    await registrarUltimaAlteracao();
     console.log(
-      `${dividasParaAdicionar.length} dívida(s) de terceiro salvas no Firestore.`,
+      `${dividasParaAdicionar.length} despesa(s) de terceiro salvas no Firestore.`,
     );
     return true;
   } catch (error) {
-    console.error("Erro ao salvar dívidas de terceiro no Firestore:", error);
-    alert("Ocorreu um erro ao salvar a dívida. Tente novamente.");
+    console.error("Erro ao salvar despesas de terceiro no Firestore:", error);
+    alert("Ocorreu um erro ao salvar a despesa. Tente novamente.");
     return false;
   }
 }
