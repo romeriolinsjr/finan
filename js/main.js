@@ -1580,7 +1580,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Cadastro de Nova Dívida a partir da Consulta
+  // Cadastro de Nova despesa a partir da Consulta
   if (elements.btnAbrirCadastroTerceiros) {
     elements.btnAbrirCadastroTerceiros.addEventListener("click", () => {
       ui.fecharModalEspecifico(elements.modalConsultarTerceiros);
@@ -1589,7 +1589,13 @@ document.addEventListener("DOMContentLoaded", () => {
       state.editingTransactionId = null;
       state.editingSerieId = null;
       state.isModoTerceiros = true;
-      // popularSeletoresFixos agora é chamado automaticamente dentro do resetModalNovaTransacao
+
+      // Define o título específico para terceiros
+      if (elements.modalHeaderNovaTransacao) {
+        elements.modalHeaderNovaTransacao.textContent =
+          "Nova despesa de terceiro";
+      }
+
       ui.abrirModalEspecifico(elements.modalNovaTransacao, null, "transacao", {
         resetModalNovaTransacao: trans.resetModalNovaTransacao,
         preencherModalParaEdicao: trans.preencherModalParaEdicao,
@@ -1690,6 +1696,13 @@ document.addEventListener("DOMContentLoaded", () => {
     elements.btnAbrirCadastroTerceirosHome.addEventListener("click", () => {
       state.isEditMode = false;
       state.isModoTerceiros = true;
+
+      // Define o título específico para terceiros
+      if (elements.modalHeaderNovaTransacao) {
+        elements.modalHeaderNovaTransacao.textContent =
+          "Nova despesa de terceiro";
+      }
+
       trans.popularSeletoresFixos();
       ui.abrirModalEspecifico(elements.modalNovaTransacao, null, "transacao", {
         resetModalNovaTransacao: trans.resetModalNovaTransacao,

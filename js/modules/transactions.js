@@ -84,6 +84,13 @@ export function atualizarVisibilidadeFormulario() {
       } else if (categoria === "cartao_credito") {
         if (elements.secaoDespesaCartao)
           elements.secaoDespesaCartao.style.display = "block";
+
+        // Oculta o vínculo com orçamento se for despesa de terceiros
+        if (elements.containerOrcamentoVinculado) {
+          elements.containerOrcamentoVinculado.style.display =
+            state.isModoTerceiros ? "none" : "block";
+        }
+
         const freqCartao = elements.frequenciaDespesaCartao?.value || "unica";
         const isParcelada = freqCartao === "parcelada";
         if (elements.containerTipoCadastroCartao)
