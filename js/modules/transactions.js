@@ -35,18 +35,34 @@ export function atualizarVisibilidadeFormulario() {
         : "none";
     }
 
+    // --- LÓGICA DE TERCEIROS: Oculta o campo "Tipo" e força "Despesa" ---
+    if (state.isModoTerceiros) {
+      if (elements.tipoTransacaoSelect) {
+        elements.tipoTransacaoSelect.value = "despesa";
+        elements.tipoTransacaoSelect.parentElement.style.display = "none";
+      }
+    } else {
+      if (elements.tipoTransacaoSelect) {
+        // No modo normal, oculta o campo apenas se for patrimônio
+        elements.tipoTransacaoSelect.parentElement.style.display =
+          tipo === "patrimonio" ? "none" : "block";
+      }
+    }
+
     // Controle do Campo Nome (Bloco Inicial)
     if (elements.nomeTransacaoInput) {
       elements.nomeTransacaoInput.parentElement.style.display =
         tipo === "patrimonio" ? "none" : "block";
     }
 
-    // 2. Lógica de Cascata por Tipo
-    if (tipo === "receita") {
+    // 2. Lógica de Cascata por Tipo (Considera o modo terceiros para decidir o que mostrar)
+    const tipoEfetivo = state.isModoTerceiros ? "despesa" : tipo;
+
+    if (tipoEfetivo === "receita") {
       if (elements.secaoReceita) elements.secaoReceita.style.display = "block";
       if (elements.btnSalvarTransacao)
         elements.btnSalvarTransacao.style.display = "inline-block";
-    } else if (tipo === "despesa") {
+    } else if (tipoEfetivo === "despesa") {
       if (elements.secaoCategoriaDespesa)
         elements.secaoCategoriaDespesa.style.display = "block";
 
@@ -81,7 +97,7 @@ export function atualizarVisibilidadeFormulario() {
         if (elements.btnSalvarTransacao)
           elements.btnSalvarTransacao.style.display = "inline-block";
       }
-    } else if (tipo === "patrimonio") {
+    } else if (tipoEfetivo === "patrimonio") {
       if (elements.secaoPatrimonio)
         elements.secaoPatrimonio.style.display = "block";
 
@@ -90,7 +106,6 @@ export function atualizarVisibilidadeFormulario() {
       const isAjuste = operacao === "ajuste";
 
       // --- MUDANÇA DE RÓTULO PARA AJUSTE ---
-      // Localiza o label que precede o input de valor do patrimônio
       const labelValorPat = elements.valorPatrimonio?.previousElementSibling;
       if (labelValorPat && labelValorPat.tagName === "LABEL") {
         labelValorPat.textContent = isAjuste
@@ -98,7 +113,6 @@ export function atualizarVisibilidadeFormulario() {
           : "Valor (R$):";
       }
 
-      // Campo Nome exclusivo para Amortização
       if (elements.containerNomeAmortizacao) {
         elements.containerNomeAmortizacao.style.display = isAmortizacao
           ? "block"
