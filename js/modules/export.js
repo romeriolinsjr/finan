@@ -224,7 +224,14 @@ export async function gerarExtratoMensalPDF() {
   currentY = drawSectionHeader("Orçamentos", currentY);
   doc.autoTable({
     startY: currentY - 5,
-    head: [["ORÇAMENTO", "PREVISTO", "GASTO", "SALDO"]],
+    head: [
+      [
+        { content: "ORÇAMENTO", styles: { halign: "left" } },
+        { content: "PREVISTO", styles: { halign: "right" } },
+        { content: "GASTO", styles: { halign: "right" } },
+        { content: "SALDO", styles: { halign: "right" } },
+      ],
+    ],
     body:
       dadosOrcamentosTabela.length > 0
         ? [
@@ -458,7 +465,12 @@ export async function gerarExtratoMensalPDF() {
 
   doc.autoTable({
     startY: currentY,
-    head: [["CONTA", "SALDO ACUMULADO"]],
+    head: [
+      [
+        { content: "CONTA", styles: { halign: "left" } },
+        { content: "SALDO ACUMULADO", styles: { halign: "right" } },
+      ],
+    ],
     body: [
       ...dadosEstoqueAtivos.map((d) => [d.nome, formatCurrency(d.saldo)]),
       [

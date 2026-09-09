@@ -332,6 +332,9 @@ export function popularModalRelatorio(date) {
     return b.valor - a.valor;
   });
 
+  let totalPrevistoCartoes = 0;
+  let totalGastoCartoes = 0;
+
   orcamentosOrdenadosRelatorio.forEach((orc) => {
     let gastoNoOrc = despesasDoMes
       .filter((t) => t.orcamentoId === orc.id)
@@ -349,11 +352,33 @@ export function popularModalRelatorio(date) {
         .filter((t) => t.categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA)
         .reduce((s, t) => s + t.valor, 0);
 
-    orcamentosHTML += `<div class="relatorio-orcamento-item clicavel" data-orcamento-id="${orc.id}"><span>${orc.nome}</span><div class="orcamento-valores"><small>Prev: ${formatCurrency(orc.valor)}</small><small>Gasto: ${formatCurrency(gastoNoOrc)}</small><strong style="color:${orc.valor - gastoNoOrc >= 0 ? "#27ae60" : "#e74c3c"}">Saldo: ${formatCurrency(orc.valor - gastoNoOrc)}</strong></div></div>`;
+    // Acumulador exclusivo para orçamentos de cartão de crédito
+    if (!orc.isFixedOrdinary) {
+      totalPrevistoCartoes += orc.valor;
+      totalGastoCartoes += gastoNoOrc;
+    }
+
+    // Destaque visual: fundo azul claro para Ordinários e laranja suave para Outros Gastos (preservando a borda padrão)
+    let estiloItem = "";
+    let classeExtra = "";
+
+    if (orc.isFixedOrdinary) {
+      classeExtra = "orcamento-item-ordinario";
+      estiloItem = 'style="background-color: #ebf5fb;"';
+    } else if (orc.isFixed) {
+      classeExtra = "orcamento-item-outros";
+      estiloItem = 'style="background-color: #fff5eb;"';
+    }
+
+    orcamentosHTML += `<div class="relatorio-orcamento-item clicavel ${classeExtra}" ${estiloItem} data-orcamento-id="${orc.id}"><span>${orc.nome}</span><div class="orcamento-valores"><small>Previsto: ${formatCurrency(orc.valor)}</small><small>Gasto: ${formatCurrency(gastoNoOrc)}</small><strong style="color:${orc.valor - gastoNoOrc >= 0 ? "#27ae60" : "#e74c3c"}">Saldo: ${formatCurrency(orc.valor - gastoNoOrc)}</strong></div></div>`;
   });
 
+  const saldoNosCartoes = totalPrevistoCartoes - totalGastoCartoes;
+  const saldoTotalOrcamentos =
+    dados.totalPrevistoOrcamentos - dados.totalGastoRealOrcamentos;
+
   document.getElementById("relatorio-secao-analise-orcamentos").innerHTML =
-    `<section class="relatorio-secao"><h3>Análise de Orçamentos</h3><div class="relatorio-orcamento-lista">${orcamentosHTML}</div><div class="relatorio-orcamento-total"><span>TOTAIS</span><div class="orcamento-valores"><small>Prev: ${formatCurrency(dados.totalPrevistoOrcamentos)}</small><small>Gasto: ${formatCurrency(dados.totalGastoRealOrcamentos)}</small><strong>Saldo: ${formatCurrency(dados.totalPrevistoOrcamentos - dados.totalGastoRealOrcamentos)}</strong></div></div></section>`;
+    `<section class="relatorio-secao"><h3>Análise de Orçamentos</h3><div class="relatorio-orcamento-lista">${orcamentosHTML}</div><div class="relatorio-orcamento-total"><span>TOTAIS</span><div class="orcamento-valores"><small>Previsto: ${formatCurrency(dados.totalPrevistoOrcamentos)}</small><small>Gasto: ${formatCurrency(dados.totalGastoRealOrcamentos)}</small><strong style="color:${saldoNosCartoes >= 0 ? "#27ae60" : "#e74c3c"}">Saldo nos cartões: ${formatCurrency(saldoNosCartoes)}</strong><strong style="color:${saldoTotalOrcamentos >= 0 ? "#27ae60" : "#e74c3c"}">Saldo total: ${formatCurrency(saldoTotalOrcamentos)}</strong></div></div></section>`;
 }
 
 export function abrirDetalhesFiltroRelatorio(
