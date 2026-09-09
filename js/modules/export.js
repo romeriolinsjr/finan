@@ -8,6 +8,7 @@ import {
   parseDateString,
 } from "./utils.js";
 import { obterDadosFinanceirosAgrupados } from "./reports.js";
+import { obterSaldoItemAteMes } from "./patrimony.js";
 
 const getLogoBase64 = () => {
   return new Promise((resolve) => {
@@ -73,37 +74,35 @@ export async function gerarExtratoMensalPDF() {
     .filter((t) => t.tipo === CONSTS.TIPO_TRANSACAO.RECEITA)
     .sort((a, b) => b.valor - a.valor);
 
-  // 1.2 Estoque Patrimonial (Calculado para fotografia histórica)
+  // 1.2 Estoque Patrimonial (Consome o motor oficial e respeita a Máquina do Tempo)
+  const dataMesAnterior = new Date(
+    state.currentDate.getFullYear(),
+    state.currentDate.getMonth() - 1,
+    1,
+  );
+  const mesAnoAnterior = getMesAnoChave(dataMesAnterior);
+
   let saldoAcumuladoAtivos = 0;
-  let totalAjustesAtivosMes = 0;
-  let totalAmortizacoesAtivosMes = 0;
+  let saldoInicialAtivos = 0;
 
   const dadosEstoqueAtivos = (state.patrimonioCategorias || [])
-    .filter((cat) => cat.tipo === CONSTS.SUBTIPO_PATRIMONIO.ATIVO)
+    .filter(
+      (cat) =>
+        cat.tipo === CONSTS.SUBTIPO_PATRIMONIO.ATIVO || cat.tipo === "ativo",
+    )
     .map((cat) => {
+      // Filtra apenas itens existentes até o mês de referência consultado
       const filhos = (state.patrimonioSubcategorias || []).filter(
-        (s) => s.categoriaId === cat.id,
+        (s) =>
+          s.categoriaId === cat.id &&
+          (!s.mesAnoCriacao || s.mesAnoCriacao <= mesAno),
       );
       let totalCat = 0;
       filhos.forEach((sub) => {
-        let saldo = Number(sub.saldoInicial) || 0;
-        const historico = state.transacoes.filter(
-          (t) => t.patrimonioId === sub.id && t.mesAnoReferencia <= mesAno,
-        );
-        historico.forEach((t) => {
-          const v = Number(t.valor) || 0;
-          if (t.operacao === CONSTS.OPERACAO_PATRIMONIO.APORTE) saldo += v;
-          else if (t.operacao === CONSTS.OPERACAO_PATRIMONIO.RESGATE)
-            saldo -= v;
-          else if (t.operacao === CONSTS.OPERACAO_PATRIMONIO.AJUSTE) {
-            saldo += v;
-            if (t.mesAnoReferencia === mesAno) totalAjustesAtivosMes += v;
-          } else if (t.operacao === CONSTS.OPERACAO_PATRIMONIO.AMORTIZACAO) {
-            saldo -= v;
-            if (t.mesAnoReferencia === mesAno) totalAmortizacoesAtivosMes += v;
-          }
-        });
-        totalCat += saldo;
+        const saldoFinalItem = obterSaldoItemAteMes(sub.id, mesAno);
+        const saldoInicialItem = obterSaldoItemAteMes(sub.id, mesAnoAnterior);
+        totalCat += saldoFinalItem;
+        saldoInicialAtivos += saldoInicialItem;
       });
       saldoAcumuladoAtivos += totalCat;
       return { nome: cat.nome, saldo: totalCat };
@@ -111,19 +110,12 @@ export async function gerarExtratoMensalPDF() {
     .filter((d) => d.saldo !== 0)
     .sort((a, b) => b.saldo - a.saldo);
 
-  // Cálculo TCP
-  const saldoInicialAtivos =
-    saldoAcumuladoAtivos -
-    (dados.totalAportesAtivos - dados.totalResgates) -
-    totalAjustesAtivosMes +
-    totalAmortizacoesAtivosMes;
+  // Cálculo TCP (Restrito à Formação de Ativos, capturando Aportes e Rendimentos/Ajustes)
+  const deltaAtivos = saldoAcumuladoAtivos - saldoInicialAtivos;
   const crescimentoAtivos =
     saldoInicialAtivos > 0
-      ? ((dados.totalAportesAtivos - dados.totalResgates) /
-          saldoInicialAtivos) *
-        100
-      : saldoInicialAtivos === 0 &&
-          dados.totalAportesAtivos - dados.totalResgates > 0
+      ? (deltaAtivos / saldoInicialAtivos) * 100
+      : saldoAcumuladoAtivos > 0
         ? 100
         : 0;
 
@@ -414,14 +406,14 @@ export async function gerarExtratoMensalPDF() {
           content: "ÍNDICE DE DESTINAÇÃO PARA AMORTIZAÇÃO",
           styles: { fontStyle: "bold" },
         },
-        `${indDestAmortizacao.toFixed(1)}%`,
+        `${indDestAmortizacao.toFixed(2)}%`,
       ],
       [
         {
           content: "TAXA DE INVESTIMENTO LÍQUIDO",
           styles: { fontStyle: "bold" },
         },
-        `${dados.taxaInvestimento.toFixed(1)}%`,
+        `${dados.taxaInvestimento.toFixed(2)}%`,
       ],
     ],
     theme: "plain",
@@ -454,9 +446,19 @@ export async function gerarExtratoMensalPDF() {
 
   // 6. POSIÇÃO PATRIMONIAL ACUMULADA
   currentY = drawSectionHeader("Posição patrimonial acumulada", currentY);
+  doc.setFontSize(7.5);
+  doc.setFont("helvetica", "italic");
+  doc.setTextColor(120, 120, 120);
+  doc.text(
+    "Demonstrativo restrito às contas de Formação de Ativos (não inclui contas de Recursos para Amortização).",
+    margin,
+    currentY - 1,
+  );
+  currentY += 4;
+
   doc.autoTable({
     startY: currentY,
-    head: [["CONTA (FORMAÇÃO DE ATIVOS)", "SALDO ACUMULADO"]],
+    head: [["CONTA", "SALDO ACUMULADO"]],
     body: [
       ...dadosEstoqueAtivos.map((d) => [d.nome, formatCurrency(d.saldo)]),
       [
@@ -479,7 +481,7 @@ export async function gerarExtratoMensalPDF() {
           styles: { fontStyle: "bold" },
         },
         {
-          content: `${crescimentoAtivos.toFixed(1)}%`,
+          content: `${crescimentoAtivos.toFixed(2)}%`,
           styles: { fontStyle: "bold", halign: "right" },
         },
       ],

@@ -250,7 +250,7 @@ export function popularModalRelatorio(date) {
             <span>Investimento Líquido</span> <strong>${formatCurrency(dados.investimentoLiquido)}</strong>
           </div>
           <div class="relatorio-item-analise" style="font-weight: bold; border-left-color: #f1c40f;">
-            <span>Taxa de Investimento Líquido</span> <strong>${dados.taxaInvestimento.toFixed(1)}%</strong>
+            <span>Taxa de Investimento Líquido</span> <strong>${dados.taxaInvestimento.toFixed(2)}%</strong>
           </div>
         </div>
       </div>
