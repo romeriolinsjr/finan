@@ -47,6 +47,7 @@ export async function gerarExtratoMensalPDF() {
   const COLOR_GRAY = [189, 195, 199];
   const COLOR_DARK = [44, 62, 80];
   const COLOR_BG_HEADER = [241, 244, 247];
+  const COLOR_BG_SECTION = [248, 250, 252]; // Fundo cinza-gelo suave para delimitar as seções
 
   const drawSectionHeader = (title, y) => {
     if (y > 270) {
@@ -177,7 +178,7 @@ export async function gerarExtratoMensalPDF() {
       ["Saldo Real", formatCurrency(dados.saldoReal)],
     ],
     theme: "plain",
-    styles: { fontSize: 10, cellPadding: 4 },
+    styles: { fontSize: 10, cellPadding: 4, fillColor: COLOR_BG_SECTION },
     columnStyles: { 1: { halign: "right", fontStyle: "bold" } },
     didDrawCell: (data) => {
       if (data.column.index === 0) {
@@ -209,13 +210,23 @@ export async function gerarExtratoMensalPDF() {
         ? [
             ...receitasLista.map((r) => [r.nome, formatCurrency(r.valor)]),
             [
-              { content: "TOTAL", styles: { fontStyle: "bold" } },
-              formatCurrency(dados.totalReceitas),
+              {
+                content: "TOTAL",
+                styles: { fontStyle: "bold", fillColor: [240, 243, 246] },
+              },
+              {
+                content: formatCurrency(dados.totalReceitas),
+                styles: {
+                  fontStyle: "bold",
+                  halign: "right",
+                  fillColor: [240, 243, 246],
+                },
+              },
             ],
           ]
         : [["Nenhuma receita registrada", "-"]],
     theme: "plain",
-    styles: { fontSize: 9, cellPadding: 3 },
+    styles: { fontSize: 9, cellPadding: 3, fillColor: COLOR_BG_SECTION },
     columnStyles: { 1: { halign: "right", fontStyle: "bold" } },
   });
   currentY = doc.lastAutoTable.finalY + 10;
@@ -226,10 +237,22 @@ export async function gerarExtratoMensalPDF() {
     startY: currentY - 5,
     head: [
       [
-        { content: "ORÇAMENTO", styles: { halign: "left" } },
-        { content: "PREVISTO", styles: { halign: "right" } },
-        { content: "GASTO", styles: { halign: "right" } },
-        { content: "SALDO", styles: { halign: "right" } },
+        {
+          content: "ORÇAMENTO",
+          styles: { halign: "left", fillColor: [238, 242, 246] },
+        },
+        {
+          content: "PREVISTO",
+          styles: { halign: "right", fillColor: [238, 242, 246] },
+        },
+        {
+          content: "GASTO",
+          styles: { halign: "right", fillColor: [238, 242, 246] },
+        },
+        {
+          content: "SALDO",
+          styles: { halign: "right", fillColor: [238, 242, 246] },
+        },
       ],
     ],
     body:
@@ -242,22 +265,46 @@ export async function gerarExtratoMensalPDF() {
               formatCurrency(o.saldo),
             ]),
             [
-              { content: "TOTAL", styles: { fontStyle: "bold" } },
-              formatCurrency(
-                dadosOrcamentosTabela.reduce((s, o) => s + o.previsto, 0),
-              ),
-              formatCurrency(
-                dadosOrcamentosTabela.reduce((s, o) => s + o.gasto, 0),
-              ),
-              formatCurrency(
-                dadosOrcamentosTabela.reduce((s, o) => s + o.saldo, 0),
-              ),
+              {
+                content: "TOTAL",
+                styles: { fontStyle: "bold", fillColor: [240, 243, 246] },
+              },
+              {
+                content: formatCurrency(
+                  dadosOrcamentosTabela.reduce((s, o) => s + o.previsto, 0),
+                ),
+                styles: {
+                  fontStyle: "bold",
+                  halign: "right",
+                  fillColor: [240, 243, 246],
+                },
+              },
+              {
+                content: formatCurrency(
+                  dadosOrcamentosTabela.reduce((s, o) => s + o.gasto, 0),
+                ),
+                styles: {
+                  fontStyle: "bold",
+                  halign: "right",
+                  fillColor: [240, 243, 246],
+                },
+              },
+              {
+                content: formatCurrency(
+                  dadosOrcamentosTabela.reduce((s, o) => s + o.saldo, 0),
+                ),
+                styles: {
+                  fontStyle: "bold",
+                  halign: "right",
+                  fillColor: [240, 243, 246],
+                },
+              },
             ],
           ]
         : [["Nenhum orçamento cadastrado", "-", "-", "-"]],
     theme: "plain",
     headStyles: { fontStyle: "bold", textColor: [100, 100, 100] },
-    styles: { fontSize: 8.5, cellPadding: 2.5 },
+    styles: { fontSize: 8.5, cellPadding: 2.5, fillColor: COLOR_BG_SECTION },
     columnStyles: {
       1: { halign: "right" },
       2: { halign: "right" },
@@ -286,13 +333,23 @@ export async function gerarExtratoMensalPDF() {
         ? [
             ...despesasOrd.map((d) => [d.nome, formatCurrency(d.valor)]),
             [
-              { content: "TOTAL", styles: { fontStyle: "bold" } },
-              formatCurrency(dados.totalGastoRealOrdinario),
+              {
+                content: "TOTAL",
+                styles: { fontStyle: "bold", fillColor: [240, 243, 246] },
+              },
+              {
+                content: formatCurrency(dados.totalGastoRealOrdinario),
+                styles: {
+                  fontStyle: "bold",
+                  halign: "right",
+                  fillColor: [240, 243, 246],
+                },
+              },
             ],
           ]
         : [["Nenhuma despesa ordinária", "-"]],
     theme: "plain",
-    styles: { fontSize: 8.5, cellPadding: 2.5 },
+    styles: { fontSize: 8.5, cellPadding: 2.5, fillColor: COLOR_BG_SECTION },
     columnStyles: { 1: { halign: "right", fontStyle: "bold" } },
   });
   currentY = doc.lastAutoTable.finalY + 8;
@@ -323,15 +380,25 @@ export async function gerarExtratoMensalPDF() {
               formatCurrency(item.valor),
             ]),
             [
-              { content: "TOTAL", styles: { fontStyle: "bold" } },
-              formatCurrency(
-                dados.totalGastoRealCartao - dados.totalAjustesDoMes,
-              ),
+              {
+                content: "TOTAL",
+                styles: { fontStyle: "bold", fillColor: [240, 243, 246] },
+              },
+              {
+                content: formatCurrency(
+                  dados.totalGastoRealCartao - dados.totalAjustesDoMes,
+                ),
+                styles: {
+                  fontStyle: "bold",
+                  halign: "right",
+                  fillColor: [240, 243, 246],
+                },
+              },
             ],
           ]
         : [["Nenhuma despesa de cartão", "-"]],
     theme: "plain",
-    styles: { fontSize: 8.5, cellPadding: 2.5 },
+    styles: { fontSize: 8.5, cellPadding: 2.5, fillColor: COLOR_BG_SECTION },
     columnStyles: { 1: { halign: "right", fontStyle: "bold" } },
   });
   currentY = doc.lastAutoTable.finalY + 10;
@@ -424,7 +491,7 @@ export async function gerarExtratoMensalPDF() {
       ],
     ],
     theme: "plain",
-    styles: { fontSize: 8.5, cellPadding: 2 },
+    styles: { fontSize: 8.5, cellPadding: 2, fillColor: COLOR_BG_SECTION },
     columnStyles: { 1: { halign: "right", fontStyle: "bold" } },
   });
 
@@ -467,8 +534,14 @@ export async function gerarExtratoMensalPDF() {
     startY: currentY,
     head: [
       [
-        { content: "CONTA", styles: { halign: "left" } },
-        { content: "SALDO ACUMULADO", styles: { halign: "right" } },
+        {
+          content: "CONTA",
+          styles: { halign: "left", fillColor: [238, 242, 246] },
+        },
+        {
+          content: "SALDO ACUMULADO",
+          styles: { halign: "right", fillColor: [238, 242, 246] },
+        },
       ],
     ],
     body: [
@@ -476,31 +549,35 @@ export async function gerarExtratoMensalPDF() {
       [
         {
           content: "TOTAL ACUMULADO",
-          styles: { fontStyle: "bold", fillColor: [240, 240, 240] },
+          styles: { fontStyle: "bold", fillColor: [240, 243, 246] },
         },
         {
           content: formatCurrency(saldoAcumuladoAtivos),
           styles: {
             fontStyle: "bold",
             halign: "right",
-            fillColor: [240, 240, 240],
+            fillColor: [240, 243, 246],
           },
         },
       ],
       [
         {
           content: "TAXA DE CRESCIMENTO PATRIMONIAL NO CICLO",
-          styles: { fontStyle: "bold" },
+          styles: { fontStyle: "bold", fillColor: [240, 243, 246] },
         },
         {
           content: `${crescimentoAtivos.toFixed(2)}%`,
-          styles: { fontStyle: "bold", halign: "right" },
+          styles: {
+            fontStyle: "bold",
+            halign: "right",
+            fillColor: [240, 243, 246],
+          },
         },
       ],
     ],
     theme: "plain",
     headStyles: { fontStyle: "bold", textColor: [100, 100, 100] },
-    styles: { fontSize: 8.5, cellPadding: 3.5 },
+    styles: { fontSize: 8.5, cellPadding: 3.5, fillColor: COLOR_BG_SECTION },
     columnStyles: { 1: { halign: "right" } },
   });
 
