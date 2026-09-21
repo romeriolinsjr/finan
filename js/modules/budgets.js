@@ -86,7 +86,22 @@ export function abrirModalDetalhesOrcamento(
       mesBate && (vinculadoDiretamente || ehOrfaoCartao || ehGastoOrdinario)
     );
   });
-  gastosVinculados.sort((a, b) => b.valor - a.valor);
+
+  // ORDENAÇÃO PADRONIZADA: 1º Recorrentes, 2º Parceladas, 3º Únicas; desempate por Valor Decrescente
+  const getPesoFrequencia = (freq) => {
+    if (freq === CONSTS.FREQUENCIA.RECORRENTE || freq === "recorrente")
+      return 1;
+    if (freq === CONSTS.FREQUENCIA.PARCELADA || freq === "parcelada") return 2;
+    return 3; // Únicas ou não definidas
+  };
+
+  gastosVinculados.sort((a, b) => {
+    const pesoA = getPesoFrequencia(a.frequencia);
+    const pesoB = getPesoFrequencia(b.frequencia);
+    if (pesoA !== pesoB) return pesoA - pesoB;
+    return (b.valor || 0) - (a.valor || 0);
+  });
+
   const totalGasto = gastosVinculados.reduce(
     (total, gasto) => total + gasto.valor,
     0,

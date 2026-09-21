@@ -979,6 +979,12 @@ export async function adicionarNovaDividaTerceiro(dados) {
 }
 
 export function popularSeletoresFixos() {
+  if (!elements.cartaoDespesa || !elements.orcamentoVinculado) return;
+
+  // BLINDAGEM CONTRA SNAPSHOTS: Memoriza a escolha atual do usuário antes de repopular o HTML
+  const cartaoSelecionado = elements.cartaoDespesa.value || "";
+  const orcamentoSelecionado = elements.orcamentoVinculado.value || "";
+
   // Cartões
   // Se estivermos editando, precisamos incluir o cartão da transação mesmo que ele esteja "deletado" (Soft Delete)
   // para que o nome apareça corretamente no seletor.
@@ -996,6 +1002,11 @@ export function popularSeletoresFixos() {
   hCartoes += '<option value="novo_cartao">Cadastrar novo...</option>';
   elements.cartaoDespesa.innerHTML = hCartoes;
 
+  // Restaura a seleção do cartão caso o usuário já tenha escolhido
+  if (cartaoSelecionado) {
+    elements.cartaoDespesa.value = cartaoSelecionado;
+  }
+
   // Orçamentos
   // Obtemos o mês que está sendo exibido na tela para filtrar a lista
   const mesAnoAtualVisivel = getMesAnoChave(state.currentDate);
@@ -1012,6 +1023,11 @@ export function popularSeletoresFixos() {
     .forEach((o) => (hOrc += `<option value="${o.id}">${o.nome}</option>`));
 
   elements.orcamentoVinculado.innerHTML = hOrc;
+
+  // Restaura o orçamento selecionado caso o usuário já tenha escolhido (impede o reset fantasma para "Nenhum")
+  if (orcamentoSelecionado) {
+    elements.orcamentoVinculado.value = orcamentoSelecionado;
+  }
 
   // Pessoas (Para Despesas de Terceiros)
   atualizarSelectPessoas();
@@ -1204,6 +1220,9 @@ export function popularSelectTransacaoPatrimonio() {
   )
     return;
 
+  // BLINDAGEM: Memoriza o item que já estava selecionado
+  const itemSelecionado = elements.selectTransacaoPatrimonioSub.value || "";
+
   const naturezaAlvo = elements.naturezaPatrimonioSelect.value; // 'ativo' ou 'passivo'
   const subcategorias = state.patrimonioSubcategorias || [];
   const categorias = (state.patrimonioCategorias || []).filter(
@@ -1234,6 +1253,11 @@ export function popularSelectTransacaoPatrimonio() {
   }
 
   elements.selectTransacaoPatrimonioSub.innerHTML = h;
+
+  // Restaura o item selecionado
+  if (itemSelecionado) {
+    elements.selectTransacaoPatrimonioSub.value = itemSelecionado;
+  }
 }
 
 /**
