@@ -1005,6 +1005,116 @@
       </div>
     </div>
 
+    <!-- NOVO: Modal para Ajuste Rápido de Saldo do Orçamento (Alvo) -->
+    <div id="modalAjustarSaldoOrcamento" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="tituloModalAjustarSaldo">Ajustar Saldo do Orçamento</h2>
+          <span class="close-button" data-modal-id="modalAjustarSaldoOrcamento"
+            >×</span
+          >
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="ajusteSaldoOrcamentoId" />
+          <input type="hidden" id="ajusteSaldoMesAno" />
+          <p style="font-size: 0.85em; color: #7f8c8d; margin-bottom: 12px">
+            Informe o saldo livre que você deseja ter neste orçamento. O Finan
+            recalculará o valor previsto somando os gastos já comprometidos.
+          </p>
+          <div
+            style="
+              background: #f8f9fa;
+              padding: 10px;
+              border-radius: 6px;
+              margin-bottom: 15px;
+              border-left: 3px solid #3498db;
+            "
+          >
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                font-size: 0.85em;
+                margin-bottom: 4px;
+              "
+            >
+              <span>Gasto comprometido no mês:</span>
+              <strong id="gastoAtualOrcamentoAjuste">R$ 0,00</strong>
+            </div>
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                font-size: 0.85em;
+              "
+            >
+              <span>Previsão atual:</span>
+              <strong id="previstoAtualOrcamentoAjuste">R$ 0,00</strong>
+            </div>
+          </div>
+          <div>
+            <label for="inputNovoSaldoDesejado"
+              >Novo Saldo Livre Desejado (R$):</label
+            >
+            <input
+              type="number"
+              id="inputNovoSaldoDesejado"
+              step="0.01"
+              placeholder="Ex: 1000,00"
+              required
+            />
+          </div>
+        </div>
+        <div
+          class="modal-footer"
+          style="padding: 0 20px 25px 20px; border-top: none"
+        >
+          <div
+            style="
+              display: flex;
+              flex-direction: column;
+              gap: 12px;
+              width: 100%;
+            "
+          >
+            <button
+              id="btnAjustarSaldoApenasEste"
+              class="btn-primary"
+              style="
+                background-color: #3498db;
+                width: 100%;
+                padding: 12px;
+                margin: 0;
+                font-weight: 500;
+              "
+            >
+              Aplicar APENAS neste mês
+            </button>
+            <button
+              id="btnAjustarSaldoEsteEFuturos"
+              class="btn-primary"
+              style="
+                background-color: #27ae60;
+                width: 100%;
+                padding: 12px;
+                margin: 0;
+                font-weight: 500;
+              "
+            >
+              Aplicar NESTE e nos PRÓXIMOS meses
+            </button>
+            <button
+              class="btn-secondary close-button-footer"
+              data-modal-id="modalAjustarSaldoOrcamento"
+              style="width: 100%; padding: 12px; margin: 0"
+            >
+              Voltar / Cancelar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Modal Detalhes da Fatura do Cartão -->
     <div id="modalDetalhesFaturaCartao" class="modal">
       <div class="modal-content">

@@ -176,6 +176,26 @@ export const elements = {
     "orcamentoDetalhesRestante",
   ),
   listaGastosOrcamento: document.getElementById("listaGastosOrcamento"),
+  // NOVO: Elementos do Ajuste Rápido de Saldo do Orçamento (Alvo 🎯)
+  modalAjustarSaldoOrcamento: document.getElementById(
+    "modalAjustarSaldoOrcamento",
+  ),
+  tituloModalAjustarSaldo: document.getElementById("tituloModalAjustarSaldo"),
+  ajusteSaldoOrcamentoId: document.getElementById("ajusteSaldoOrcamentoId"),
+  ajusteSaldoMesAno: document.getElementById("ajusteSaldoMesAno"),
+  gastoAtualOrcamentoAjuste: document.getElementById(
+    "gastoAtualOrcamentoAjuste",
+  ),
+  previstoAtualOrcamentoAjuste: document.getElementById(
+    "previstoAtualOrcamentoAjuste",
+  ),
+  inputNovoSaldoDesejado: document.getElementById("inputNovoSaldoDesejado"),
+  btnAjustarSaldoApenasEste: document.getElementById(
+    "btnAjustarSaldoApenasEste",
+  ),
+  btnAjustarSaldoEsteEFuturos: document.getElementById(
+    "btnAjustarSaldoEsteEFuturos",
+  ),
   modalAjustesFatura: document.getElementById("modalAjustesFatura"),
   modalAjustesFaturaTitulo: document.getElementById("modalAjustesFaturaTitulo"),
   descricaoAjusteInput: document.getElementById("descricaoAjuste"),

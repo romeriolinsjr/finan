@@ -848,6 +848,8 @@ document.addEventListener("DOMContentLoaded", () => {
       },
       abrirModalDetalhesOrcamento: (id, m) =>
         budgets.abrirModalDetalhesOrcamento(id, m, ui.abrirModalEspecifico),
+      abrirModalAjustarSaldoOrcamento: (id, m) =>
+        budgets.abrirModalAjustarSaldoOrcamento(id, m),
       abrirModalDetalhesFatura: (id, m) =>
         cards.abrirModalDetalhesFatura(
           id,
@@ -1542,6 +1544,18 @@ document.addEventListener("DOMContentLoaded", () => {
   elements.btnFecharTodosOrcamentos.addEventListener("click", () => {
     budgets.alternarTodosOrcamentosDoMes();
   });
+
+  // NOVO: Ouvintes para os botões de escopo do ajuste rápido de saldo (🎯)
+  if (elements.btnAjustarSaldoApenasEste) {
+    elements.btnAjustarSaldoApenasEste.addEventListener("click", () =>
+      budgets.executarAjusteSaldoOrcamento("unico"),
+    );
+  }
+  if (elements.btnAjustarSaldoEsteEFuturos) {
+    elements.btnAjustarSaldoEsteEFuturos.addEventListener("click", () =>
+      budgets.executarAjusteSaldoOrcamento("futuros"),
+    );
+  }
 
   if (elements.btnDownloadPDF || elements.btnDownloadPDFHome) {
     const handlerDownload = () => {

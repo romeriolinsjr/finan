@@ -461,3 +461,237 @@ export async function excluirOrcamentoTemporal(orcamentoId, tipoExclusao) {
     return false;
   }
 }
+
+/**
+ * Abre o modal para ajuste rápido do saldo restante do orçamento (🎯)
+ */
+export function abrirModalAjustarSaldoOrcamento(orcamentoId, mesAno) {
+  const orcamento = state.orcamentos.find(
+    (o) => o.id === orcamentoId && o.mesAnoReferencia === mesAno,
+  );
+  if (!orcamento || !elements.modalAjustarSaldoOrcamento) return;
+
+  const activeBudgetIds = state.orcamentos
+    .filter((o) => o.mesAnoReferencia === mesAno)
+    .map((o) => o.id);
+
+  const transacoesDoMes = state.transacoes.filter(
+    (t) => t.mesAnoReferencia === mesAno,
+  );
+
+  let gastoAtual = transacoesDoMes
+    .filter((t) => t.orcamentoId === orcamentoId)
+    .reduce((s, t) => s + t.valor, 0);
+
+  if (orcamento.isFixed) {
+    gastoAtual += transacoesDoMes
+      .filter(
+        (t) =>
+          t.categoria === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO &&
+          (!t.orcamentoId || !activeBudgetIds.includes(t.orcamentoId)),
+      )
+      .reduce((s, t) => s + t.valor, 0);
+  }
+  if (orcamento.isFixedOrdinary) {
+    gastoAtual += transacoesDoMes
+      .filter((t) => t.categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA)
+      .reduce((s, t) => s + t.valor, 0);
+  }
+
+  const saldoRestanteAtual = orcamento.valor - gastoAtual;
+
+  elements.ajusteSaldoOrcamentoId.value = orcamentoId;
+  elements.ajusteSaldoMesAno.value = mesAno;
+  elements.tituloModalAjustarSaldo.textContent = `Ajustar Saldo: ${orcamento.nome}`;
+  elements.gastoAtualOrcamentoAjuste.textContent = formatCurrency(gastoAtual);
+  elements.previstoAtualOrcamentoAjuste.textContent = formatCurrency(
+    orcamento.valor,
+  );
+
+  // BLINDAGEM CONTRA CASAS DECIMAIS INFINITAS (Arredondamento estrito em 2 casas)
+  if (saldoRestanteAtual > 0) {
+    elements.inputNovoSaldoDesejado.value = parseFloat(
+      saldoRestanteAtual.toFixed(2),
+    );
+  } else {
+    elements.inputNovoSaldoDesejado.value = "";
+  }
+
+  // Abre o modal pelo fluxo oficial
+  import("./ui.js").then((ui) => {
+    ui.abrirModalEspecifico(elements.modalAjustarSaldoOrcamento);
+    setTimeout(() => {
+      if (elements.inputNovoSaldoDesejado) {
+        elements.inputNovoSaldoDesejado.focus();
+        elements.inputNovoSaldoDesejado.select();
+      }
+    }, 150);
+  });
+}
+
+/**
+ * Executa o recálculo do orçamento com base no saldo livre desejado (Inversão de Equação)
+ */
+export async function executarAjusteSaldoOrcamento(tipoEscopo) {
+  if (!state.currentUser) return;
+  const orcamentoId = elements.ajusteSaldoOrcamentoId.value;
+  const mesAno = elements.ajusteSaldoMesAno.value;
+  const saldoDesejado = parseFloat(elements.inputNovoSaldoDesejado.value);
+
+  if (isNaN(saldoDesejado) || saldoDesejado < 0) {
+    alert("Por favor, informe um valor de saldo válido.");
+    return;
+  }
+
+  const orcamento = state.orcamentos.find(
+    (o) => o.id === orcamentoId && o.mesAnoReferencia === mesAno,
+  );
+  if (!orcamento) return;
+
+  // 1. TRAVA IMEDIATA DE CLIQUES: Desabilita os botões para evitar execuções paralelas concorrentes
+  const btnApenasEste = elements.btnAjustarSaldoApenasEste;
+  const btnEsteEFuturos = elements.btnAjustarSaldoEsteEFuturos;
+  if (btnApenasEste) btnApenasEste.disabled = true;
+  if (btnEsteEFuturos) {
+    btnEsteEFuturos.disabled = true;
+    btnEsteEFuturos.textContent = "Salvando...";
+  }
+
+  const ref = db
+    .collection("users")
+    .doc(state.currentUser.uid)
+    .collection("orcamentos");
+
+  const activeBudgetIds = state.orcamentos
+    .filter((o) => o.mesAnoReferencia === mesAno)
+    .map((o) => o.id);
+
+  const transacoesDoMes = state.transacoes.filter(
+    (t) => t.mesAnoReferencia === mesAno,
+  );
+
+  let gastoAtual = transacoesDoMes
+    .filter((t) => t.orcamentoId === orcamentoId)
+    .reduce((s, t) => s + t.valor, 0);
+
+  if (orcamento.isFixed) {
+    gastoAtual += transacoesDoMes
+      .filter(
+        (t) =>
+          t.categoria === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO &&
+          (!t.orcamentoId || !activeBudgetIds.includes(t.orcamentoId)),
+      )
+      .reduce((s, t) => s + t.valor, 0);
+  }
+  if (orcamento.isFixedOrdinary) {
+    gastoAtual += transacoesDoMes
+      .filter((t) => t.categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA)
+      .reduce((s, t) => s + t.valor, 0);
+  }
+
+  const novoPrevistoMesAtual = parseFloat(
+    (saldoDesejado + gastoAtual).toFixed(2),
+  );
+
+  try {
+    if (tipoEscopo === "futuros") {
+      const batch = db.batch();
+
+      // 1. Atualiza o mês corrente no batch e na memória
+      batch.update(ref.doc(orcamentoId), { valor: novoPrevistoMesAtual });
+      const idxAtual = state.orcamentos.findIndex((o) => o.id === orcamentoId);
+      if (idxAtual !== -1) {
+        state.orcamentos[idxAtual].valor = novoPrevistoMesAtual;
+      }
+
+      // 2. Filtra orçamentos futuros da mesma série em memória
+      const orcsFuturos = state.orcamentos.filter(
+        (o) => o.nome === orcamento.nome && o.mesAnoReferencia > mesAno,
+      );
+
+      if (orcsFuturos.length > 0) {
+        // 3. UMA ÚNICA BUSCA EM LOTE DE TODAS AS TRANSAÇÕES FUTURAS (Super Performance: ~0.2s)
+        const snapTransFuturas = await db
+          .collection("users")
+          .doc(state.currentUser.uid)
+          .collection("transacoes")
+          .where("mesAnoReferencia", ">", mesAno)
+          .get();
+
+        const todasTransFuturas = snapTransFuturas.docs.map((d) => d.data());
+
+        // 4. Recalcula cada mês futuro com inteligência para Comum, Outros Gastos e Gastos Ordinários
+        for (const ofuture of orcsFuturos) {
+          const mesF = ofuture.mesAnoReferencia;
+          const transDesteMes = todasTransFuturas.filter(
+            (t) => t.mesAnoReferencia === mesF,
+          );
+
+          const activeIdsMesF = state.orcamentos
+            .filter((o) => o.mesAnoReferencia === mesF)
+            .map((o) => o.id);
+
+          // Gastos vinculados diretamente pelo ID do orçamento
+          let gastoFuturo = transDesteMes
+            .filter((t) => t.orcamentoId === ofuture.id)
+            .reduce((s, t) => s + (Number(t.valor) || 0), 0);
+
+          if (ofuture.isFixed) {
+            // OUTROS GASTOS: Captura despesas órfãs de cartão (sem orcamentoId ou com ID não ativo no mês)
+            gastoFuturo += transDesteMes
+              .filter(
+                (t) =>
+                  t.categoria === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO &&
+                  (!t.orcamentoId || !activeIdsMesF.includes(t.orcamentoId)),
+              )
+              .reduce((s, t) => s + (Number(t.valor) || 0), 0);
+          } else if (ofuture.isFixedOrdinary) {
+            // GASTOS ORDINÁRIOS: Captura despesas ordinárias
+            gastoFuturo += transDesteMes
+              .filter((t) => t.categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA)
+              .reduce((s, t) => s + (Number(t.valor) || 0), 0);
+          }
+
+          const novoPrevistoFuturo = parseFloat(
+            (saldoDesejado + gastoFuturo).toFixed(2),
+          );
+
+          batch.update(ref.doc(ofuture.id), { valor: novoPrevistoFuturo });
+
+          // Atualização local imediata na memória
+          const idxF = state.orcamentos.findIndex((o) => o.id === ofuture.id);
+          if (idxF !== -1) {
+            state.orcamentos[idxF].valor = novoPrevistoFuturo;
+          }
+        }
+      }
+
+      await batch.commit();
+    } else {
+      // Atualização apenas deste mês
+      await ref.doc(orcamentoId).update({ valor: novoPrevistoMesAtual });
+
+      const idx = state.orcamentos.findIndex((o) => o.id === orcamentoId);
+      if (idx !== -1) {
+        state.orcamentos[idx].valor = novoPrevistoMesAtual;
+      }
+    }
+
+    await registrarUltimaAlteracao();
+
+    import("./ui.js").then((ui) => {
+      ui.fecharModalEspecifico(elements.modalAjustarSaldoOrcamento);
+      ui.renderizarTransacoesDoMes();
+    });
+  } catch (error) {
+    console.error("Erro ao ajustar saldo do orçamento:", error);
+    alert("Ocorreu um erro ao ajustar o saldo do orçamento.");
+  } finally {
+    // Restaura o estado dos botões caso o modal venha a ser reaberto
+    if (btnApenasEste) btnApenasEste.disabled = false;
+    if (btnEsteEFuturos) {
+      btnEsteEFuturos.disabled = false;
+      btnEsteEFuturos.textContent = "Aplicar NESTE e nos PRÓXIMOS meses";
+    }
+  }
+}

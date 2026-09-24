@@ -446,6 +446,15 @@ export function criarElementoOrcamento(item, actionsDiv) {
   actionButton.dataset.mesAno = mesAnoAtual;
   actionsDiv.appendChild(actionButton);
 
+  // NOVO: Botão Alvo 🎯 para ajuste rápido de saldo restante
+  const btnAjustarSaldo = document.createElement("button");
+  btnAjustarSaldo.className = "btn-ajustar-saldo-orcamento";
+  btnAjustarSaldo.innerHTML = "🎯";
+  btnAjustarSaldo.title = "Ajustar saldo livre do orçamento";
+  btnAjustarSaldo.dataset.orcamentoId = item.orcamentoId;
+  btnAjustarSaldo.dataset.mesAno = mesAnoAtual;
+  actionsDiv.appendChild(btnAjustarSaldo);
+
   return `<div class="transaction-main-info">
                     <div class="transaction-name-category">
                         <span class="transaction-name">${item.nome}</span>
@@ -949,6 +958,15 @@ export async function handleTransactionListClick(event, callbacks = {}) {
       button.classList.contains("btn-abrir-orcamento"))
   ) {
     await callbacks.handleFecharAbrirOrcamento(button);
+    return;
+  }
+
+  if (button && button.classList.contains("btn-ajustar-saldo-orcamento")) {
+    const orcId = button.dataset.orcamentoId;
+    const mesAno = button.dataset.mesAno;
+    if (callbacks.abrirModalAjustarSaldoOrcamento) {
+      callbacks.abrirModalAjustarSaldoOrcamento(orcId, mesAno);
+    }
     return;
   }
 
