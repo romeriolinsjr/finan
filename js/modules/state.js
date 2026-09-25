@@ -12,6 +12,7 @@ export const state = {
   pessoas: [],
   currentFaturaDate: null,
   dividasTerceirosDate: new Date(),
+  currentPatrimonioExtratoDate: null, // Âncora temporal exclusiva do extrato de patrimônio
   currentModalStep: 1,
   isEditMode: false,
   editingTransactionId: null,

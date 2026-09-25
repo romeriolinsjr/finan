@@ -2423,6 +2423,39 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // --- NAVEGAÇÃO DE MESES NO EXTRATO DE PATRIMÔNIO (INDEPENDENTE DA HOME) ---
+  if (elements.btnPatrimonioExtratoAnterior) {
+    elements.btnPatrimonioExtratoAnterior.addEventListener("click", () => {
+      if (!state.currentPatrimonioExtratoDate) {
+        state.currentPatrimonioExtratoDate = new Date(state.currentDate);
+      }
+      state.currentPatrimonioExtratoDate.setDate(1);
+      state.currentPatrimonioExtratoDate.setMonth(
+        state.currentPatrimonioExtratoDate.getMonth() - 1,
+      );
+      const itemId = elements.modalDetalhesPatrimonio.dataset.itemId;
+      if (itemId) {
+        patrimony.abrirHistoricoPatrimonio(itemId, ui.abrirModalEspecifico);
+      }
+    });
+  }
+
+  if (elements.btnPatrimonioExtratoProximo) {
+    elements.btnPatrimonioExtratoProximo.addEventListener("click", () => {
+      if (!state.currentPatrimonioExtratoDate) {
+        state.currentPatrimonioExtratoDate = new Date(state.currentDate);
+      }
+      state.currentPatrimonioExtratoDate.setDate(1);
+      state.currentPatrimonioExtratoDate.setMonth(
+        state.currentPatrimonioExtratoDate.getMonth() + 1,
+      );
+      const itemId = elements.modalDetalhesPatrimonio.dataset.itemId;
+      if (itemId) {
+        patrimony.abrirHistoricoPatrimonio(itemId, ui.abrirModalEspecifico);
+      }
+    });
+  }
+
   // --- OUVINTE PARA EXCLUSÃO DE AJUSTES NO EXTRATO DE PATRIMÔNIO ---
   if (elements.listaHistoricoPatrimonioUl) {
     elements.listaHistoricoPatrimonioUl.addEventListener("click", async (e) => {

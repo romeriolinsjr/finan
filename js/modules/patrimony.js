@@ -338,6 +338,16 @@ export async function excluirSubcategoria(id) {
  * HISTÓRICO (EXTRATO) DO ITEM
  */
 export function abrirHistoricoPatrimonio(id, callbackAbrir) {
+  // Inicializa a data do extrato sincronizada com a Home caso ainda não exista
+  if (!state.currentPatrimonioExtratoDate) {
+    state.currentPatrimonioExtratoDate = new Date(state.currentDate);
+  }
+
+  // Armazena o ID do item no dataset do modal para navegação direta pelas setas
+  if (elements.modalDetalhesPatrimonio) {
+    elements.modalDetalhesPatrimonio.dataset.itemId = id;
+  }
+
   const callbacksExtrato = {
     popularHistorico: (idItem) => {
       const sub = (state.patrimonioSubcategorias || []).find(
@@ -345,33 +355,63 @@ export function abrirHistoricoPatrimonio(id, callbackAbrir) {
       );
       if (!sub) return;
 
+      // Preserva o padrão exato de título para não quebrar a exclusão de ajustes em main.js
       if (elements.tituloDetalhesPatrimonio) {
         elements.tituloDetalhesPatrimonio.textContent = `Extrato: ${sub.nome}`;
+      }
+
+      // Data Soberana do Extrato (Permite folhear os meses no modal sem alterar a Home)
+      const dataAtiva = state.currentPatrimonioExtratoDate || state.currentDate;
+      const mesAnoAtivo = getMesAnoChave(dataAtiva);
+
+      // Atualiza o subtítulo com o mês e ano visualizados
+      if (elements.subtituloMesExtratoPatrimonio) {
+        const nomeMes = dataAtiva.toLocaleString("pt-BR", { month: "long" });
+        elements.subtituloMesExtratoPatrimonio.textContent = `${nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1)} de ${dataAtiva.getFullYear()}`;
       }
 
       if (!elements.listaHistoricoPatrimonioUl) return;
       elements.listaHistoricoPatrimonioUl.innerHTML = "";
 
-      // 1. Saldo Inicial (Apenas se a conta já existia no mês da Home)
-      const mesAnoHome = getMesAnoChave(state.currentDate);
-      if (sub.mesAnoCriacao && mesAnoHome < sub.mesAnoCriacao) {
+      // 1. Verificação da Máquina do Tempo (se a conta ainda não existia no período)
+      if (sub.mesAnoCriacao && mesAnoAtivo < sub.mesAnoCriacao) {
         elements.listaHistoricoPatrimonioUl.innerHTML =
           '<li style="padding: 20px; text-align: center; color: #7f8c8d;">Este item ainda não havia sido criado neste período.</li>';
         return;
       }
 
+      // 2. Saldo de Abertura (Mês Anterior ou Saldo Inicial se for o mês de nascimento)
+      const dataMesAnterior = new Date(
+        dataAtiva.getFullYear(),
+        dataAtiva.getMonth() - 1,
+        1,
+      );
+      const mesAnoAnterior = getMesAnoChave(dataMesAnterior);
+
+      const ehMesCriacao = sub.mesAnoCriacao === mesAnoAtivo;
+      const saldoAbertura = ehMesCriacao
+        ? Number(sub.saldoInicial) || 0
+        : obterSaldoItemAteMes(sub.id, mesAnoAnterior);
+
+      const labelAbertura = ehMesCriacao
+        ? "SALDO INICIAL DA CONTA"
+        : "SALDO ANTERIOR (ABERTURA)";
+
       const liInicial = document.createElement("li");
       liInicial.style.cssText =
         "display:flex; justify-content:space-between; padding:12px; border-bottom: 2px solid #eee; background:#f9f9f9; border-left: 5px solid #bdc3c7;";
-      liInicial.innerHTML = `<span><strong>SALDO INICIAL</strong></span> <strong>${formatCurrency(sub.saldoInicial)}</strong>`;
+      liInicial.innerHTML = `<span><strong>${labelAbertura}</strong></span> <strong>${formatCurrency(saldoAbertura)}</strong>`;
       elements.listaHistoricoPatrimonioUl.appendChild(liInicial);
 
-      let saldoCorrente = Number(sub.saldoInicial) || 0;
+      let saldoCorrente = saldoAbertura;
 
-      // 2. Movimentações (Filtradas pela Máquina do Tempo da Home)
+      // 3. Movimentações EXCLUSIVAS deste mês de referência
       const historico = (state.transacoes || [])
         .filter(
-          (t) => t.patrimonioId === idItem && t.mesAnoReferencia <= mesAnoHome,
+          (t) =>
+            t.patrimonioId === idItem &&
+            t.mesAnoReferencia === mesAnoAtivo &&
+            t.tipo === "patrimonio",
         )
         .sort((a, b) => new Date(a.dataOperacao) - new Date(b.dataOperacao));
 
@@ -379,7 +419,7 @@ export function abrirHistoricoPatrimonio(id, callbackAbrir) {
         const liVazio = document.createElement("li");
         liVazio.style.cssText =
           "padding: 20px; text-align: center; color: #7f8c8d;";
-        liVazio.textContent = "Nenhuma movimentação registrada até este mês.";
+        liVazio.textContent = "Nenhuma movimentação registrada neste mês.";
         elements.listaHistoricoPatrimonioUl.appendChild(liVazio);
       } else {
         historico.forEach((t) => {
@@ -431,11 +471,13 @@ export function abrirHistoricoPatrimonio(id, callbackAbrir) {
         });
       }
 
-      // 3. Saldo Atual Final (No contexto do mês da Home)
+      // 4. Saldo Final do Período (Fechamento do mês do motor oficial)
+      const saldoFinalMes = obterSaldoItemAteMes(sub.id, mesAnoAtivo);
+
       const liFinal = document.createElement("li");
       liFinal.style.cssText =
         "display:flex; justify-content:space-between; padding:15px 12px; margin-top:10px; background:#2c3e50; color:white; border-radius:5px;";
-      liFinal.innerHTML = `<span><strong>FECHAMENTO NO PERÍODO</strong></span> <strong>${formatCurrency(saldoCorrente)}</strong>`;
+      liFinal.innerHTML = `<span><strong>FECHAMENTO DO MÊS</strong></span> <strong>${formatCurrency(saldoFinalMes)}</strong>`;
       elements.listaHistoricoPatrimonioUl.appendChild(liFinal);
     },
   };

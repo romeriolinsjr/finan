@@ -228,6 +228,7 @@ export function fecharModalEspecifico(modalElement) {
       if (elements.diaOrcamentoInput) elements.diaOrcamentoInput.value = "";
       break;
     case "modalDetalhesPatrimonio":
+      state.currentPatrimonioExtratoDate = null;
       if (elements.listaHistoricoPatrimonioUl)
         elements.listaHistoricoPatrimonioUl.innerHTML = "";
       break;

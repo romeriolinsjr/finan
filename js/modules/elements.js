@@ -391,6 +391,15 @@ export const elements = {
   // DETALHES DO PATRIMÔNIO (HISTÓRICO)
   modalDetalhesPatrimonio: document.getElementById("modalDetalhesPatrimonio"),
   tituloDetalhesPatrimonio: document.getElementById("tituloDetalhesPatrimonio"),
+  btnPatrimonioExtratoAnterior: document.getElementById(
+    "btnPatrimonioExtratoAnterior",
+  ),
+  btnPatrimonioExtratoProximo: document.getElementById(
+    "btnPatrimonioExtratoProximo",
+  ),
+  subtituloMesExtratoPatrimonio: document.getElementById(
+    "subtituloMesExtratoPatrimonio",
+  ),
   listaHistoricoPatrimonioUl: document.getElementById(
     "listaHistoricoPatrimonio",
   ),
