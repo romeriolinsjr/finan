@@ -582,6 +582,17 @@ body.modal-aberto {
 .modal-content.modal-large {
   max-width: 800px;
 }
+
+/* NOVO: Fixa o topo do modal de extrato de patrimônio (Fim do vaivém vertical nas setas) */
+#modalDetalhesPatrimonio .modal-content {
+  margin: 50px auto auto auto !important;
+}
+
+@media (max-width: 768px) {
+  #modalDetalhesPatrimonio .modal-content {
+    margin-top: 20px !important;
+  }
+}
 @keyframes slideDown {
   from {
     transform: translateY(-30px);
