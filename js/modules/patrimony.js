@@ -397,13 +397,20 @@ export function abrirHistoricoPatrimonio(id, callbackAbrir) {
         ? "SALDO INICIAL DA CONTA"
         : "SALDO ANTERIOR (ABERTURA)";
 
+      // Card de Abertura padronizado em 2 linhas
       const liInicial = document.createElement("li");
       liInicial.style.cssText =
-        "display:flex; justify-content:space-between; padding:12px; border-bottom: 2px solid #eee; background:#f9f9f9; border-left: 5px solid #bdc3c7;";
-      liInicial.innerHTML = `<span><strong>${labelAbertura}</strong></span> <strong>${formatCurrency(saldoAbertura)}</strong>`;
+        "display:flex; flex-direction:column; gap:3px; padding:12px 14px; border-bottom: 2px solid #eee; background:#f8f9fa; border-left: 5px solid #bdc3c7; border-radius: 4px; margin-bottom: 8px;";
+      liInicial.innerHTML = `
+        <span style="font-size:0.75em; color:#7f8c8d; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">${labelAbertura}</span>
+        <strong style="font-size:1.25em; color:#2c3e50;">${formatCurrency(saldoAbertura)}</strong>`;
       elements.listaHistoricoPatrimonioUl.appendChild(liInicial);
 
       let saldoCorrente = saldoAbertura;
+      let totalAportesMes = 0;
+      let totalResgatesMes = 0;
+      let totalAjustesMes = 0;
+      let totalAmortizacoesMes = 0;
 
       // 3. Movimentações EXCLUSIVAS deste mês de referência
       const historico = (state.transacoes || [])
@@ -432,18 +439,22 @@ export function abrirHistoricoPatrimonio(id, callbackAbrir) {
             sinal = "+";
             cor = "#27ae60";
             saldoCorrente += v;
+            totalAportesMes += v;
           } else if (op === "resgate") {
             sinal = "-";
             cor = "#e74c3c";
             saldoCorrente -= v;
+            totalResgatesMes += v;
           } else if (op === "ajuste") {
             sinal = v >= 0 ? "+" : "";
             cor = "#3498db";
             saldoCorrente += v;
+            totalAjustesMes += v;
           } else if (op === "amortizacao") {
             sinal = "-";
             cor = "#008080";
             saldoCorrente -= v;
+            totalAmortizacoesMes += v;
           }
 
           const dataFmt = t.dataOperacao
@@ -469,15 +480,65 @@ export function abrirHistoricoPatrimonio(id, callbackAbrir) {
             </div>`;
           elements.listaHistoricoPatrimonioUl.appendChild(li);
         });
+
+        // 4. Subtotais do Mês (Apenas operações que efetivamente ocorreram)
+        const temSubtotais =
+          totalAportesMes > 0 ||
+          totalResgatesMes > 0 ||
+          totalAjustesMes !== 0 ||
+          totalAmortizacoesMes > 0;
+
+        if (temSubtotais) {
+          const liTotais = document.createElement("li");
+          liTotais.style.cssText =
+            "display:flex; flex-direction:column; gap:6px; padding:10px 14px; margin-top:12px; background:#f1f4f7; border-radius:6px; border:1px solid #e2e8f0;";
+
+          let htmlTotais = `<span style="font-size:0.75em; color:#7f8c8d; font-weight:bold; text-transform:uppercase; letter-spacing:0.5px; border-bottom:1px solid #e2e8f0; padding-bottom:4px; margin-bottom:2px;">Resumo das Movimentações do Mês</span>`;
+
+          if (totalAportesMes > 0) {
+            htmlTotais += `
+              <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.9em;">
+                <span style="color:#27ae60; font-weight:500;">⊕ Total Aportado:</span>
+                <strong style="color:#27ae60;">+ ${formatCurrency(totalAportesMes)}</strong>
+              </div>`;
+          }
+          if (totalResgatesMes > 0) {
+            htmlTotais += `
+              <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.9em;">
+                <span style="color:#e74c3c; font-weight:500;">⊖ Total Resgatado:</span>
+                <strong style="color:#e74c3c;">- ${formatCurrency(totalResgatesMes)}</strong>
+              </div>`;
+          }
+          if (totalAjustesMes !== 0) {
+            const sinalAj = totalAjustesMes > 0 ? "+" : "";
+            htmlTotais += `
+              <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.9em;">
+                <span style="color:#3498db; font-weight:500;">≈ Total de Ajustes:</span>
+                <strong style="color:#3498db;">${sinalAj} ${formatCurrency(totalAjustesMes)}</strong>
+              </div>`;
+          }
+          if (totalAmortizacoesMes > 0) {
+            htmlTotais += `
+              <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.9em;">
+                <span style="color:#008080; font-weight:500;">↓ Total Amortizado:</span>
+                <strong style="color:#008080;">- ${formatCurrency(totalAmortizacoesMes)}</strong>
+              </div>`;
+          }
+
+          liTotais.innerHTML = htmlTotais;
+          elements.listaHistoricoPatrimonioUl.appendChild(liTotais);
+        }
       }
 
-      // 4. Saldo Final do Período (Fechamento do mês do motor oficial)
+      // 5. Saldo Final do Período (Card padronizado em 2 linhas, imune a quebras)
       const saldoFinalMes = obterSaldoItemAteMes(sub.id, mesAnoAtivo);
 
       const liFinal = document.createElement("li");
       liFinal.style.cssText =
-        "display:flex; justify-content:space-between; padding:15px 12px; margin-top:10px; background:#2c3e50; color:white; border-radius:5px;";
-      liFinal.innerHTML = `<span><strong>FECHAMENTO DO MÊS</strong></span> <strong>${formatCurrency(saldoFinalMes)}</strong>`;
+        "display:flex; flex-direction:column; gap:3px; padding:12px 14px; margin-top:10px; background:#2c3e50; color:white; border-radius:6px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);";
+      liFinal.innerHTML = `
+        <span style="font-size:0.75em; color:#bdc3c7; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">FECHAMENTO DO MÊS</span>
+        <strong style="font-size:1.35em; color:#ffffff; font-weight:bold;">${formatCurrency(saldoFinalMes)}</strong>`;
       elements.listaHistoricoPatrimonioUl.appendChild(liFinal);
     },
   };
