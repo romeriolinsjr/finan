@@ -190,9 +190,15 @@ export function abrirModalEspecifico(
     console.error(`Erro ao processar modal ${tipoModal}:`, error);
   }
 
-  // 3. Exibição Visual ( display: flex )
+  // 3. Exibição Visual ( display: flex ) com trava de rolagem e preservação de posição
   modalElement.style.display = "flex";
-  elements.bodyEl.classList.add("modal-aberto");
+  if (state.openModals.length === 1) {
+    // Memoriza a altura exata onde o usuário estava na página
+    const scrollY = window.scrollY || document.documentElement.scrollTop || 0;
+    elements.bodyEl.dataset.scrollY = scrollY;
+    elements.bodyEl.style.top = `-${scrollY}px`;
+    elements.bodyEl.classList.add("modal-aberto");
+  }
 }
 
 export function fecharModalEspecifico(modalElement) {
@@ -200,7 +206,12 @@ export function fecharModalEspecifico(modalElement) {
   modalElement.style.display = "none";
   state.openModals = state.openModals.filter((m) => m !== modalElement);
   if (state.openModals.length === 0) {
+    // Restaura a página exatamente para a posição original onde o usuário estava
+    const scrollY = parseInt(elements.bodyEl.dataset.scrollY || "0", 10);
     elements.bodyEl.classList.remove("modal-aberto");
+    elements.bodyEl.style.top = "";
+    delete elements.bodyEl.dataset.scrollY;
+    window.scrollTo(0, scrollY);
   }
 
   switch (modalElement.id) {

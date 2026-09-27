@@ -16,11 +16,13 @@ body {
   font-size: 14px;
 }
 
-/* NOVO: Trava a rolagem da página quando um modal está aberto */
-html.modal-aberto,
+/* NOVO: Trava a rolagem da página quando um modal está aberto (com suporte a Scroll Offset) */
+html.modal-aberto {
+  overflow: hidden !important;
+}
+
 body.modal-aberto {
   overflow: hidden !important;
-  height: 100% !important;
   width: 100% !important;
   position: fixed; /* Impede a rolagem elástica em dispositivos móveis */
 }
