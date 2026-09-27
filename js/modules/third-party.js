@@ -84,6 +84,10 @@ export function renderizarDividasDoMes() {
                 <ul style="list-style: none; padding: 0; margin: 0; font-size: 0.9em; color: #34495e;">
                     ${totalOrdinarias > 0 ? `<li>• Ordinárias (PIX/Dinheiro): ${formatCurrency(totalOrdinarias)}</li>` : ""}
                     ${Object.values(totaisPorCartao)
+                      .sort(
+                        (a, b) =>
+                          b.valor - a.valor || a.nome.localeCompare(b.nome),
+                      )
                       .map(
                         (c) =>
                           `<li>• ${c.nome}: ${formatCurrency(c.valor)}</li>`,
