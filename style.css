@@ -98,7 +98,6 @@ body.modal-aberto {
 .main-content {
   flex-grow: 1;
   padding: 25px;
-  overflow-y: auto;
   background-color: #f9fafb;
 }
 
@@ -1786,14 +1785,59 @@ body.modal-aberto {
   cursor: pointer;
 }
 
-/* Garante que o container de navegação aceite todos os botões na mesma linha */
-.month-navigation {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  gap: 10px !important;
-  margin-top: 15px !important;
-  flex-wrap: wrap !important;
+/* NOVO: Barra de Navegação de Mês Fixa (Sticky) */
+.sticky-month-bar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background-color: #f9fafb;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  margin-left: -25px;
+  margin-right: -25px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.sticky-month-bar button {
+  background-color: #3498db;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  cursor: pointer;
+  border-radius: 5px;
+  font-size: 1em;
+  transition:
+    background-color 0.2s ease,
+    transform 0.1s ease;
+  flex-shrink: 0;
+}
+
+.sticky-month-bar button:hover {
+  background-color: #2980b9;
+}
+
+.sticky-month-bar button:active {
+  transform: scale(0.95);
+}
+
+.sticky-month-bar button:disabled {
+  background-color: #a9cce3;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .sticky-month-bar {
+    top: 0;
+    padding: 8px 10px 8px 55px; /* Espaço de 55px à esquerda para o botão hambúrguer ☰ */
+    margin-left: -15px;
+    margin-right: -15px;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  }
 }
 
 /* Container dos botões Hoje e PDF */

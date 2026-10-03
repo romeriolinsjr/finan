@@ -110,42 +110,44 @@
             <img src="favicon.png" alt="Logo Finan" class="header-logo" />
             <h1>Finan</h1>
           </div>
-          <div class="month-navigation">
-            <button id="prevMonthBtn" title="Mês anterior"><</button>
-            <div class="month-picker-container">
-              <input type="month" id="monthPicker" />
-              <span id="currentMonthDisplay" style="display: none"
-                >Carregando...</span
-              >
-            </div>
-            <button id="nextMonthBtn" title="Próximo mês">></button>
 
-            <!-- Botões de Utilidade -->
-            <div class="nav-extra-group">
-              <button
-                id="btnQuickAddOrdinary"
-                title="Nova Despesa Ordinária (Pix/Débito)"
-                class="btn-quick-ord"
-              >
-                💸
-              </button>
-              <button
-                id="btnToggleVisibility"
-                title="Mostrar/Ocultar valores"
-                class="btn-visibility"
-              >
-                ◈
-              </button>
-              <button
-                id="btnGoToToday"
-                title="Voltar para Hoje"
-                class="btn-today"
-              >
-                Hoje
-              </button>
-            </div>
+          <!-- Botões de Utilidade no Cabeçalho -->
+          <div class="nav-extra-group">
+            <button
+              id="btnQuickAddOrdinary"
+              title="Nova Despesa Ordinária (Pix/Débito)"
+              class="btn-quick-ord"
+            >
+              💸
+            </button>
+            <button
+              id="btnToggleVisibility"
+              title="Mostrar/Ocultar valores"
+              class="btn-visibility"
+            >
+              ◈
+            </button>
+            <button
+              id="btnGoToToday"
+              title="Voltar para Hoje"
+              class="btn-today"
+            >
+              Hoje
+            </button>
           </div>
         </header>
+
+        <!-- NOVO: Barra de Navegação de Mês Fixa (Sticky) para Todas as Telas -->
+        <div class="sticky-month-bar">
+          <button id="prevMonthBtn" title="Mês anterior"><</button>
+          <div class="month-picker-container">
+            <input type="month" id="monthPicker" />
+            <span id="currentMonthDisplay" style="display: none"
+              >Carregando...</span
+            >
+          </div>
+          <button id="nextMonthBtn" title="Próximo mês">></button>
+        </div>
 
         <section class="transactions-list">
           <!-- CONTEXTO 1: TRANSAÇÕES (GERAIS E PATRIMONIAIS) -->
