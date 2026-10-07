@@ -280,6 +280,22 @@ export function popularModalRelatorio(date) {
     CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO,
   );
 
+  // NOVO: Identifica compras parceladas de cartão que encerram neste mês (última parcela)
+  const parceladasTerminando = despesasDoMes.filter(
+    (d) =>
+      d.categoria === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO &&
+      d.frequencia === CONSTS.FREQUENCIA.PARCELADA &&
+      d.totalParcelas &&
+      d.parcelaAtual === d.totalParcelas,
+  );
+  const qtdTerminando = parceladasTerminando.length;
+  const valorTerminando = parceladasTerminando.reduce((s, d) => s + d.valor, 0);
+
+  const avisoParcelasCard =
+    qtdTerminando > 0
+      ? `<small style="color: #27ae60; font-size: 0.75em; font-weight: 600; margin-top: 3px; display: block;">🏁 ${qtdTerminando} ${qtdTerminando === 1 ? "compra encerra" : "compras encerram"} este mês (${formatCurrency(valorTerminando)})</small>`
+      : "";
+
   const analiseDespesasHTML = `
     <section class="relatorio-secao">
       <h3>Análise de Despesas</h3>
@@ -308,7 +324,11 @@ export function popularModalRelatorio(date) {
             <span>Recorrentes</span> <strong>${formatCurrency(subtotaisCartao.recorrente)}</strong>
           </div>
           <div class="relatorio-item-analise clicavel" data-cat="${CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO}" data-freq="${CONSTS.FREQUENCIA.PARCELADA}">
-            <span>Parceladas</span> <strong>${formatCurrency(subtotaisCartao.parcelada)}</strong>
+            <div style="display: flex; flex-direction: column;">
+              <span>Parceladas</span>
+              ${avisoParcelasCard}
+            </div>
+            <strong>${formatCurrency(subtotaisCartao.parcelada)}</strong>
           </div>
           <div class="relatorio-item-analise" style="font-weight: bold; margin-top: 15px; border-left-color: #3498db;">
             <span>Total</span> <strong>${formatCurrency(dados.totalGastoRealCartao)}</strong>
@@ -454,11 +474,50 @@ export function abrirDetalhesFiltroRelatorio(
     elements.listaDetalhesFiltroRelatorioUl.innerHTML =
       "<li>Nenhum item encontrado.</li>";
   } else {
+    // NOVO: Banner informativo no topo do modal se for o filtro de compras parceladas de cartão
+    const ehParceladasCartao =
+      categoria === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO &&
+      frequencia === CONSTS.FREQUENCIA.PARCELADA;
+
+    if (ehParceladasCartao) {
+      const finalizando = itens.filter(
+        (t) => t.totalParcelas && t.parcelaAtual === t.totalParcelas,
+      );
+      if (finalizando.length > 0) {
+        const totalLiberado = finalizando.reduce((s, t) => s + t.valor, 0);
+        const liBanner = document.createElement("li");
+        liBanner.style.cssText =
+          "background:#e8f8f0; border-left:4px solid #27ae60; padding:10px 12px; margin-bottom:12px; border-radius:4px; list-style:none; display:flex; justify-content:space-between; align-items:center;";
+        liBanner.innerHTML = `
+          <span style="color:#27ae60; font-weight:600; font-size:0.85em;">
+            🏁 ${finalizando.length} ${finalizando.length === 1 ? "compra encerra" : "compras encerram"} este mês
+          </span>
+          <strong style="color:#27ae60; font-size:0.9em;">Liberando ${formatCurrency(totalLiberado)}</strong>
+        `;
+        elements.listaDetalhesFiltroRelatorioUl.appendChild(liBanner);
+      }
+    }
+
     itens.forEach((item) => {
+      // Identifica se este item específico está na última parcela
+      const isUltimaParcela =
+        ehParceladasCartao &&
+        item.totalParcelas &&
+        item.parcelaAtual === item.totalParcelas;
+
+      const tagFinaliza = isUltimaParcela
+        ? '<span style="background:#e8f8f0; color:#27ae60; font-size:0.7em; font-weight:600; padding:2px 6px; border-radius:3px; margin-left:6px; vertical-align:middle;">Finaliza este mês</span>'
+        : "";
+
       const li = document.createElement("li");
       li.style.cssText =
-        "display:flex; justify-content:space-between; padding:10px 5px; border-bottom:1px solid #eee;";
-      li.innerHTML = `<span>${item.nome}</span><strong>${formatCurrency(item.valor)}</strong>`;
+        "display:flex; justify-content:space-between; align-items:center; padding:10px 5px; border-bottom:1px solid #eee;";
+      li.innerHTML = `
+        <div style="display:flex; align-items:center; flex-wrap:wrap;">
+          <span>${item.nome}</span>
+          ${tagFinaliza}
+        </div>
+        <strong>${formatCurrency(item.valor)}</strong>`;
       elements.listaDetalhesFiltroRelatorioUl.appendChild(li);
     });
   }
