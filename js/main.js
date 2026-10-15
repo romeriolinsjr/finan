@@ -832,6 +832,9 @@ document.addEventListener("DOMContentLoaded", () => {
         state.transacoes
           .filter((t) => t.cartaoId === id && t.mesAnoReferencia === m)
           .forEach((t) => (t.paga = s));
+        state.dividasTerceiros
+          .filter((d) => d.cartaoId === id && d.mesAnoReferencia === m)
+          .forEach((d) => (d.faturaPaga = s));
         ui.renderizarTransacoesDoMes();
 
         // 2. Depois faz a atualização no banco de dados em segundo plano

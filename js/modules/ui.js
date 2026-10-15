@@ -740,6 +740,40 @@ export function renderizarTransacoesDoMes() {
         if (!dc.paga) faturasAgrupadas[dc.cartaoId].todasPagas = false;
       });
 
+    // NOVO: Inclui faturas de cartões que possuem apenas despesas de terceiros no mês
+    const dividasCartaoMes = (state.dividasTerceiros || []).filter(
+      (d) =>
+        d.mesAnoReferencia === mesAnoReferenciaAtual &&
+        d.cartaoId &&
+        d.categoria === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO,
+    );
+
+    dividasCartaoMes.forEach((dt) => {
+      const cInfo = state.cartoes.find((c) => c.id === dt.cartaoId) || {};
+      if (
+        cInfo.deletado &&
+        cInfo.dataExclusao &&
+        mesAnoReferenciaAtual >= cInfo.dataExclusao
+      )
+        return;
+
+      if (!faturasAgrupadas[dt.cartaoId]) {
+        faturasAgrupadas[dt.cartaoId] = {
+          cartaoId: dt.cartaoId,
+          cartaoNome: cInfo.nome || "Cartão Desconhecido",
+          diaVencimentoFatura: cInfo.diaVencimentoFatura || 1,
+          vencimentoNoMesSeguinte: cInfo.vencimentoNoMesSeguinte || false,
+          totalValor: 0, // Exibe R$ 0,00 na Home (sem impacto nas contas pessoais)
+          todasPagas: dt.faturaPaga === true,
+          isDeletado: cInfo.deletado === true,
+          temApenasTerceiros: true,
+        };
+      }
+      if (!dt.faturaPaga && faturasAgrupadas[dt.cartaoId].temApenasTerceiros) {
+        faturasAgrupadas[dt.cartaoId].todasPagas = false;
+      }
+    });
+
     Object.values(faturasAgrupadas).forEach((fatura) => {
       const [ano, mes] = mesAnoReferenciaAtual.split("-").map(Number);
       const ajusteMes = fatura.vencimentoNoMesSeguinte ? 1 : 0;

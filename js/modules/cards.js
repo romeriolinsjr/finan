@@ -315,24 +315,44 @@ export async function atualizarStatusPagoFatura(
 ) {
   if (!state.currentUser) return;
   try {
-    const q = db
-      .collection("users")
-      .doc(state.currentUser.uid)
+    const userRef = db.collection("users").doc(state.currentUser.uid);
+    const batch = db.batch();
+
+    // 1. Atualiza compras pessoais vinculadas a esta fatura
+    const qTrans = userRef
       .collection("transacoes")
       .where("cartaoId", "==", cartaoId)
       .where("mesAnoReferencia", "==", mesAno);
-    const querySnapshot = await q.get();
-    const batch = db.batch();
-    querySnapshot.docs.forEach((doc) => {
+    const snapTrans = await qTrans.get();
+    snapTrans.docs.forEach((doc) => {
       batch.update(doc.ref, { paga: novoStatus });
     });
+
+    // 2. Atualiza despesas de terceiros vinculadas a este cartão e mês
+    const qTerceiros = userRef
+      .collection("dividasTerceiros")
+      .where("cartaoId", "==", cartaoId)
+      .where("mesAnoReferencia", "==", mesAno);
+    const snapTerceiros = await qTerceiros.get();
+    snapTerceiros.docs.forEach((doc) => {
+      batch.update(doc.ref, { faturaPaga: novoStatus });
+    });
+
     await batch.commit();
     await registrarUltimaAlteracao();
+
+    // Atualiza a memória local
     state.transacoes.forEach((t) => {
       if (t.cartaoId === cartaoId && t.mesAnoReferencia === mesAno) {
         t.paga = novoStatus;
       }
     });
+    state.dividasTerceiros.forEach((d) => {
+      if (d.cartaoId === cartaoId && d.mesAnoReferencia === mesAno) {
+        d.faturaPaga = novoStatus;
+      }
+    });
+
     callbackResumo();
   } catch (error) {
     console.error("Erro ao atualizar status da fatura:", error);
