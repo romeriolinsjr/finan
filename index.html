@@ -235,11 +235,41 @@
               <p style="margin: 0; font-size: 0.9em; color: #57606f">
                 Patrimônio Acumulado Total
               </p>
-              <strong
-                id="valorPatrimonioLiquidoHome"
-                style="font-size: 1.8em; color: #2c3e50"
-                >R$ 0,00</strong
+              <div
+                style="
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  gap: 10px;
+                  margin-top: 5px;
+                  flex-wrap: wrap;
+                "
               >
+                <strong
+                  id="valorPatrimonioLiquidoHome"
+                  style="font-size: 1.8em; color: #2c3e50"
+                  >R$ 0,00</strong
+                >
+                <!-- Pílula Interativa Única (Tag + Botão com Tooltip e Mãozinha) -->
+                <button
+                  id="btnToggleVisaoPatrimonio"
+                  style="
+                    font-size: 0.72em;
+                    font-weight: 600;
+                    padding: 4px 10px;
+                    border-radius: 12px;
+                    border: 1px solid #bce0fd;
+                    background-color: #e8f4fd;
+                    color: #2980b9;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    outline: none;
+                  "
+                  title="Modo Saldo Real ativo (apenas o que está no banco hoje). Clique para ver a Projeção futura."
+                >
+                  🏦 Saldo Real
+                </button>
+              </div>
             </div>
             <ul
               id="listaPatrimonioHierarquicaHome"

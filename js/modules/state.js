@@ -41,4 +41,5 @@ export const state = {
   patrimonioSubcategorias: [], // Sub-categorias (ex: Nubank, CDB Inter) vinculadas aos Pais
   isPatrimonioEditMode: false,
   editingPatrimonioId: null,
+  patrimonioVisaoProjetada: false, // NOVO: false = Saldo Real (padrão), true = Saldo Projetado
 };

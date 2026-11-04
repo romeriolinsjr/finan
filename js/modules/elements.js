@@ -413,6 +413,8 @@ export const elements = {
   valorPatrimonioLiquidoHome: document.getElementById(
     "valorPatrimonioLiquidoHome",
   ),
+  tagModoVisaoPatrimonio: document.getElementById("tagModoVisaoPatrimonio"),
+  btnToggleVisaoPatrimonio: document.getElementById("btnToggleVisaoPatrimonio"),
   btnHomeNovaCategoriaPat: document.getElementById("btnHomeNovaCategoriaPat"),
   btnHomeNovoItemPat: document.getElementById("btnHomeNovoItemPat"),
 };

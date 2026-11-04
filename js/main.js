@@ -2332,6 +2332,17 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // --- OUVINTE PARA O BOTÃO ALTERNADOR DE SALDO REAL VS PROJEÇÃO (NA HOME) ---
+  if (elements.btnToggleVisaoPatrimonio) {
+    elements.btnToggleVisaoPatrimonio.addEventListener("click", () => {
+      state.patrimonioVisaoProjetada = !state.patrimonioVisaoProjetada;
+      patrimony.renderizarListaPatrimonioHierarquica(
+        elements.listaPatrimonioHierarquicaHome,
+        true,
+      );
+    });
+  }
+
   // --- OUVINTE PARA A ÁRVORE DE GESTÃO PATRIMONIAL (NA HOME) ---
   if (elements.listaPatrimonioHierarquicaHome) {
     elements.listaPatrimonioHierarquicaHome.addEventListener("click", (e) => {

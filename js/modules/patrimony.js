@@ -9,28 +9,37 @@ import {
 
 /**
  * Calcula o saldo real de um item considerando o histórico até um determinado mês.
- * Implementa a regra da Máquina do Tempo: ignora o saldo se o mês for anterior à criação.
+ * Suporta corte por data civil (Saldo Real até hoje vs. Saldo Projetado).
  */
-export function obterSaldoItemAteMes(subId, mesAnoCorte = "9999-12") {
+export function obterSaldoItemAteMes(
+  subId,
+  mesAnoCorte = "9999-12",
+  dataCorteCivil = null,
+  apenasReal = false,
+) {
   const sub = state.patrimonioSubcategorias.find((s) => s.id === subId);
   if (!sub) return 0;
 
   // LÓGICA DE MÁQUINA DO TEMPO:
   // Se o mês visualizado for anterior ao mês de criação, o saldo é ZERO.
-  // Se sub.mesAnoCriacao não existir (contas antigas), assume-se que ela já existia.
   if (sub.mesAnoCriacao && mesAnoCorte < sub.mesAnoCriacao) {
     return 0;
   }
 
   let saldo = Number(sub.saldoInicial) || 0;
 
-  // Filtra transações de patrimônio vinculadas a este item até o mês de corte
-  const historico = (state.transacoes || []).filter(
-    (t) =>
-      t.patrimonioId === subId &&
-      t.mesAnoReferencia <= mesAnoCorte &&
-      t.tipo === "patrimonio",
-  );
+  // Filtra transações vinculadas a este item até o mês de corte
+  const historico = (state.transacoes || []).filter((t) => {
+    if (t.patrimonioId !== subId || t.tipo !== "patrimonio") return false;
+    if (t.mesAnoReferencia > mesAnoCorte) return false;
+
+    // Se solicitado estritamente o Saldo Real, ignora operações posteriores à data civil informada
+    if (apenasReal && dataCorteCivil) {
+      const dataOp = t.dataOperacao || "";
+      if (dataOp && dataOp > dataCorteCivil) return false;
+    }
+    return true;
+  });
 
   historico.forEach((t) => {
     const v = Number(t.valor) || 0;
@@ -44,7 +53,7 @@ export function obterSaldoItemAteMes(subId, mesAnoCorte = "9999-12") {
 
 /**
  * Renderiza a árvore hierárquica do Patrimônio.
- * Implementa o desaparecimento de itens futuros com base no state.currentDate.
+ * Gerencia a alternância entre Saldo Real (Hoje) e Saldo Projetado.
  */
 export function renderizarListaPatrimonioHierarquica(
   targetUl = elements.listaPatrimonioHierarquicaUl,
@@ -56,8 +65,63 @@ export function renderizarListaPatrimonioHierarquica(
   const categorias = state.patrimonioCategorias || [];
   const subcategorias = state.patrimonioSubcategorias || [];
 
-  // SOBERANIA TEMPORAL: Captura o mês que o usuário está vendo na Home
   const mesAnoReferencia = getMesAnoChave(state.currentDate);
+  const mesAnoHoje = getMesAnoChave(new Date());
+
+  // Data civil de hoje no formato YYYY-MM-DD
+  const hoje = new Date();
+  const dataHojeStr = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}-${String(hoje.getDate()).padStart(2, "0")}`;
+
+  const ehMesPassado = mesAnoReferencia < mesAnoHoje;
+  const ehProjetado = !ehMesPassado && state.patrimonioVisaoProjetada === true;
+
+  // Atualiza o visual, tooltip e comportamento da pílula interativa na Home
+  if (elements.btnToggleVisaoPatrimonio) {
+    if (ehMesPassado) {
+      elements.btnToggleVisaoPatrimonio.disabled = true;
+      elements.btnToggleVisaoPatrimonio.style.opacity = "0.7";
+      elements.btnToggleVisaoPatrimonio.style.cursor = "not-allowed";
+      elements.btnToggleVisaoPatrimonio.style.backgroundColor = "#e2e8f0";
+      elements.btnToggleVisaoPatrimonio.style.color = "#718096";
+      elements.btnToggleVisaoPatrimonio.style.borderColor = "#cbd5e0";
+      elements.btnToggleVisaoPatrimonio.textContent = "Consolidado";
+      elements.btnToggleVisaoPatrimonio.title =
+        "Histórico fechado e consolidado (indisponível para alternância em meses passados).";
+    } else {
+      elements.btnToggleVisaoPatrimonio.disabled = false;
+      elements.btnToggleVisaoPatrimonio.style.opacity = "1";
+      elements.btnToggleVisaoPatrimonio.style.cursor = "pointer";
+
+      if (ehProjetado) {
+        elements.btnToggleVisaoPatrimonio.style.backgroundColor = "#2c3e50";
+        elements.btnToggleVisaoPatrimonio.style.color = "#ffffff";
+        elements.btnToggleVisaoPatrimonio.style.borderColor = "#2c3e50";
+        elements.btnToggleVisaoPatrimonio.textContent = "🔮 Saldo Projetado";
+        elements.btnToggleVisaoPatrimonio.title =
+          "Modo Saldo Projetado ativo (inclui operações futuras). Clique para alternar para o Saldo Real de hoje.";
+      } else {
+        elements.btnToggleVisaoPatrimonio.style.backgroundColor = "#e8f4fd";
+        elements.btnToggleVisaoPatrimonio.style.color = "#2980b9";
+        elements.btnToggleVisaoPatrimonio.style.borderColor = "#bce0fd";
+        elements.btnToggleVisaoPatrimonio.textContent = "🏦 Saldo Real";
+        elements.btnToggleVisaoPatrimonio.title =
+          "Modo Saldo Real ativo (apenas o que está no banco hoje). Clique para alternar para o Saldo Projetado.";
+      }
+    }
+  }
+
+  // Função auxiliar de saldo da árvore respeitando o modo ativo
+  const calcularSaldoItemArvore = (subId) => {
+    if (ehMesPassado) {
+      return obterSaldoItemAteMes(subId, mesAnoReferencia, null, false);
+    }
+    if (ehProjetado) {
+      // Projeção: soma operações planejadas até o mês consultado
+      return obterSaldoItemAteMes(subId, mesAnoReferencia, null, false);
+    }
+    // Saldo Real (Padrão): apenas o que já ocorreu até hoje
+    return obterSaldoItemAteMes(subId, mesAnoReferencia, dataHojeStr, true);
+  };
 
   if (categorias.length === 0) {
     targetUl.innerHTML =
@@ -83,7 +147,6 @@ export function renderizarListaPatrimonioHierarquica(
       const secaoFragmento = document.createDocumentFragment();
 
       listaDeCategorias.forEach((cat) => {
-        // FILTRAGEM MÁQUINA DO TEMPO: Mostra apenas itens criados no mês de referência ou antes
         const filhos = subcategorias.filter(
           (sub) =>
             sub.categoriaId === cat.id &&
@@ -93,15 +156,13 @@ export function renderizarListaPatrimonioHierarquica(
         let totalCategoria = 0;
         const containerItens = [];
 
-        // Ordena os itens por Saldo Real Histórico (Decrescente)
         filhos
           .sort(
             (a, b) =>
-              obterSaldoItemAteMes(b.id, mesAnoReferencia) -
-              obterSaldoItemAteMes(a.id, mesAnoReferencia),
+              calcularSaldoItemArvore(b.id) - calcularSaldoItemArvore(a.id),
           )
           .forEach((sub) => {
-            const saldoReal = obterSaldoItemAteMes(sub.id, mesAnoReferencia);
+            const saldoReal = calcularSaldoItemArvore(sub.id);
             totalCategoria += saldoReal;
             totalSecao += saldoReal;
 
@@ -168,15 +229,12 @@ export function renderizarListaPatrimonioHierarquica(
     renderizarSecao(listaAmortizacao, "Recursos para Amortização", "#3498db");
   }
 
-  // Atualiza os resumos financeiros considerando apenas os itens existentes no período visualizado
+  // Atualiza o resumo financeiro com base no modo ativo
   const totalGeralCalculo = subcategorias
     .filter(
       (sub) => !sub.mesAnoCriacao || sub.mesAnoCriacao <= mesAnoReferencia,
     )
-    .reduce(
-      (acc, sub) => acc + obterSaldoItemAteMes(sub.id, mesAnoReferencia),
-      0,
-    );
+    .reduce((acc, sub) => acc + calcularSaldoItemArvore(sub.id), 0);
 
   const elementoExibicao = isHome
     ? elements.valorPatrimonioLiquidoHome

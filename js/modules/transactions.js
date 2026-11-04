@@ -756,12 +756,19 @@ export async function adicionarNovasTransacoes(dados) {
       ? getMesAnoChave(state.currentFaturaDate)
       : getMesAnoChave(state.currentDate);
 
-  // --- LÓGICA DE SIMPLIFICAÇÃO: CÁLCULO DO DELTA PARA AJUSTE ---
+  // --- LÓGICA DE SIMPLIFICAÇÃO: CÁLCULO DO DELTA PARA AJUSTE (BLINDADA CONTRA PROJEÇÕES FUTURAS) ---
   if (dados.tipo === "patrimonio" && dados.operacao === "ajuste") {
-    // 1. Obtém o saldo que o sistema conhece atualmente (estoque total)
-    const saldoNoApp = obterSaldoItemAteMes(dados.patrimonioId, "9999-12");
+    // 1. Obtém o saldo real até a data civil do ajuste (ignora movimentações futuras agendadas)
+    const dataAjusteCivil = dados.dataOperacao || "";
+    const mesAnoAjuste = dados.mesAnoReferencia || mesAnoBase;
+    const saldoNoApp = obterSaldoItemAteMes(
+      dados.patrimonioId,
+      mesAnoAjuste,
+      dataAjusteCivil,
+      true,
+    );
 
-    // 2. A diferença entre o que o usuário digitou e o que o app tem é o valor real do ajuste
+    // 2. A diferença entre o que o usuário digitou e o saldo real presente na conta é o delta
     const delta = dados.valor - saldoNoApp;
 
     if (Math.abs(delta) < 0.01) {
