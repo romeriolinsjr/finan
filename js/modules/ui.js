@@ -859,16 +859,25 @@ export function renderizarTransacoesDoMes() {
 
   itensParaRenderizar.sort((a, b) => {
     if (a.ordemMaster !== b.ordemMaster) return a.ordemMaster - b.ordemMaster;
+
+    // Se ambos forem ORÇAMENTOS, os fixos do sistema têm prioridade absoluta no topo
+    if (
+      a.tipoDisplay === CONSTS.TIPO_RENDERIZACAO.ORCAMENTO &&
+      b.tipoDisplay === CONSTS.TIPO_RENDERIZACAO.ORCAMENTO
+    ) {
+      if (a.isFixedOrdinary) return -1;
+      if (b.isFixedOrdinary) return 1;
+      if (a.isFixed) return -1;
+      if (b.isFixed) return 1;
+      return (b.valorTotalOrcamento || 0) - (a.valorTotalOrcamento || 0);
+    }
+
     const dataA =
       a.dataOrdenacao instanceof Date ? a.dataOrdenacao.getTime() : 0;
     const dataB =
       b.dataOrdenacao instanceof Date ? b.dataOrdenacao.getTime() : 0;
     if (dataA !== dataB) return dataA - dataB;
-    if (a.tipoDisplay === CONSTS.TIPO_RENDERIZACAO.ORCAMENTO) {
-      if (a.isFixedOrdinary) return -1;
-      if (b.isFixedOrdinary) return 1;
-      return (b.valorTotalOrcamento || 0) - (a.valorTotalOrcamento || 0);
-    }
+
     return (b.valor || 0) - (a.valor || 0);
   });
 
