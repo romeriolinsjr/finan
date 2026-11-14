@@ -1073,7 +1073,7 @@ document.addEventListener("DOMContentLoaded", () => {
           },
         );
       } else if (btn.classList.contains("btn-delete-pat-sub")) {
-        await patrimony.excluirSubcategoria(id);
+        patrimony.prepararSoftDeleteSubcategoria(id, ui.abrirModalEspecifico);
       }
     }
   });
@@ -2050,6 +2050,34 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  // --- NOVO: Ouvinte para confirmar o Soft Delete de Conta Patrimonial ---
+  if (elements.btnConfirmarSoftDeletePatrimonio) {
+    elements.btnConfirmarSoftDeletePatrimonio.addEventListener(
+      "click",
+      async () => {
+        const subId = elements.modalConfirmarExclusaoPatrimonio.dataset.subId;
+        const dataCorte = elements.dataCorteExclusaoPatrimonio.value;
+        if (!dataCorte) {
+          alert("Por favor, selecione o mês de encerramento.");
+          return;
+        }
+        if (subId) {
+          elements.btnConfirmarSoftDeletePatrimonio.disabled = true;
+          elements.btnConfirmarSoftDeletePatrimonio.textContent =
+            "Processando...";
+          await patrimony.executarSoftDeleteSubcategoria(
+            subId,
+            dataCorte,
+            ui.fecharModalEspecifico,
+          );
+          elements.btnConfirmarSoftDeletePatrimonio.disabled = false;
+          elements.btnConfirmarSoftDeletePatrimonio.textContent =
+            "Confirmar Encerramento";
+        }
+      },
+    );
+  }
+
   // Edição de Dívida de Terceiro
   elements.btnSalvarEdicaoDivida.addEventListener("click", async () => {
     const id = elements.dividaEditIdInput.value;
@@ -2401,12 +2429,13 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
 
-      // 4. Exclusão (X)
+      // 4. Exclusão / Encerramento (X)
       if (btnDel) {
         const id = btnDel.dataset.id;
         if (btnDel.classList.contains("btn-delete-pat-cat"))
           patrimony.excluirCategoria(id);
-        else patrimony.excluirSubcategoria(id);
+        else
+          patrimony.prepararSoftDeleteSubcategoria(id, ui.abrirModalEspecifico);
       }
     });
   }

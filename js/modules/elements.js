@@ -288,9 +288,22 @@ export const elements = {
   ),
   infoUltimaCompraCartao: document.getElementById("infoUltimaCompraCartao"),
   dataCorteExclusaoCartao: document.getElementById("dataCorteExclusaoCartao"),
-
   btnConfirmarSoftDeleteCartao: document.getElementById(
     "btnConfirmarSoftDeleteCartao",
+  ),
+
+  // NOVO: Elementos do Soft Delete Temporal de Patrimônio
+  modalConfirmarExclusaoPatrimonio: document.getElementById(
+    "modalConfirmarExclusaoPatrimonio",
+  ),
+  infoUltimaMovimentacaoPatrimonio: document.getElementById(
+    "infoUltimaMovimentacaoPatrimonio",
+  ),
+  dataCorteExclusaoPatrimonio: document.getElementById(
+    "dataCorteExclusaoPatrimonio",
+  ),
+  btnConfirmarSoftDeletePatrimonio: document.getElementById(
+    "btnConfirmarSoftDeletePatrimonio",
   ),
   auditMinhasCompras: document.getElementById("auditMinhasCompras"),
   auditTerceiros: document.getElementById("auditTerceiros"),

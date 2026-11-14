@@ -1443,6 +1443,59 @@
         </div>
       </div>
     </div>
+
+    <!-- NOVO: Modal para Confirmar Encerramento de Conta Patrimonial (Soft Delete Temporal) -->
+    <div id="modalConfirmarExclusaoPatrimonio" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Encerrar Conta Patrimonial</h2>
+          <span
+            class="close-button"
+            data-modal-id="modalConfirmarExclusaoPatrimonio"
+            >×</span
+          >
+        </div>
+        <div class="modal-body">
+          <p
+            id="infoUltimaMovimentacaoPatrimonio"
+            style="
+              margin-bottom: 15px;
+              color: #2c3e50;
+              font-weight: bold;
+              background: #ecf0f1;
+              padding: 10px;
+              border-radius: 5px;
+            "
+          ></p>
+          <p style="font-size: 0.9em; color: #7f8c8d; margin-bottom: 20px">
+            A conta será mantida no histórico de meses anteriores. No mês
+            escolhido, ela será marcada como "Encerrada". A partir do mês
+            seguinte, ela não aparecerá mais na árvore nem nos formulários.
+          </p>
+          <div>
+            <label for="dataCorteExclusaoPatrimonio"
+              >Encerrar conta no mês de:</label
+            >
+            <input type="month" id="dataCorteExclusaoPatrimonio" required />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button
+            class="btn-secondary close-button-footer"
+            data-modal-id="modalConfirmarExclusaoPatrimonio"
+          >
+            Cancelar
+          </button>
+          <button
+            id="btnConfirmarSoftDeletePatrimonio"
+            class="btn-primary"
+            style="background-color: #e74c3c"
+          >
+            Confirmar Encerramento
+          </button>
+        </div>
+      </div>
+    </div>
     <!-- NOVO: Modal para Relatórios -->
     <div id="modalRelatorios" class="modal">
       <div class="modal-content modal-large">

@@ -1231,6 +1231,7 @@ export function popularSelectTransacaoPatrimonio() {
   const itemSelecionado = elements.selectTransacaoPatrimonioSub.value || "";
 
   const naturezaAlvo = elements.naturezaPatrimonioSelect.value; // 'ativo' ou 'passivo'
+  const mesAnoAtual = getMesAnoChave(state.currentDate);
   const subcategorias = state.patrimonioSubcategorias || [];
   const categorias = (state.patrimonioCategorias || []).filter(
     (c) => c.tipo === naturezaAlvo,
@@ -1244,8 +1245,13 @@ export function popularSelectTransacaoPatrimonio() {
     categorias
       .sort((a, b) => a.nome.localeCompare(b.nome))
       .forEach((cat) => {
+        // Filtra contas: não exibe contas encerradas para novos lançamentos
         const itensFilhos = subcategorias.filter(
-          (s) => s.categoriaId === cat.id,
+          (s) =>
+            s.categoriaId === cat.id &&
+            (!s.deletado ||
+              !s.mesAnoExclusao ||
+              mesAnoAtual < s.mesAnoExclusao),
         );
         if (itensFilhos.length > 0) {
           h += `<optgroup label="${cat.nome.toUpperCase()}">`;

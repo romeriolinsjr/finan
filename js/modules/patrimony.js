@@ -147,10 +147,14 @@ export function renderizarListaPatrimonioHierarquica(
       const secaoFragmento = document.createDocumentFragment();
 
       listaDeCategorias.forEach((cat) => {
+        // FILTRAGEM: Mostra se criado no mês ou antes E não excluído em meses anteriores
         const filhos = subcategorias.filter(
           (sub) =>
             sub.categoriaId === cat.id &&
-            (!sub.mesAnoCriacao || sub.mesAnoCriacao <= mesAnoReferencia),
+            (!sub.mesAnoCriacao || sub.mesAnoCriacao <= mesAnoReferencia) &&
+            (!sub.deletado ||
+              !sub.mesAnoExclusao ||
+              mesAnoReferencia <= sub.mesAnoExclusao),
         );
 
         let totalCategoria = 0;
@@ -166,28 +170,43 @@ export function renderizarListaPatrimonioHierarquica(
             totalCategoria += saldoReal;
             totalSecao += saldoReal;
 
-            const botoesOperacionais = isHome
-              ? `
+            // Se a conta foi encerrada exatamente neste mês de referência
+            const ehEncerradaNesteMes =
+              sub.deletado && sub.mesAnoExclusao === mesAnoReferencia;
+
+            const tagEncerrada = ehEncerradaNesteMes
+              ? '<span class="status-excluido" style="background: #95a5a6; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.75em; margin-left: 6px; font-weight: normal; vertical-align: middle;">Encerrada</span>'
+              : "";
+
+            // Se estiver encerrada neste mês, não exibe botões operacionais nem botões de edição/exclusão
+            const botoesOperacionais =
+              isHome && !ehEncerradaNesteMes
+                ? `
             <div class="patrimonio-op-group">
               <button class="btn-pat-op" data-id="${sub.id}" data-op="aporte" title="Aporte (+)" style="color:#27ae60;">⊕</button>
               <button class="btn-pat-op" data-id="${sub.id}" data-op="resgate" title="Resgate (-)" style="color:#e74c3c;">⊖</button>
               <button class="btn-pat-op" data-id="${sub.id}" data-op="ajuste" title="Ajuste de Valor (≈)" style="color:#3498db;">≈</button>
               <button class="btn-pat-op" data-id="${sub.id}" data-op="amortizacao" title="Amortização (↓)" style="color:#008080;">↓</button>
             </div>`
+                : "";
+
+            const botoesAcaoItem = !ehEncerradaNesteMes
+              ? `
+              <div class="transaction-actions">
+                <button class="btn-edit-pat-sub" data-id="${sub.id}" title="Editar Item">✎</button>
+                <button class="btn-delete-pat-sub" data-id="${sub.id}" title="Encerrar Item">✖</button>
+              </div>`
               : "";
 
             containerItens.push(`
-            <li class="patrimonio-item-row">
+            <li class="patrimonio-item-row" style="${ehEncerradaNesteMes ? "background-color: #f8f9fa; opacity: 0.8;" : ""}">
               <div class="patrimonio-info" data-id="${sub.id}">
-                <span class="patrimonio-item-nome">${sub.nome}</span>
+                <span class="patrimonio-item-nome">${sub.nome}${tagEncerrada}</span>
                 <span class="patrimonio-item-valor">${formatCurrency(saldoReal)}</span>
               </div>
               <div class="patrimonio-item-actions-wrapper">
                 ${botoesOperacionais}
-                <div class="transaction-actions">
-                  <button class="btn-edit-pat-sub" data-id="${sub.id}" title="Editar Item">✎</button>
-                  <button class="btn-delete-pat-sub" data-id="${sub.id}" title="Excluir Item">✖</button>
-                </div>
+                ${botoesAcaoItem}
               </div>
             </li>`);
           });
@@ -229,10 +248,14 @@ export function renderizarListaPatrimonioHierarquica(
     renderizarSecao(listaAmortizacao, "Recursos para Amortização", "#3498db");
   }
 
-  // Atualiza o resumo financeiro com base no modo ativo
+  // Atualiza o resumo financeiro considerando apenas itens visíveis no período
   const totalGeralCalculo = subcategorias
     .filter(
-      (sub) => !sub.mesAnoCriacao || sub.mesAnoCriacao <= mesAnoReferencia,
+      (sub) =>
+        (!sub.mesAnoCriacao || sub.mesAnoCriacao <= mesAnoReferencia) &&
+        (!sub.deletado ||
+          !sub.mesAnoExclusao ||
+          mesAnoReferencia <= sub.mesAnoExclusao),
     )
     .reduce((acc, sub) => acc + calcularSaldoItemArvore(sub.id), 0);
 
@@ -377,18 +400,73 @@ export async function salvarSubcategoria() {
   }
 }
 
-export async function excluirSubcategoria(id) {
-  if (!confirm("Excluir este item?")) return;
+/**
+ * Prepara o modal para encerramento de conta patrimonial (Soft Delete Temporal)
+ */
+export function prepararSoftDeleteSubcategoria(subId, callbackAbrirModal) {
+  const sub = state.patrimonioSubcategorias.find((s) => s.id === subId);
+  if (!sub || !elements.modalConfirmarExclusaoPatrimonio) return;
+
+  const mesAnoAtual = getMesAnoChave(state.currentDate);
+  const [ano, mes] = mesAnoAtual.split("-");
+  const nomeMes = new Date(ano, mes - 1).toLocaleString("pt-BR", {
+    month: "long",
+  });
+
+  if (elements.infoUltimaMovimentacaoPatrimonio) {
+    elements.infoUltimaMovimentacaoPatrimonio.textContent = `A conta "${sub.nome}" será encerrada no ciclo de ${nomeMes} de ${ano}.`;
+  }
+  if (elements.dataCorteExclusaoPatrimonio) {
+    elements.dataCorteExclusaoPatrimonio.value = mesAnoAtual;
+  }
+
+  elements.modalConfirmarExclusaoPatrimonio.dataset.subId = subId;
+  callbackAbrirModal(
+    elements.modalConfirmarExclusaoPatrimonio,
+    null,
+    "generic",
+  );
+}
+
+/**
+ * Executa o encerramento da conta patrimonial gravando deletado e mesAnoExclusao
+ */
+export async function executarSoftDeleteSubcategoria(
+  subId,
+  dataCorte,
+  callbackFechar,
+) {
+  if (!state.currentUser) return;
+
   try {
-    await db
+    const ref = db
       .collection("users")
       .doc(state.currentUser.uid)
       .collection("patrimonioSubcategorias")
-      .doc(id)
-      .delete();
+      .doc(subId);
+
+    await ref.update({
+      deletado: true,
+      mesAnoExclusao: dataCorte,
+    });
+
     await registrarUltimaAlteracao();
-  } catch (e) {
-    console.error(e);
+
+    // Atualiza a memória local imediatamente
+    const idx = state.patrimonioSubcategorias.findIndex((s) => s.id === subId);
+    if (idx !== -1) {
+      state.patrimonioSubcategorias[idx].deletado = true;
+      state.patrimonioSubcategorias[idx].mesAnoExclusao = dataCorte;
+    }
+
+    callbackFechar(elements.modalConfirmarExclusaoPatrimonio);
+
+    import("./ui.js").then((ui) => {
+      ui.renderizarTransacoesDoMes();
+    });
+  } catch (error) {
+    console.error("Erro ao encerrar conta patrimonial:", error);
+    alert("Ocorreu um erro ao encerrar a conta.");
   }
 }
 
