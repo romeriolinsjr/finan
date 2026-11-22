@@ -1457,6 +1457,15 @@ body.modal-aberto {
     align-items: flex-start; /* Alinha tudo à esquerda */
     gap: 4px; /* Adiciona um pequeno espaço entre o nome e o valor */
   }
+
+  /* Despesas de terceiros: os botões ficam ao lado do texto, e não abaixo dele.
+     Anula, só nesta lista, a largura de 100% e a linha superior que a regra
+     geral de .transaction-actions aplica no celular. */
+  .divida-terceiro-item .transaction-actions {
+    width: auto;
+    padding-top: 0;
+    border-top: none;
+  }
 }
 
 /* ========================================= */
