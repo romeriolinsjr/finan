@@ -332,6 +332,24 @@ Segundo backup dos dados, guardado no computador do usuário, complementar ao Fi
 
 - **Exceção deliberada ao Carimbo de Última Atualização (não "corrigir"):** *baixarBackupJson* **não** chama *registrarUltimaAlteracao*, porque o backup não altera nenhum dado financeiro. A "Última Atualização" da sidebar deve continuar indicando a última alteração real.
 
+**11. Porteiro de atualizações — service worker (🆕 22/11/2026)**
+
+Faz o app abrir sempre na versão mais recente publicada. **Razão:** no atalho da tela de início do iPhone, as alterações publicadas no *main* demoravam a aparecer, mesmo fechando o app, porque o navegador reaproveitava a cópia antiga dos arquivos guardada no aparelho.
+
+- **Arquivo:** *sw.js*, na raiz do projeto. É registrado por um pequeno bloco no fim do *index.html*, logo depois do *js/main.js*, com caminho relativo ("sw.js"), o que faz valer tanto no GitHub Pages (subpasta */finan/*) quanto no Live Server. Se o navegador não suportar ou o registro falhar, o app funciona normalmente e só um aviso aparece no console ("Porteiro de atualizações não registrado").
+
+- **Estratégia "rede primeiro":** para cada leitura (*GET*) de arquivo do próprio Finan, o *sw.js* consulta o servidor com *cache: "no-cache"*. Se o arquivo não mudou, o servidor só confirma, sem baixá-lo de novo. Uma cópia é guardada no cache "finan-arquivos" e usada **somente sem internet**, o que permite abrir o app offline (os dados do Firebase continuam exigindo conexão para atualizar).
+
+- **Fora do alcance do porteiro:** requisições de outros endereços (Firebase, login, Google Fonts, jsPDF) e tudo que não for *GET* seguem direto para a internet, sem interferência.
+
+- **Ativação imediata:** *skipWaiting* na instalação e *clients.claim* na ativação fazem a versão nova do porteiro assumir sem esperar o fechamento das abas.
+
+- **Por que não usar números de versão nos nomes dos arquivos (*style.css?v=2*):** o app tem 17 módulos que se importam entre si. Seria preciso alterar dezenas de importações a cada publicação, e um descuido faria o navegador carregar **duas cópias** do mesmo módulo (por exemplo, dois *state.js* independentes), quebrando o app silenciosamente.
+
+- **Alerta de manutenção (não apagar o sw.js):** se um dia o porteiro precisar ser retirado, não basta apagar o arquivo, porque o navegador mantém o porteiro já instalado nos aparelhos. É preciso antes publicar uma versão do *sw.js* que se desinstale e só depois removê-lo.
+
+- **Conferência no navegador:** F12 › aba "Aplicativo" (no Edge, pelo botão "+" da barra de ferramentas) › "Service workers", que deve mostrar *sw.js* "ativado e está em execução".
+
 **📊 REGRAS DE CÁLCULO E GESTÃO PATRIMONIAL**
 
 **1. Motor de Cálculo Centralizado — Single Source of Truth (🆕 agosto/2026)**
@@ -461,6 +479,8 @@ O módulo **reports.js** abriga a função soberana *obterDadosFinanceirosAgrupa
 - **js/main.js:** o Orquestrador Central. Gerencia a autenticação, snapshots do Firebase, ouvintes de eventos globais unificados (modal + Home), navegação blindada, alternância de contexto na sidebar e persistência de modais ao salvar.
 
 - **manifest.json / favicon.png:** configurações do PWA.
+
+- **sw.js (🆕 22/11/2026):** porteiro de atualizações (service worker), com estratégia "rede primeiro" para os arquivos do próprio Finan. Ver item 11 da Lógica de Funcionamento.
 
 **Módulos (js/modules/)**
 
