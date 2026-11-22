@@ -1788,6 +1788,28 @@ body.modal-aberto {
   line-height: 1.4;
 }
 
+/* Backup local (.json) e lembrete de 30 dias */
+.sidebar-footer #btnBaixarBackup {
+  font-size: 0.8em;
+  padding: 8px;
+  margin-bottom: 6px;
+}
+.sidebar-footer #btnBaixarBackup:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+#lembreteBackupDisplay {
+  font-size: 11px;
+  color: #bdc3c7;
+  text-align: center;
+  margin: 0 20px 12px 20px;
+  line-height: 1.4;
+}
+#lembreteBackupDisplay.backup-atrasado {
+  color: #f39c12;
+  font-weight: 600;
+}
+
 /* Botão de Busca Profunda */
 .btn-deep-search {
   background-color: #34495e;
