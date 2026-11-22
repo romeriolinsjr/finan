@@ -422,6 +422,8 @@ O módulo **reports.js** abriga a função soberana *obterDadosFinanceirosAgrupa
 
   - **Estado do botão:** *renderizarEstadoVisibilidade* (*ui.js*) não aplica mais opacidade 0.5 ao botão; passou a alternar o *title* entre "Ocultar valores" e "Mostrar valores". A preferência continua salva em *localStorage* ("finanValuesHidden").
 
+  - **Cor do Saldo do mês ao mostrar os valores (🆕 22/11/2026, não remover):** *atualizarResumoFinanceiro* (*ui.js*) só pinta o Saldo do mês (verde, vermelho ou azul) quando os valores estão visíveis; com os valores ocultos, deixa o saldo sem cor. Por isso, o ouvinte do botão do olho, em *main.js*, chama *ui.atualizarResumoFinanceiro()* logo depois de *renderizarEstadoVisibilidade*. Sem essa chamada, quando o app abria com os valores ocultos (preferência salva no aparelho) e o usuário abria o olho, o saldo aparecia branco até o resumo ser recalculado por outro motivo.
+
   - **Placeholder sobreposto (não reverter):** o "R\$ ●●●●●●" (pseudo-elemento *::before*) é posicionado com *position: absolute; top: 0; right: 0; white-space: nowrap* sobre o valor original transparente, que recebe *position: relative*. Antes, o placeholder era desenhado **ao lado** do valor transparente, somando as duas larguras: isso quebrava em duas linhas os nomes do Resumo Financeiro da sidebar e deslocava as bolinhas para a esquerda na Home.
 
   - **Resumo Financeiro da sidebar:** o placeholder usa cor clara \#ecf0f1 (o \#333 ficava quase invisível no fundo \#2c3e50) e versão mais curta, "R\$ ●●●●●", em 0.85em, para não encostar nos rótulos da coluna estreita. Na Home, a cor \#333 foi mantida.
