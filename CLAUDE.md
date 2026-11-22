@@ -34,4 +34,13 @@ Ao final de cada alteração, além da seção "O que mudou", informar o nome do
 ## Manutenção da documentação
 
 - Quando o usuário aprovar os testes de uma funcionalidade, atualizar `docs/CONTEXTUALIZACAO.md` no mesmo branch, **antes** do Pull Request, com o consentimento do usuário. Assim, o merge leva ao `main` o código e a documentação juntos.
-- Atualizar **somente por acréscimo ou correção pontual**: nunca remover nem resumir partes existentes sem pedido expresso do usuário. Manter os marcadores 🆕 (funcionalidade nova) e 🔄 (regra alterada) e a data no topo do documento.
+- Atualizar **somente por acréscimo ou correção pontual**: nunca remover nem resumir partes que **ainda valem** sem pedido expresso do usuário. Manter os marcadores 🆕 (funcionalidade nova) e 🔄 (regra alterada) e a data no topo do documento.
+- **Itens superados:** quando uma regra ou funcionalidade for substituída, **reescrever o item antigo** com a redação nova e o marcador 🔄, em vez de manter o texto superado e acrescentar outro item. Se for útil para evitar regressões, registrar em uma frase curta o motivo da mudança (como em "Esta redação substitui a anterior…"). Funcionalidades removidas do código saem também da documentação.
+
+## Remoção de código
+
+As Regras de Ouro proíbem remover ou "limpar" o que não foi pedido. Para não acumular código sem uso, valem também estas regras:
+
+- **Código tornado obsoleto pela própria alteração pedida deve ser removido** no mesmo trabalho (por exemplo, o ícone antigo ao trocar por um novo). Toda remoção deve constar da seção "O que mudou".
+- **Código que pareça sem uso, fora do escopo do pedido, nunca é removido por conta própria.** Antes de mencioná-lo ao usuário, a IA deve fazer uma **varredura em todos os arquivos do projeto** (HTML, CSS e JS) para confirmar que nada o chama ou referencia, incluindo usos indiretos: IDs e classes usados no HTML ou no CSS, nomes montados dinamicamente, mapeamentos em `elements.js`, ouvintes em `main.js` e campos lidos do Firestore. Trechos aparentemente inúteis podem ter uma função pequena ou muito específica, como as proteções contra *race conditions*.
+- Só depois da varredura a IA aponta o trecho ao usuário, explicando **o que encontrou e por que acredita que está sem uso**. A remoção só ocorre com autorização expressa, como tarefa separada e com a análise de impacto da Regra de Ouro 2.
