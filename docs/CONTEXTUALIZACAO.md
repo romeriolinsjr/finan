@@ -376,9 +376,7 @@ O módulo **reports.js** abriga a função soberana *obterDadosFinanceirosAgrupa
 
 - **Ordenação nos detalhes do orçamento (🔄 setembro/2026):** no modal *\#listaGastosOrcamento*, as compras vinculadas seguem a mesma hierarquia já usada na fatura do cartão — 1º Recorrentes, 2º Parceladas, 3º Únicas —, com desempate dentro de cada grupo pelo valor em ordem decrescente.
 
-- **Privacidade:** o ícone de privacidade passou a ser o ◈, substituindo o olho (👁️).
-
-- **Privacidade — olho em SVG e correção do placeholder (🔄 22/11/2026):** a redação acima foi superada. O botão *\#btnToggleVisibility* (*index.html*) voltou a exibir um olho, agora em **dois desenhos vetoriais (SVG)** em vez de emoji: *.icone-olho-aberto* (valores visíveis) e *.icone-olho-riscado* (valores ocultos). O ícone indica o **estado atual**, e a troca é feita só pelo CSS, a partir da classe *.values-hidden* no *body*.
+- **Privacidade — olho em SVG e correção do placeholder (🔄 22/11/2026):** o botão *\#btnToggleVisibility* (*index.html*) voltou a exibir um olho, agora em **dois desenhos vetoriais (SVG)** em vez de emoji: *.icone-olho-aberto* (valores visíveis) e *.icone-olho-riscado* (valores ocultos). O ícone indica o **estado atual**, e a troca é feita só pelo CSS, a partir da classe *.values-hidden* no *body*.
 
   - **Visual padronizado:** fundo azul-marinho \#2c3e50 (hover \#1a252f), ícone branco de 22px, altura de 36px e cantos de 4px, na mesma linha dos botões 💸 (laranja) e "Hoje" (azul).
 
