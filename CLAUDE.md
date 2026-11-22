@@ -19,9 +19,11 @@ A contextualização foi escrita para IAs de chat, em que o usuário copiava e c
 2. Com a ordem expressa do usuário, a IA faz as alterações num **branch separado**, nunca diretamente no `main`.
 3. A IA faz commit e envia o branch ao GitHub. O usuário testa no VS Code, numa conta reserva, trocando para o branch e rodando o app localmente.
 4. Correções são feitas no mesmo branch, quantas vezes forem necessárias.
-5. **Somente após a aprovação expressa do usuário** a IA incorpora o branch ao `main` (merge). O `main` é a versão publicada, usada pelo app instalado no celular e no desktop.
+5. Quando o usuário aprovar os testes, a IA atualiza `docs/CONTEXTUALIZACAO.md` **no mesmo branch**, para que código e documentação cheguem juntos ao `main` (ver "Manutenção da documentação").
+6. **Somente após a aprovação expressa do usuário**, a IA abre um Pull Request do branch para o `main` e envia o link. **O merge é feito pelo próprio usuário**, clicando em "Merge pull request" no GitHub. A IA nunca faz o merge nem envia alterações diretamente ao `main`. O `main` é a versão publicada (GitHub Pages), usada pelo app instalado no celular e no desktop.
+7. Após o merge, lembrar o usuário de voltar ao `main` no VS Code e fazer Sync/Pull.
 
-Ao final de cada alteração, além da seção "O que mudou", informar o nome do branch e lembrar o usuário de puxar as alterações (Sync/Pull) no VS Code.
+Ao final de cada alteração, além da seção "O que mudou", informar o nome do branch e lembrar o usuário de puxar as alterações (Sync/Pull) no VS Code. Se o branch não aparecer na lista do VS Code, orientar a usar Sync ou Fetch antes de trocar de branch.
 
 ## Comunicação com o usuário
 
@@ -31,5 +33,5 @@ Ao final de cada alteração, além da seção "O que mudou", informar o nome do
 
 ## Manutenção da documentação
 
-- Quando uma funcionalidade for aprovada e incorporada ao `main`, atualizar `docs/CONTEXTUALIZACAO.md` no mesmo trabalho, com o consentimento do usuário.
+- Quando o usuário aprovar os testes de uma funcionalidade, atualizar `docs/CONTEXTUALIZACAO.md` no mesmo branch, **antes** do Pull Request, com o consentimento do usuário. Assim, o merge leva ao `main` o código e a documentação juntos.
 - Atualizar **somente por acréscimo ou correção pontual**: nunca remover nem resumir partes existentes sem pedido expresso do usuário. Manter os marcadores 🆕 (funcionalidade nova) e 🔄 (regra alterada) e a data no topo do documento.
