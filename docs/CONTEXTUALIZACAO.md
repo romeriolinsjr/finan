@@ -310,6 +310,26 @@ Os formulários passaram a se abrir já contextualizados, reduzindo cliques e im
 
 - **Operações patrimoniais:** os ícones ⊕ ⊖ ≈ ↓ da árvore abrem o modal com Conta e Operação preenchidas e travadas, com o cursor no campo Valor.
 
+**10. Backup local em .json (🆕 22/11/2026)**
+
+Segundo backup dos dados, guardado no computador do usuário, complementar ao Firestore. **Razão:** as cópias que o Google mantém do Firestore são espelhos, e não backups — uma exclusão (como a do Soft Delete de cartões, que apaga compras de forma irreversível) ou um bug que grave valores errados é replicado em todas elas. O arquivo .json é uma fotografia congelada, imune ao que acontecer depois no banco.
+
+- **Botão:** "💾 Baixar backup" (*\#btnBaixarBackup*), no rodapé da sidebar, entre o botão de abrir/fechar todos os orçamentos e o "Sair". O clique é registrado em *main.js* e executa *baixarBackupJson*, do módulo **backup.js**.
+
+- **Leitura direta do Firestore (não ler do state):** o backup consulta o documento *users/{uid}* e as suas **12 subcoleções** — *transacoes*, *orcamentos*, *orcamentosFechados*, *cartoes*, *ajustesFatura*, *faturasConferidas*, *dividasTerceiros*, *pessoas*, *patrimonioCategorias*, *patrimonioSubcategorias*, *ciclos_tracker* e *votos_tracker*. O *state* não serve de fonte, porque só contém os meses já carregados (*mesesCarregados*).
+
+- **Alerta de manutenção:** ao criar uma **nova coleção** no Firestore, acrescentá-la à constante *COLECOES_BACKUP*, em *backup.js*. Caso contrário, ela ficará fora do backup silenciosamente.
+
+- **Formato do arquivo:** *finan-backup-AAAA-MM-DD.json*, com a data local do dispositivo. Contém um cabeçalho (*app*, *versaoBackup*, *geradoEm*, *usuario*), o *perfil* (dados do documento do usuário), os *totais* (quantidade de registros por coleção, para conferência rápida) e as *colecoes*, em que cada documento leva o seu *id* — indispensável para preservar os vínculos (*orcamentoId*, *cartaoId*, *pessoaId* etc.). Os *Timestamps* do Firebase são convertidos em texto ISO; os demais campos saem exatamente no formato gravado pelo app.
+
+- **Tudo ou nada:** se a leitura de qualquer coleção falhar, nenhum arquivo é gerado e o usuário é avisado, para que nunca se guarde um backup incompleto sem saber. Durante a geração, o botão fica travado com o texto "Gerando backup…", impedindo cliques múltiplos.
+
+- **Somente download:** não há rotina de restauração no app. Se um dia for necessária, deverá ser tratada como tarefa à parte (por gravar no banco), testada antes na conta reserva.
+
+- **Lembrete de 30 dias:** após gerar o arquivo, o sistema grava o campo *ultimoBackup* no documento do usuário, com a hora do **dispositivo** (*firebase.firestore.Timestamp.now()*) — e não *serverTimestamp*, que chega nulo no snapshot local e faria a frase piscar "Nenhum backup realizado". O ouvinte já existente do documento do usuário, em *main.js*, chama *exibirLembreteBackup*, que preenche *\#lembreteBackupDisplay*, logo abaixo do botão: "Último backup em DD/MM/AAAA." em cinza até 30 dias; "⚠️ Último backup há X dias." ou "⚠️ Nenhum backup realizado." em laranja (\#f39c12, classe *.backup-atrasado*). A data fica no Firestore, e não no *localStorage*, para valer em todos os aparelhos.
+
+- **Exceção deliberada ao Carimbo de Última Atualização (não "corrigir"):** *baixarBackupJson* **não** chama *registrarUltimaAlteracao*, porque o backup não altera nenhum dado financeiro. A "Última Atualização" da sidebar deve continuar indicando a última alteração real.
+
 **📊 REGRAS DE CÁLCULO E GESTÃO PATRIMONIAL**
 
 **1. Motor de Cálculo Centralizado — Single Source of Truth (🆕 agosto/2026)**
@@ -473,6 +493,8 @@ O módulo **reports.js** abriga a função soberana *obterDadosFinanceirosAgrupa
 - **15. firebase-config.js:** inicialização e configuração do acesso ao banco de dados.
 
 - **16. patrimony.js:** árvore hierárquica (Categorias e Itens) renderizada pela função *renderizarListaPatrimonioHierarquica*, com layout responsivo de duas/três linhas, ocultação de contas não nascidas, botões de operação direta (⊕ ⊖ ≈ ↓), extrato temporizado do item (*abrirHistoricoPatrimonio*, com exclusão de ajustes), apuração da TCP e dos índices de destinação, o encerramento temporal de contas (*prepararSoftDeleteSubcategoria* e *executarSoftDeleteSubcategoria*) e, sobretudo, a função *obterSaldoItemAteMes* — motor único do saldo de estoque, com corte pelo *mesAnoCriacao*.
+
+- **17. backup.js (🆕 22/11/2026):** backup local em .json. A função *baixarBackupJson* lê diretamente do Firestore o documento do usuário e as 12 subcoleções listadas em *COLECOES_BACKUP*, gera o arquivo para download e grava *ultimoBackup*; a função *exibirLembreteBackup* exibe a frase do lembrete de 30 dias na sidebar. Ver item 10 da Lógica de Funcionamento.
 
 **🚨 REGRAS DE OURO (ESTRITAMENTE OBRIGATÓRIAS)**
 

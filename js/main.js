@@ -15,6 +15,7 @@ import * as reports from "./modules/reports.js";
 import * as exportMod from "./modules/export.js";
 import * as tracker from "./modules/weekly-tracker.js";
 import * as patrimony from "./modules/patrimony.js";
+import * as backup from "./modules/backup.js";
 
 document.addEventListener("DOMContentLoaded", () => {
   console.log("Finan Modularizado - JS Carregado");
@@ -380,6 +381,9 @@ document.addEventListener("DOMContentLoaded", () => {
         if (doc.exists) {
           authMod.exibirDataUltimaAtualizacao(doc.data().lastModified);
         }
+        backup.exibirLembreteBackup(
+          doc.exists ? doc.data().ultimoBackup : null,
+        );
       }),
     );
 
@@ -667,6 +671,11 @@ document.addEventListener("DOMContentLoaded", () => {
   elements.btnLogout.addEventListener("click", () => {
     if (confirm("Deseja sair?")) auth.signOut();
   });
+  if (elements.btnBaixarBackup) {
+    elements.btnBaixarBackup.addEventListener("click", () => {
+      backup.baixarBackupJson();
+    });
+  }
 
   // --- NAVEGAÇÃO DE CONTEXTO: TRANSAÇÕES (SIDEBAR) ---
   if (elements.btnContextTransacoes) {

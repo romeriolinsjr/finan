@@ -273,6 +273,8 @@ export const elements = {
   btnLogout: document.getElementById("btnLogout"),
   sidebarFooter: document.querySelector(".sidebar-footer"),
   lastUpdatedDisplay: document.getElementById("lastUpdatedDisplay"),
+  btnBaixarBackup: document.getElementById("btnBaixarBackup"),
+  lembreteBackupDisplay: document.getElementById("lembreteBackupDisplay"),
   btnToggleVisibility: document.getElementById("btnToggleVisibility"),
   btnResendVerification: document.getElementById("btnResendVerification"),
   btnSairAuth: document.getElementById("btnSairAuth"),
