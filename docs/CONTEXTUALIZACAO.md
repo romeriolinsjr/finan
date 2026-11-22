@@ -262,6 +262,8 @@ Uma ferramenta híbrida para gerenciar o limite do cartão ao longo da fatura.
 
 - **Ordenação do detalhamento (🔄 setembro/2026):** no resumo de "Detalhamento" das Despesas de terceiros, a ordem é determinística — 1º "Ordinárias", sempre no topo; 2º os cartões, em ordem decrescente de valor, com desempate alfabético.
 
+- **Categoria de cada despesa na lista (🆕 22/11/2026):** na lista de despesas de cada pessoa, cada item passou a ter três linhas: o nome (com a parcela, quando houver), a categoria e o valor. A categoria aparece como "Ordinária" ou "Cartão de crédito (nome do cartão)", com o nome buscado em *state.cartoes* pelo *cartaoId* gravado na despesa ("Cartão desconhecido" se não for encontrado). Fica entre o nome e o valor, em letra menor e cinza (classe *.divida-categoria*, em *style.css*), para não competir com o destaque do valor. Antes, a categoria e o cartão só eram usados nos totais do resumo do topo e não apareciam em nenhuma despesa individual.
+
 - **Drill-down total (🔄 ampliado em 2/9/2026):** **todas** as seções analíticas — Despesas, Patrimônio e também **Orçamentos** — abrem detalhamento ao clique, exibindo os itens e valores que compõem aquele número.
 
 - **Parcelas que encerram no mês (🆕 outubro/novembro de 2026):** em *reports.js*, uma compra parcelada é identificada como última parcela pelo critério *parcelaAtual === totalParcelas*. O resultado aparece em três lugares: no card "Parceladas" de Cartão de Crédito, uma linha verde logo abaixo do valor ("🏁 X compras encerram este mês"); no topo do modal de detalhamento, um banner verde consolidado informando quantas compras finalizam e o valor que será liberado no próximo ciclo; e, ao lado de cada item na última parcela, a tag verde "Finaliza este mês".
@@ -480,7 +482,7 @@ O módulo **reports.js** abriga a função soberana *obterDadosFinanceirosAgrupa
 
 - **9. cards.js:** gestão de faturas, auditoria de compras, status de conferência (gravando *faturaPaga* nas transações do usuário e nas dívidas de terceiros do mesmo cartão e mês), **Soft Delete de cartões** (*prepararSoftDeleteCartao* e *executarSoftDeleteCartao*, campo *dataExclusao*, com exclusão permanente das compras do usuário a partir do mês de corte — rotina distinta da do patrimônio, ver item 5) e refresh imediato da lista na Home após o salvamento.
 
-- **10. third-party.js** (interface: "Despesas de terceiros"; coleção *dividasTerceiros*)**:** gestão das despesas reembolsáveis, pessoas, interface em acordeão e reembolsos em lote (*renderizarDividasDoMes* também polimórfica).
+- **10. third-party.js** (interface: "Despesas de terceiros"; coleção *dividasTerceiros*)**:** gestão das despesas reembolsáveis, pessoas, interface em acordeão, reembolsos em lote e exibição da categoria (Ordinária ou cartão) em cada despesa da lista (*renderizarDividasDoMes* também polimórfica).
 
 - **11. auth.js:** fluxos de login, cadastro, verificação de e-mail e exibição de "Última Atualização".
 
