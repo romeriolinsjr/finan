@@ -1,6 +1,6 @@
 **📑 CONTEXTUALIZAÇÃO DO PROJETO FINAN**
 
-*Versão de Alta Fidelidade — Consolidada em 21/11/2026*
+*Versão de Alta Fidelidade — Consolidada em 22/11/2026*
 
 Olá! Este é o **Finan**, um sistema de controle financeiro pessoal desenvolvido como um PWA (Progressive Web App). Esta janela de contexto foi aberta para dar continuidade ao desenvolvimento, garantindo que a IA compreenda a lógica de funcionamento, as tecnologias envolvidas e, principalmente, as Regras de Ouro de trabalho estabelecidas para este projeto. O seu diferencial não é apenas registrar gastos passados, mas sim planejar o futuro através de uma arquitetura baseada no **Ciclo Real de Caixa** do usuário — e, mais recentemente, apoiar a **construção de riqueza**, tratando o patrimônio não apenas como saldo, mas como estratégia de alocação.
 
@@ -88,7 +88,7 @@ O Finan trabalha atualmente com **quatro tipos de transação** (o quarto, Patri
 
   - **"Nova Transação":** fica no topo da Home e abre o formulário completo, para lançamentos de Receita/Despesa em geral.
 
-  - **Atalho Pix/Débito (💸):** botão dedicado que abre o formulário de Nova Transação **já pré-configurado como Despesa Ordinária**, para lançamentos instantâneos, com os campos Tipo (Despesa), Categoria (Ordinária) e Frequência (Única) **bloqueados** (*disabled*), restando ao usuário apenas Nome, Valor e Data. Embora esteja na mesma seção, situa-se em ponto distante do "Nova Transação": fica junto dos botões de **Mostrar/ocultar valores (◈)** e de **Voltar para hoje**.
+  - **Atalho Pix/Débito (💸):** botão dedicado que abre o formulário de Nova Transação **já pré-configurado como Despesa Ordinária**, para lançamentos instantâneos, com os campos Tipo (Despesa), Categoria (Ordinária) e Frequência (Única) **bloqueados** (*disabled*), restando ao usuário apenas Nome, Valor e Data. Embora esteja na mesma seção, situa-se em ponto distante do "Nova Transação": fica junto dos botões de **Mostrar/ocultar valores (olho 👁)** e de **Voltar para hoje**.
 
 **4. Arquitetura de Contextos Nativos na Home (🔄 ampliada em 20/8/2026)**
 
@@ -116,7 +116,7 @@ A interface concluiu a transição de um modelo baseado em **janelas sobrepostas
 
   - **Patrimoniais:** Aportes, Resgates e Amortizações realizados no mês. *Nota: os Ajustes de valor não aparecem aqui, para não poluir o fluxo de caixa.*
 
-  - **Ação Central:** botão "Nova Transação" no topo da Home, para lançamentos de Receita/Despesa. O atalho Pix/Débito (💸) permanece ativo em ponto distinto da mesma seção, junto aos botões de Mostrar/ocultar valores (◈) e Voltar para hoje.
+  - **Ação Central:** botão "Nova Transação" no topo da Home, para lançamentos de Receita/Despesa. O atalho Pix/Débito (💸) permanece ativo em ponto distinto da mesma seção, junto aos botões de Mostrar/ocultar valores (olho) e Voltar para hoje.
 
 - **Contexto Patrimônio (Estratégico):** ao clicar em "Patrimônio" na sidebar, a Home exibe a **Árvore Hierárquica** (Categorias e Itens).
 
@@ -378,9 +378,19 @@ O módulo **reports.js** abriga a função soberana *obterDadosFinanceirosAgrupa
 
 - **Privacidade:** o ícone de privacidade passou a ser o ◈, substituindo o olho (👁️).
 
+- **Privacidade — olho em SVG e correção do placeholder (🔄 22/11/2026):** a redação acima foi superada. O botão *\#btnToggleVisibility* (*index.html*) voltou a exibir um olho, agora em **dois desenhos vetoriais (SVG)** em vez de emoji: *.icone-olho-aberto* (valores visíveis) e *.icone-olho-riscado* (valores ocultos). O ícone indica o **estado atual**, e a troca é feita só pelo CSS, a partir da classe *.values-hidden* no *body*.
+
+  - **Visual padronizado:** fundo azul-marinho \#2c3e50 (hover \#1a252f), ícone branco de 22px, altura de 36px e cantos de 4px, na mesma linha dos botões 💸 (laranja) e "Hoje" (azul).
+
+  - **Estado do botão:** *renderizarEstadoVisibilidade* (*ui.js*) não aplica mais opacidade 0.5 ao botão; passou a alternar o *title* entre "Ocultar valores" e "Mostrar valores". A preferência continua salva em *localStorage* ("finanValuesHidden").
+
+  - **Placeholder sobreposto (não reverter):** o "R\$ ●●●●●●" (pseudo-elemento *::before*) é posicionado com *position: absolute; top: 0; right: 0; white-space: nowrap* sobre o valor original transparente, que recebe *position: relative*. Antes, o placeholder era desenhado **ao lado** do valor transparente, somando as duas larguras: isso quebrava em duas linhas os nomes do Resumo Financeiro da sidebar e deslocava as bolinhas para a esquerda na Home.
+
+  - **Resumo Financeiro da sidebar:** o placeholder usa cor clara \#ecf0f1 (o \#333 ficava quase invisível no fundo \#2c3e50) e versão mais curta, "R\$ ●●●●●", em 0.85em, para não encostar nos rótulos da coluna estreita. Na Home, a cor \#333 foi mantida.
+
 - **Barra de Navegação Temporal Fixa — Sticky Month Bar (🆕 setembro/2026):** o conjunto de navegação de ciclo **\< \[Mês/Ano\] \>** foi isolado no container *.sticky-month-bar*, posicionado logo abaixo do *.main-header*, no topo do *.main-content*. Por ser elemento soberano do layout principal, **atende automaticamente todas as telas da Home** (Transações, Relatórios, Patrimônio, Orçamentos, Cartões, Terceiros etc.) sem duplicação de código. O ganho é ergonômico: o usuário avança ou retrocede ciclos de qualquer ponto da página, sem rolar de volta ao topo depois de analisar listas longas ou rodapés de relatórios.
 
-  - **Separação de componentes:** o título, a logo e os botões de utilidade (💸 Pix/Débito, ◈ Privacidade e Hoje) permanecem no fluxo normal e sobem com a rolagem; só o seletor de mês fica fixo.
+  - **Separação de componentes:** o título, a logo e os botões de utilidade (💸 Pix/Débito, olho de Privacidade e Hoje) permanecem no fluxo normal e sobem com a rolagem; só o seletor de mês fica fixo.
 
   - **Comportamento:** *position: sticky; top: 0; z-index: 100*, com fundo \#f9fafb e borda inferior delicada.
 
