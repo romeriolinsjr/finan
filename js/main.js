@@ -2107,6 +2107,9 @@ document.addEventListener("DOMContentLoaded", () => {
     state.areValuesHidden = !state.areValuesHidden;
     localStorage.setItem("finanValuesHidden", state.areValuesHidden);
     ui.renderizarEstadoVisibilidade();
+    // Repinta o Saldo do mês (verde/vermelho/azul) ao mostrar os valores:
+    // se o resumo foi calculado com os valores ocultos, ele ficou sem cor.
+    ui.atualizarResumoFinanceiro();
   });
 
   // Lógica do Simulador de Diferença na Fatura
