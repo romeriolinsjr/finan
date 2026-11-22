@@ -162,10 +162,20 @@ export function renderizarDividasDoMes() {
           let detalhes = divida.nomeTransacao;
           if (divida.frequencia === "parcelada")
             detalhes += ` (${divida.parcelaAtual}/${divida.totalParcelas})`;
+          let categoriaTexto = "";
+          if (divida.categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA)
+            categoriaTexto = "Ordinária";
+          else if (divida.categoria === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO) {
+            const cartaoInfo = state.cartoes.find(
+              (c) => c.id === divida.cartaoId,
+            );
+            categoriaTexto = `Cartão de crédito (${cartaoInfo ? cartaoInfo.nome : "Cartão desconhecido"})`;
+          }
           li.innerHTML = `
                 <input type="checkbox" data-divida-id="${divida.id}" ${divida.reembolsado ? "checked" : ""}>
                 <div class="divida-info">
                     <span class="transacao-detalhes">${detalhes}</span>
+                    ${categoriaTexto ? `<span class="divida-categoria">${categoriaTexto}</span>` : ""}
                     <span class="divida-valor">${formatCurrency(divida.valor)}</span>
                 </div>
                 <div class="transaction-actions">
