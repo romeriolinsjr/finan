@@ -2222,6 +2222,15 @@
 
     <!-- Chamada do script principal como módulo -->
     <script type="module" src="js/main.js"></script>
+
+    <!-- Porteiro de atualizações (service worker): garante que o app abra na versão mais recente -->
+    <script>
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("sw.js").catch((erro) => {
+          console.warn("Porteiro de atualizações não registrado:", erro);
+        });
+      }
+    </script>
   </body>
 </html>
 
