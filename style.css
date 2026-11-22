@@ -130,18 +130,40 @@ body.modal-aberto {
 }
 /* NOVO: Estilos para o botão de visibilidade */
 #btnToggleVisibility {
-  background: none;
+  background-color: #2c3e50; /* Fundo azul-marinho, no padrão dos botões vizinhos */
   border: none;
+  border-radius: 4px;
   font-size: 1.8em; /* Aumenta o tamanho do ícone */
   cursor: pointer;
-  padding: 0 5px;
+  padding: 0 12px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   line-height: 1;
-  color: #7f8c8d;
-  transition: color 0.2s;
+  color: white;
+  transition: background 0.3s;
 }
 
 #btnToggleVisibility:hover {
-  color: #2c3e50;
+  background-color: #1a252f;
+}
+
+/* Ícone de olho (SVG): exibe o olho aberto com valores visíveis
+   e o olho riscado com valores ocultos */
+#btnToggleVisibility svg {
+  width: 22px;
+  height: 22px;
+  display: block;
+}
+#btnToggleVisibility .icone-olho-riscado {
+  display: none;
+}
+.values-hidden #btnToggleVisibility .icone-olho-aberto {
+  display: none;
+}
+.values-hidden #btnToggleVisibility .icone-olho-riscado {
+  display: block;
 }
 
 /* NOVO: Regras para quando o modo de privacidade está ATIVADO */
@@ -154,6 +176,7 @@ body.modal-aberto {
 .values-hidden .transaction-item .orcamento-restante {
   color: transparent !important; /* Adiciona !important para garantir a sobreposição */
   user-select: none;
+  position: relative; /* Referência para o placeholder sobreposto */
 }
 
 .values-hidden .financial-summary .summary-item span:last-child::before,
@@ -164,6 +187,20 @@ body.modal-aberto {
   font-size: 1em;
   font-weight: 600;
   user-select: text;
+  /* Desenha o placeholder POR CIMA do valor transparente, alinhado à direita,
+     para não somar larguras nem empurrar/quebrar o texto vizinho */
+  position: absolute;
+  top: 0;
+  right: 0;
+  white-space: nowrap;
+}
+
+/* Placeholder em cor clara no Resumo Financeiro (fundo escuro do menu lateral) */
+.values-hidden .financial-summary .summary-item span:last-child::before {
+  color: #ecf0f1;
+  content: "R$ ●●●●●"; /* Versão mais curta: a coluna lateral é estreita */
+  font-size: 0.85em;
+  line-height: 1.6; /* Mantém o placeholder centralizado na linha do valor */
 }
 
 /* CORREÇÃO SUPER-ESPECÍFICA: Garante que o placeholder do orçamento

@@ -964,11 +964,11 @@ export function renderizarEstadoVisibilidade() {
   if (state.areValuesHidden) {
     elements.bodyEl.classList.add("values-hidden");
     if (elements.btnToggleVisibility)
-      elements.btnToggleVisibility.style.opacity = "0.5";
+      elements.btnToggleVisibility.title = "Mostrar valores";
   } else {
     elements.bodyEl.classList.remove("values-hidden");
     if (elements.btnToggleVisibility)
-      elements.btnToggleVisibility.style.opacity = "1";
+      elements.btnToggleVisibility.title = "Ocultar valores";
   }
 }
 
