@@ -144,6 +144,23 @@ body.modal-aberto {
   color: #2c3e50;
 }
 
+/* Ícone de olho (SVG): exibe o olho aberto com valores visíveis
+   e o olho riscado com valores ocultos */
+#btnToggleVisibility svg {
+  width: 26px;
+  height: 26px;
+  display: block;
+}
+#btnToggleVisibility .icone-olho-riscado {
+  display: none;
+}
+.values-hidden #btnToggleVisibility .icone-olho-aberto {
+  display: none;
+}
+.values-hidden #btnToggleVisibility .icone-olho-riscado {
+  display: block;
+}
+
 /* NOVO: Regras para quando o modo de privacidade está ATIVADO */
 .values-hidden .financial-summary .summary-item span:last-child,
 .values-hidden .transaction-item .transaction-value,
@@ -154,6 +171,7 @@ body.modal-aberto {
 .values-hidden .transaction-item .orcamento-restante {
   color: transparent !important; /* Adiciona !important para garantir a sobreposição */
   user-select: none;
+  position: relative; /* Referência para o placeholder sobreposto */
 }
 
 .values-hidden .financial-summary .summary-item span:last-child::before,
@@ -164,6 +182,20 @@ body.modal-aberto {
   font-size: 1em;
   font-weight: 600;
   user-select: text;
+  /* Desenha o placeholder POR CIMA do valor transparente, alinhado à direita,
+     para não somar larguras nem empurrar/quebrar o texto vizinho */
+  position: absolute;
+  top: 0;
+  right: 0;
+  white-space: nowrap;
+}
+
+/* Placeholder em cor clara no Resumo Financeiro (fundo escuro do menu lateral) */
+.values-hidden .financial-summary .summary-item span:last-child::before {
+  color: #ecf0f1;
+  content: "R$ ●●●●●"; /* Versão mais curta: a coluna lateral é estreita */
+  font-size: 0.85em;
+  line-height: 1.6; /* Mantém o placeholder centralizado na linha do valor */
 }
 
 /* CORREÇÃO SUPER-ESPECÍFICA: Garante que o placeholder do orçamento
