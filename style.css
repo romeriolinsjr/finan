@@ -1414,6 +1414,12 @@ body.modal-aberto {
   margin-top: 4px;
 }
 
+.divida-info .divida-categoria {
+  font-size: 0.8em;
+  color: #7f8c8d;
+  margin-top: 2px;
+}
+
 .divida-valor {
   font-size: 1.2em;
   font-weight: 600;
