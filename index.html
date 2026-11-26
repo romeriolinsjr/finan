@@ -538,6 +538,24 @@
             "
           >
             <div>
+              <label for="frequenciaReceita">Frequência:</label>
+              <select id="frequenciaReceita">
+                <option value="unica">Única</option>
+                <option value="recorrente">Recorrente</option>
+                <option value="parcelada">Parcelada</option>
+              </select>
+            </div>
+
+            <!-- Container para o tipo de cadastro (Só para parcelado) -->
+            <div id="containerTipoCadastroReceita" style="display: none">
+              <label for="tipoCadastroParcelaReceita">Cadastrar por:</label>
+              <select id="tipoCadastroParcelaReceita">
+                <option value="valor_total">Valor total da receita</option>
+                <option value="valor_parcela">Valor da parcela</option>
+              </select>
+            </div>
+
+            <div>
               <label for="valorReceita">Valor (R$):</label>
               <input
                 type="number"
@@ -546,16 +564,32 @@
                 placeholder="0,00"
               />
             </div>
+
+            <!-- Sub-bloco Parcelas da Receita (Contagem) -->
+            <div
+              id="camposParceladaReceita"
+              style="
+                display: none;
+                background: #f9f9f9;
+                padding: 10px;
+                border-radius: 5px;
+                margin-top: 10px;
+              "
+            >
+              <label for="qtdParcelasReceita">Quantidade de parcelas:</label>
+              <input type="number" id="qtdParcelasReceita" min="1" />
+              <label for="parcelaAtualReceita">Parcela atual (Nº):</label>
+              <input
+                type="number"
+                id="parcelaAtualReceita"
+                min="1"
+                value="1"
+              />
+            </div>
+
             <div>
               <label for="dataEntradaReceita">Data de entrada:</label>
               <input type="date" id="dataEntradaReceita" />
-            </div>
-            <div>
-              <label for="frequenciaReceita">Frequência:</label>
-              <select id="frequenciaReceita">
-                <option value="unica">Única</option>
-                <option value="recorrente">Recorrente</option>
-              </select>
             </div>
           </div>
 
