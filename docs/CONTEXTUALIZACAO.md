@@ -246,7 +246,7 @@ Uma ferramenta híbrida para gerenciar o limite do cartão ao longo da fatura.
 
 - **Waterfall (Balde Transbordante):** os gastos preenchem a Semana 1; ao estourar o limite semanal, o valor "transborda" para a próxima.
 
-- **Linha do Tempo Segmentada:** exibe blocos azuis que avançam a cada dia real, permitindo comparar o tempo decorrido com o dinheiro gasto.
+- **Linha do Tempo Segmentada (🔄 26/11/2026):** exibe blocos azuis que avançam a cada dia real, permitindo comparar o tempo decorrido com o dinheiro gasto. O bloco do **dia atual** recebe destaque em azul-marinho (\#2c3e50) com leve sombra: em *construirHTMLCiclo* (*weekly-tracker.js*), a unidade cuja posição no ciclo (início da semana + número da unidade) é igual a *diasDecorridos* recebe a classe *today*, além da *past*. **Só vale com o ciclo em andamento** (hoje entre *dataInicio* e *dataFim*): num ciclo encerrado, *diasDecorridos* é igualado ao total de dias, e sem essa condição o último dia apareceria destacado. *Esta redação substitui a anterior: a regra .time-segment.today já existia no style.css, mas o código nunca a aplicava.*
 
 - **Motor de Recuperabilidade (Regra dos 25%):** a cor da barra de gastos é dinâmica. Se o excesso de gastos ultrapassar 25% da folga financeira que resta no ciclo, a barra fica Vermelha (Crítico). Caso contrário, fica Amarela (Alerta). Se estiver dentro do previsto, Verde.
 
@@ -477,6 +477,14 @@ O módulo **reports.js** abriga a função soberana *obterDadosFinanceirosAgrupa
 - **Blindagem de seletores contra snapshots assíncronos (🆕 setembro/2026, não remover):** em *transactions.js*, as funções *popularSeletoresFixos* e *popularSelectTransacaoPatrimonio* memorizam a seleção ativa do usuário (*cartaoSelecionado*, *orcamentoSelecionado*, *itemSelecionado*) **antes** de reconstruir o *innerHTML* dos dropdowns. Isso corrige a *race condition* em que o salvamento de uma transação disparava um *onSnapshot* do Firebase em segundo plano, reescrevia o *\<select\>* e resetava silenciosamente a escolha para "Nenhum (Outros Gastos)" enquanto o usuário preenchia a transação seguinte.
 
 - **Travas anti-duplicidade (não remover):** o **main.js** contém travas com *.some()* que verificam a existência dos dados em memória antes de novas gravações no Firestore. Elas foram implementadas para corrigir uma *race condition* (julho/2026) que criava orçamentos fixos duplicados. Parecem redundantes, mas são proteções — enquadram-se integralmente na Regra de Ouro 1.
+
+- **Auditoria de código sem uso (🆕 26/11/2026):** por decisão do usuário, a IA passou a fazer varreduras somente de leitura em todos os arquivos para localizar código sem uso, duplicado ou conflitante, seguindo o protocolo de "Remoção de código" do *CLAUDE.md*: relatório com evidências, autorização item a item e remoção em lotes, do menor risco para o maior, cada um testado na conta reserva.
+
+  - **Lote 1 (concluído):** *style.css*, *index.html* e *elements.js*. Saíram classes de CSS que nenhum HTML ou JS usava, regras repetidas e declarações anuladas por regras posteriores (sem mudança visual), o modal vazio *\#modalMenuTerceiros* e 7 mapeamentos do *elements.js* que apontavam para IDs inexistentes ou nunca usados, com os dois trechos de JS que dependiam deles (*faturaCartaoTotalValor* em *cards.js* e o ouvinte de *btnAbrirNovoCiclo* em *main.js*, cópia do *window.trackerMod.abrirNovoCiclo*, que segue em uso com a trava de 2 ciclos).
+
+  - **Mantidos de propósito:** IDs em containers que nenhum código lê (etiquetas sem custo), seletores repetidos que se completam sem conflito e a sobrescrita intencional do placeholder do olho na sidebar.
+
+  - **Pendente (Lote 3, envolve JS):** os modais legados *\#modalWeeklyTracker*, *\#modalPatrimonio* e *\#modalRelatorios* parecem inalcançáveis, porque a sidebar só abre os contextos da Home; *\#modalGerenciarCartoes*, *\#modalOrcamentos* e *\#modalConsultarTerceiros* só são reabertos a partir de botões que ficam dentro deles mesmos. O JS ainda verifica em vários pontos se estão abertos (inclusive o ponto de fragilidade do PDF, item 1 da Lógica de Funcionamento), por isso a remoção exige rastrear as funções polimórficas antes.
 
 **Arquivos Raiz**
 

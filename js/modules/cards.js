@@ -127,11 +127,6 @@ export function popularModalDetalhesFatura(cartaoId, mesAnoFatura) {
     elements.checkFaturaConferida.checked = isConferida;
   }
 
-  if (elements.faturaCartaoTotalValor) {
-    elements.faturaCartaoTotalValor.textContent =
-      formatCurrency(minhaParteLiquida);
-  }
-
   let itensParaRenderizar = [
     ...minhasCompras.map((c) => ({ ...c, renderType: "compra" })),
     ...ajustes.map((a) => ({ ...a, renderType: "ajuste" })),

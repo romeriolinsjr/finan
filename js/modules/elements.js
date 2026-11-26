@@ -22,7 +22,6 @@ export const elements = {
   modalDetalhesSerieTitulo: document.getElementById("modalDetalhesSerieTitulo"),
   listaDetalhesSerieUl: document.getElementById("listaDetalhesSerie"),
   btnDespesasTerceiros: document.getElementById("btnDespesasTerceiros"),
-  modalMenuTerceiros: document.getElementById("modalMenuTerceiros"),
   modalConsultarTerceiros: document.getElementById("modalConsultarTerceiros"),
   btnAbrirCadastroTerceiros: document.getElementById(
     "btnAbrirCadastroTerceiros",
@@ -152,7 +151,6 @@ export const elements = {
     "modalDetalhesFaturaCartao",
   ),
   faturaCartaoNomeTitulo: document.getElementById("faturaCartaoNomeTitulo"),
-  faturaCartaoTotalValor: document.getElementById("faturaCartaoTotalValor"),
   faturaCartaoDataVencimento: document.getElementById(
     "faturaCartaoDataVencimento",
   ),
@@ -165,7 +163,6 @@ export const elements = {
   btnFaturaProxima: document.getElementById("btnFaturaProxima"),
   quickAddFeedback: document.getElementById("quickAddFeedback"),
   modalOrcamentos: document.getElementById("modalOrcamentos"),
-  modalOrcamentoTitulo: document.getElementById("modalOrcamentoTitulo"),
   btnAbrirModalCadastroOrcamento: document.getElementById(
     "btnAbrirModalCadastroOrcamento",
   ),
@@ -321,7 +318,6 @@ export const elements = {
   auditTotalEsperado: document.getElementById("auditTotalEsperado"),
   inputValorBanco: document.getElementById("inputValorBanco"),
   resultadoDiferenca: document.getElementById("resultadoDiferenca"),
-  faturaCartaoTotalValor: document.getElementById("faturaCartaoTotalValor"),
   checkFaturaConferida: document.getElementById("checkFaturaConferida"),
   modalConfirmarEscopoOrcamento: document.getElementById(
     "modalConfirmarEscopoOrcamento",
@@ -348,8 +344,6 @@ export const elements = {
   // =========================================
   btnWeeklyTracker: document.getElementById("btnWeeklyTracker"),
   modalWeeklyTracker: document.getElementById("modalWeeklyTracker"),
-  weeklyTrackerTitulo: document.getElementById("weeklyTrackerTitulo"),
-  btnAbrirNovoCiclo: document.getElementById("btnAbrirNovoCiclo"),
   trackerTabsContainer: document.getElementById("trackerTabsContainer"),
   containerCiclosTracker: document.getElementById("containerCiclosTracker"),
 
@@ -437,7 +431,6 @@ export const elements = {
   valorPatrimonioLiquidoHome: document.getElementById(
     "valorPatrimonioLiquidoHome",
   ),
-  tagModoVisaoPatrimonio: document.getElementById("tagModoVisaoPatrimonio"),
   btnToggleVisaoPatrimonio: document.getElementById("btnToggleVisaoPatrimonio"),
   btnHomeNovaCategoriaPat: document.getElementById("btnHomeNovaCategoriaPat"),
   btnHomeNovoItemPat: document.getElementById("btnHomeNovoItemPat"),
