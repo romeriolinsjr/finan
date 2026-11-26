@@ -2249,26 +2249,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  if (elements.btnAbrirNovoCiclo) {
-    elements.btnAbrirNovoCiclo.addEventListener("click", () => {
-      // Bloqueio Proativo: Verifica se já existem 2 ciclos ativos antes de abrir o modal
-      const ativos = state.ciclosTracker.filter((c) => c.status === "ativo");
-      if (ativos.length >= 2) {
-        alert(
-          "Você já possui 2 ciclos ativos (Principal e Transição). Encerre o mais antigo antes de abrir um novo.",
-        );
-        return;
-      }
-
-      elements.cicloEditIdInput.value = "";
-      elements.dataInicioCicloInput.value = "";
-      elements.dataFimCicloInput.value = "";
-      elements.metaCicloInput.value = "";
-      elements.modalConfigCicloTitulo.textContent = "Abrir Novo Ciclo";
-      ui.abrirModalEspecifico(elements.modalConfigCiclo);
-    });
-  }
-
   if (elements.btnSalvarConfigCiclo) {
     elements.btnSalvarConfigCiclo.addEventListener("click", async () => {
       const dados = {
