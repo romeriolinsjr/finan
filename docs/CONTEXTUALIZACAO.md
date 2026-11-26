@@ -1,6 +1,6 @@
 **📑 CONTEXTUALIZAÇÃO DO PROJETO FINAN**
 
-*Versão de Alta Fidelidade — Consolidada em 22/11/2026*
+*Versão de Alta Fidelidade — Consolidada em 26/11/2026*
 
 Olá! Este é o **Finan**, um sistema de controle financeiro pessoal desenvolvido como um PWA (Progressive Web App). Esta janela de contexto foi aberta para dar continuidade ao desenvolvimento, garantindo que a IA compreenda a lógica de funcionamento, as tecnologias envolvidas e, principalmente, as Regras de Ouro de trabalho estabelecidas para este projeto. O seu diferencial não é apenas registrar gastos passados, mas sim planejar o futuro através de uma arquitetura baseada no **Ciclo Real de Caixa** do usuário — e, mais recentemente, apoiar a **construção de riqueza**, tratando o patrimônio não apenas como saldo, mas como estratégia de alocação.
 
@@ -82,7 +82,9 @@ O Finan trabalha atualmente com **quatro tipos de transação** (o quarto, Patri
 
 - **Patrimônio:** movimentações de ativos e amortização de dívidas. Ver detalhamento completo no item 5 e na seção "Regras de Cálculo e Gestão Patrimonial".
 
-- **Frequências:** podem ser Únicas, Recorrentes (mensais) ou Parceladas (ex.: 1/12). O sistema suporta séries de até 60 meses.
+- **Frequências (🔄 26/11/2026):** podem ser Únicas, Recorrentes (mensais) ou Parceladas (ex.: 1/12), **tanto para despesas (ordinárias e de cartão) quanto para receitas**. O sistema suporta séries de até 60 meses. *Esta redação substitui a anterior, em que a receita só podia ser Única ou Recorrente.*
+
+  - **Receita parcelada (🆕 26/11/2026):** o formulário da receita segue a mesma ordem do da despesa ordinária — Frequência → "Cadastrar por" (Valor total da receita ou Valor da parcela, *\#tipoCadastroParcelaReceita*) → Valor → Quantidade de parcelas e Parcela atual (*\#qtdParcelasReceita*, *\#parcelaAtualReceita*, no bloco *\#camposParceladaReceita*) → Data de entrada. Os campos de parcelas só aparecem com a frequência Parcelada, por meio de um ouvinte em *main.js* no *\#frequenciaReceita*. A gravação usa o mesmo motor de séries das despesas (*adicionarNovasTransacoes*): nome "Nome (1/6)", um mês de referência por parcela a partir de *state.currentDate* e data de entrada avançando mês a mês. Com "Valor total", cada parcela é arredondada em duas casas (pequenas diferenças de centavos são aceitas; o usuário ajusta a parcela, se quiser). As parcelas entram em "Receitas Totais" como qualquer receita do mês.
 
 - **Dois botões de lançamento, com funções distintas:**
 
@@ -266,7 +268,7 @@ Uma ferramenta híbrida para gerenciar o limite do cartão ao longo da fatura.
 
 - **Drill-down total (🔄 ampliado em 2/9/2026):** **todas** as seções analíticas — Despesas, Patrimônio e também **Orçamentos** — abrem detalhamento ao clique, exibindo os itens e valores que compõem aquele número.
 
-- **Parcelas que encerram no mês (🆕 outubro/novembro de 2026):** em *reports.js*, uma compra parcelada é identificada como última parcela pelo critério *parcelaAtual === totalParcelas*. O resultado aparece em três lugares: no card "Parceladas" de Cartão de Crédito, uma linha verde logo abaixo do valor ("🏁 X compras encerram este mês"); no topo do modal de detalhamento, um banner verde consolidado informando quantas compras finalizam e o valor que será liberado no próximo ciclo; e, ao lado de cada item na última parcela, a tag verde "Finaliza este mês".
+- **Parcelas que encerram no mês (🔄 ampliado às despesas ordinárias em 26/11/2026):** em *reports.js*, uma despesa parcelada é identificada como última parcela pelo critério *parcelaAtual === totalParcelas*. O resultado aparece em três lugares, **tanto para Cartão de Crédito quanto para Ordinárias**: no card "Parceladas" de cada categoria, uma linha verde logo abaixo do valor ("🏁 X compras encerram este mês" no cartão; "🏁 X despesas encerram este mês" nas ordinárias); no topo do modal de detalhamento, um banner verde consolidado informando quantas finalizam e o valor que será liberado no próximo ciclo; e, ao lado de cada item na última parcela, a tag verde "Finaliza este mês". **As receitas parceladas ficam deliberadamente de fora.** *Esta redação substitui a anterior, em que o aviso valia apenas para o cartão.*
 
 - **Sincronia temporal do drill-down:** o detalhamento usa o ponteiro próprio do relatório (*state.reportDate*), sincronizado com a Home a cada renderização e depois navegável de forma independente, de modo que o usuário veja os dados do mês consultado ainda que ele seja diferente do mês da Home. Sem essa sincronização inicial, o drill-down fica preso a um mês fixo — cuidado a preservar em qualquer alteração no fluxo de relatórios.
 
@@ -311,6 +313,10 @@ Os formulários passaram a se abrir já contextualizados, reduzindo cliques e im
 - **Despesa de terceiro:** o modal oculta os campos "Tipo" e "Orçamento" e exibe o título específico "Nova despesa de terceiro".
 
 - **Operações patrimoniais:** os ícones ⊕ ⊖ ≈ ↓ da árvore abrem o modal com Conta e Operação preenchidas e travadas, com o cursor no campo Valor.
+
+- **Edição de parcelas (🆕 26/11/2026):** ao editar uma receita, despesa ordinária ou despesa de cartão **parcelada**, *preencherModalParaEdicao* (*transactions.js*) abre o formulário com "Cadastrar por" em **"Valor da parcela"** (o campo Valor mostra o valor da parcela, e na edição ele é gravado exatamente como digitado, sem divisão) e **trava** (*disabled*) os campos "Quantidade de parcelas" e "Parcela atual". Razão: alterar a contagem na edição não cria nem apaga parcelas — apenas mudaria o nome exibido ("3/6" → "3/8"). Para mudar a quantidade de verdade, exclui-se a série e cadastra-se de novo. As travas de edição **não** se aplicam aos aportes parcelados de Patrimônio.
+
+  - **Reset obrigatório (não remover):** *resetModalNovaTransacao* reabilita esses campos e devolve o "Cadastrar por" da receita, da ordinária e do cartão a "Valor total". Sem isso, depois de uma edição, o próximo cadastro novo (inclusive de despesa de terceiro, cujo *third-party.js* lê os mesmos campos da ordinária e do cartão) herdaria "Valor da parcela" e deixaria de dividir o valor.
 
 **10. Backup local em .json (🆕 22/11/2026)**
 
@@ -496,7 +502,7 @@ O módulo **reports.js** abriga a função soberana *obterDadosFinanceirosAgrupa
 
 - **5. ui.js:** motor de renderização e **orquestrador dos contextos** (função *renderizarTransacoesDoMes*, que liga e desliga os containers conforme o *modoVisualizacao*). Reúne ainda a lógica de cálculo de saldo (🔓/🔒), tags visuais (Conferida/Paga/Excluído), abertura e fechamento de modais, abas Gerais/Patrimoniais, ordenação master na Home, exibição das faturas que só contêm despesas de terceiros (consultando também *state.dividasTerceiros*) e exibição do resumo financeiro.
 
-- **6. transactions.js:** gerencia o formulário em cascata, motor de séries, atalhos rápidos, formulários pré-preenchidos e travados a partir dos ícones da árvore de patrimônio, **motor de delta do Ajuste de Valor** (converte o saldo final informado em transação de diferença), blindagem de edições futuras no Tracker, blindagem dos seletores contra *onSnapshot* (*popularSeletoresFixos*, *popularSelectTransacaoPatrimonio*, que também filtra as contas patrimoniais encerradas) e exibição de saldo de resgate em tempo real.
+- **6. transactions.js:** gerencia o formulário em cascata, motor de séries (inclusive receitas parceladas), travas dos campos de parcelas na edição, atalhos rápidos, formulários pré-preenchidos e travados a partir dos ícones da árvore de patrimônio, **motor de delta do Ajuste de Valor** (converte o saldo final informado em transação de diferença), blindagem de edições futuras no Tracker, blindagem dos seletores contra *onSnapshot* (*popularSeletoresFixos*, *popularSelectTransacaoPatrimonio*, que também filtra as contas patrimoniais encerradas) e exibição de saldo de resgate em tempo real.
 
 - **7. budgets.js:** gerencia orçamentos temporais, propagação futuro, exclusão por nome (Série), pergunta de escopo (mês ou série) antes da edição, o **Ajuste Rápido de Saldo (🎯)** com recálculo mês a mês em consulta única ao Firestore e o refresh imediato da lista na Home após o salvamento.
 

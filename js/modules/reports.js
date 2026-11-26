@@ -296,6 +296,25 @@ export function popularModalRelatorio(date) {
       ? `<small style="color: #27ae60; font-size: 0.75em; font-weight: 600; margin-top: 3px; display: block;">🏁 ${qtdTerminando} ${qtdTerminando === 1 ? "compra encerra" : "compras encerram"} este mês (${formatCurrency(valorTerminando)})</small>`
       : "";
 
+  // NOVO: Identifica despesas ordinárias parceladas que encerram neste mês (última parcela)
+  const parceladasTerminandoOrd = despesasDoMes.filter(
+    (d) =>
+      d.categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA &&
+      d.frequencia === CONSTS.FREQUENCIA.PARCELADA &&
+      d.totalParcelas &&
+      d.parcelaAtual === d.totalParcelas,
+  );
+  const qtdTerminandoOrd = parceladasTerminandoOrd.length;
+  const valorTerminandoOrd = parceladasTerminandoOrd.reduce(
+    (s, d) => s + d.valor,
+    0,
+  );
+
+  const avisoParcelasOrd =
+    qtdTerminandoOrd > 0
+      ? `<small style="color: #27ae60; font-size: 0.75em; font-weight: 600; margin-top: 3px; display: block;">🏁 ${qtdTerminandoOrd} ${qtdTerminandoOrd === 1 ? "despesa encerra" : "despesas encerram"} este mês (${formatCurrency(valorTerminandoOrd)})</small>`
+      : "";
+
   const analiseDespesasHTML = `
     <section class="relatorio-secao">
       <h3>Análise de Despesas</h3>
@@ -309,7 +328,11 @@ export function popularModalRelatorio(date) {
             <span>Recorrentes</span> <strong>${formatCurrency(subtotaisOrd.recorrente)}</strong>
           </div>
           <div class="relatorio-item-analise clicavel" data-cat="${CONSTS.CATEGORIA_DESPESA.ORDINARIA}" data-freq="${CONSTS.FREQUENCIA.PARCELADA}">
-            <span>Parceladas</span> <strong>${formatCurrency(subtotaisOrd.parcelada)}</strong>
+            <div style="display: flex; flex-direction: column;">
+              <span>Parceladas</span>
+              ${avisoParcelasOrd}
+            </div>
+            <strong>${formatCurrency(subtotaisOrd.parcelada)}</strong>
           </div>
           <div class="relatorio-item-analise" style="font-weight: bold; margin-top: 15px; border-left-color: #3498db;">
             <span>Total</span> <strong>${formatCurrency(dados.totalGastoRealOrdinario)}</strong>
@@ -479,7 +502,17 @@ export function abrirDetalhesFiltroRelatorio(
       categoria === CONSTS.CATEGORIA_DESPESA.CARTAO_CREDITO &&
       frequencia === CONSTS.FREQUENCIA.PARCELADA;
 
-    if (ehParceladasCartao) {
+    // NOVO: O mesmo aviso vale para as despesas ordinárias parceladas (receitas ficam de fora)
+    const ehParceladasOrd =
+      categoria === CONSTS.CATEGORIA_DESPESA.ORDINARIA &&
+      frequencia === CONSTS.FREQUENCIA.PARCELADA;
+    const ehParceladasComAviso = ehParceladasCartao || ehParceladasOrd;
+    const rotuloUma = ehParceladasCartao ? "compra encerra" : "despesa encerra";
+    const rotuloVarias = ehParceladasCartao
+      ? "compras encerram"
+      : "despesas encerram";
+
+    if (ehParceladasComAviso) {
       const finalizando = itens.filter(
         (t) => t.totalParcelas && t.parcelaAtual === t.totalParcelas,
       );
@@ -490,7 +523,7 @@ export function abrirDetalhesFiltroRelatorio(
           "background:#e8f8f0; border-left:4px solid #27ae60; padding:10px 12px; margin-bottom:12px; border-radius:4px; list-style:none; display:flex; justify-content:space-between; align-items:center;";
         liBanner.innerHTML = `
           <span style="color:#27ae60; font-weight:600; font-size:0.85em;">
-            🏁 ${finalizando.length} ${finalizando.length === 1 ? "compra encerra" : "compras encerram"} este mês
+            🏁 ${finalizando.length} ${finalizando.length === 1 ? rotuloUma : rotuloVarias} este mês
           </span>
           <strong style="color:#27ae60; font-size:0.9em;">Liberando ${formatCurrency(totalLiberado)}</strong>
         `;
@@ -501,7 +534,7 @@ export function abrirDetalhesFiltroRelatorio(
     itens.forEach((item) => {
       // Identifica se este item específico está na última parcela
       const isUltimaParcela =
-        ehParceladasCartao &&
+        ehParceladasComAviso &&
         item.totalParcelas &&
         item.parcelaAtual === item.totalParcelas;
 

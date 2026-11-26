@@ -60,6 +60,15 @@ export function atualizarVisibilidadeFormulario() {
 
     if (tipoEfetivo === "receita") {
       if (elements.secaoReceita) elements.secaoReceita.style.display = "block";
+      const freqReceita = elements.frequenciaReceita?.value || "unica";
+      const isParceladaReceita = freqReceita === "parcelada";
+      if (elements.containerTipoCadastroReceita)
+        elements.containerTipoCadastroReceita.style.display =
+          isParceladaReceita ? "block" : "none";
+      if (elements.camposParceladaReceita)
+        elements.camposParceladaReceita.style.display = isParceladaReceita
+          ? "block"
+          : "none";
       if (elements.btnSalvarTransacao)
         elements.btnSalvarTransacao.style.display = "inline-block";
     } else if (tipoEfetivo === "despesa") {
@@ -185,6 +194,16 @@ export function resetModalNovaTransacao() {
       elements.frequenciaReceita.value = "unica";
       elements.frequenciaReceita.disabled = false;
     }
+    if (elements.tipoCadastroParcelaReceita)
+      elements.tipoCadastroParcelaReceita.value = "valor_total";
+    if (elements.qtdParcelasReceita) {
+      elements.qtdParcelasReceita.value = "";
+      elements.qtdParcelasReceita.disabled = false;
+    }
+    if (elements.parcelaAtualReceita) {
+      elements.parcelaAtualReceita.value = "1";
+      elements.parcelaAtualReceita.disabled = false;
+    }
 
     // Reset Despesa
     if (elements.categoriaDespesa) {
@@ -208,8 +227,14 @@ export function resetModalNovaTransacao() {
       elements.frequenciaDespesaCartao.value = "unica";
       elements.frequenciaDespesaCartao.disabled = false;
     }
-    if (elements.qtdParcelasCartao) elements.qtdParcelasCartao.value = "";
-    if (elements.parcelaAtualCartao) elements.parcelaAtualCartao.value = "1";
+    if (elements.qtdParcelasCartao) {
+      elements.qtdParcelasCartao.value = "";
+      elements.qtdParcelasCartao.disabled = false;
+    }
+    if (elements.parcelaAtualCartao) {
+      elements.parcelaAtualCartao.value = "1";
+      elements.parcelaAtualCartao.disabled = false;
+    }
     if (elements.tipoCadastroParcelaCartao) {
       elements.tipoCadastroParcelaCartao.value = "valor_total";
     }
@@ -219,6 +244,10 @@ export function resetModalNovaTransacao() {
       elements.frequenciaDespesaOrd.value = "unica";
       elements.frequenciaDespesaOrd.disabled = false;
     }
+    if (elements.tipoCadastroParcelaOrd)
+      elements.tipoCadastroParcelaOrd.value = "valor_total";
+    if (elements.qtdParcelasOrd) elements.qtdParcelasOrd.disabled = false;
+    if (elements.parcelaAtualOrd) elements.parcelaAtualOrd.disabled = false;
     if (elements.valorDespesaOrd) elements.valorDespesaOrd.value = "";
     if (elements.dataVencimentoDespesaOrd)
       elements.dataVencimentoDespesaOrd.value = dataLocal;
@@ -313,6 +342,15 @@ export function preencherModalParaEdicao(id) {
     elements.dataEntradaReceita.value = transacao.dataEntrada;
     elements.frequenciaReceita.value = transacao.frequencia;
     elements.frequenciaReceita.disabled = true;
+    if (transacao.frequencia === "parcelada") {
+      // Na edição, o campo Valor mostra o valor da parcela
+      elements.tipoCadastroParcelaReceita.value = "valor_parcela";
+      elements.qtdParcelasReceita.value = transacao.totalParcelas;
+      elements.parcelaAtualReceita.value = transacao.parcelaAtual;
+      // Alterar a contagem na edição não cria nem apaga parcelas: campos travados
+      elements.qtdParcelasReceita.disabled = true;
+      elements.parcelaAtualReceita.disabled = true;
+    }
   } else if (transacao.tipo === "patrimonio") {
     // AJUSTE DE RÓTULO
     const labelTipo = document.getElementById("labelTipoTransacao");
@@ -364,8 +402,13 @@ export function preencherModalParaEdicao(id) {
       elements.valorDespesaOrd.value = transacao.valor;
       elements.dataVencimentoDespesaOrd.value = transacao.dataVencimento;
       if (transacao.frequencia === "parcelada") {
+        // Na edição, o campo Valor mostra o valor da parcela
+        elements.tipoCadastroParcelaOrd.value = "valor_parcela";
         elements.qtdParcelasOrd.value = transacao.totalParcelas;
         elements.parcelaAtualOrd.value = transacao.parcelaAtual;
+        // Alterar a contagem na edição não cria nem apaga parcelas: campos travados
+        elements.qtdParcelasOrd.disabled = true;
+        elements.parcelaAtualOrd.disabled = true;
       }
     } else {
       elements.cartaoDespesa.value = transacao.cartaoId;
@@ -377,8 +420,13 @@ export function preencherModalParaEdicao(id) {
       elements.valorDespesaCartao.value = transacao.valor;
 
       if (transacao.frequencia === "parcelada") {
+        // Na edição, o campo Valor mostra o valor da parcela
+        elements.tipoCadastroParcelaCartao.value = "valor_parcela";
         elements.qtdParcelasCartao.value = transacao.totalParcelas;
         elements.parcelaAtualCartao.value = transacao.parcelaAtual;
+        // Alterar a contagem na edição não cria nem apaga parcelas: campos travados
+        elements.qtdParcelasCartao.disabled = true;
+        elements.parcelaAtualCartao.disabled = true;
       }
     }
   }
@@ -397,6 +445,11 @@ export function obterDadosDoFormulario() {
     dados.valor = parseFloat(elements.valorReceita.value) || 0;
     dados.dataEntrada = elements.dataEntradaReceita.value;
     dados.frequencia = elements.frequenciaReceita.value;
+    if (dados.frequencia === "parcelada") {
+      dados.tipoCadastroParcela = elements.tipoCadastroParcelaReceita.value;
+      dados.totalParcelas = parseInt(elements.qtdParcelasReceita.value);
+      dados.parcelaAtual = parseInt(elements.parcelaAtualReceita.value) || 1;
+    }
   } else if (tipo === "patrimonio") {
     dados.operacao = elements.operacaoPatrimonioSelect.value;
     const isAmortizacao = dados.operacao === "amortizacao";

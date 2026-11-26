@@ -95,6 +95,15 @@ export const elements = {
   valorReceita: document.getElementById("valorReceita"),
   dataEntradaReceita: document.getElementById("dataEntradaReceita"),
   frequenciaReceita: document.getElementById("frequenciaReceita"),
+  containerTipoCadastroReceita: document.getElementById(
+    "containerTipoCadastroReceita",
+  ),
+  tipoCadastroParcelaReceita: document.getElementById(
+    "tipoCadastroParcelaReceita",
+  ),
+  camposParceladaReceita: document.getElementById("camposParceladaReceita"),
+  qtdParcelasReceita: document.getElementById("qtdParcelasReceita"),
+  parcelaAtualReceita: document.getElementById("parcelaAtualReceita"),
 
   // Campos de Despesa Comuns
   categoriaDespesa: document.getElementById("categoriaDespesa"),

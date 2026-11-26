@@ -2183,6 +2183,10 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  elements.frequenciaReceita.addEventListener("change", () => {
+    trans.atualizarVisibilidadeFormulario();
+  });
+
   elements.frequenciaDespesaOrd.addEventListener("change", () => {
     trans.atualizarVisibilidadeFormulario();
   });
