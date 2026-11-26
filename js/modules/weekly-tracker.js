@@ -260,8 +260,12 @@ function construirHTMLCiclo(ciclo, index, totalCiclos) {
 
           let hT =
             '<div class="time-bar-container" title="Progresso do tempo na semana">';
-          for (let d = 1; d <= s.dias; d++)
-            hT += `<div class="time-segment ${d <= dPassS ? "past" : ""}"></div>`;
+          for (let d = 1; d <= s.dias; d++) {
+            // Destaque do dia atual: só com o ciclo em andamento (entre o início e o fim)
+            const eHoje =
+              hoje >= dataInic && hoje <= dataFim && iniS + d === diasDecorridos;
+            hT += `<div class="time-segment ${d <= dPassS ? "past" : ""}${eHoje ? " today" : ""}"></div>`;
+          }
           hT += "</div>";
 
           const idxSAtual = Math.min(
