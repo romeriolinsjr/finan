@@ -1,7 +1,6 @@
 export const state = {
   currentDate: new Date(),
   reportDate: new Date(),
-  userAguardandoVerificacao: null,
   isDuringRegistration: false,
   transacoes: [],
   cartoes: [],
@@ -13,7 +12,6 @@ export const state = {
   currentFaturaDate: null,
   dividasTerceirosDate: new Date(),
   currentPatrimonioExtratoDate: null, // Âncora temporal exclusiva do extrato de patrimônio
-  currentModalStep: 1,
   isEditMode: false,
   editingTransactionId: null,
   editingSerieId: null,
@@ -39,7 +37,5 @@ export const state = {
   // PATRIMÔNIO:
   patrimonioCategorias: [], // Categorias Pai (ex: Reserva, Renda Fixa)
   patrimonioSubcategorias: [], // Sub-categorias (ex: Nubank, CDB Inter) vinculadas aos Pais
-  isPatrimonioEditMode: false,
-  editingPatrimonioId: null,
   patrimonioVisaoProjetada: false, // NOVO: false = Saldo Real (padrão), true = Saldo Projetado
 };

@@ -4,8 +4,6 @@ import {
   formatCurrency,
   getMesAnoChave,
   calcularTotalAjustes,
-  isOrcamentoFechado,
-  parseDateString,
 } from "./utils.js";
 import { obterDadosFinanceirosAgrupados } from "./reports.js";
 import { obterSaldoItemAteMes } from "./patrimony.js";

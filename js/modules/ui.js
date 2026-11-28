@@ -1,14 +1,12 @@
 import { CONSTS } from "./constants.js";
 import { state } from "./state.js";
 import { elements } from "./elements.js";
-import { db } from "./firebase-config.js";
 import {
   formatCurrency,
   getMesAnoChave,
   parseDateString,
   calcularTotalAjustes,
   isOrcamentoFechado,
-  registrarUltimaAlteracao,
 } from "./utils.js";
 import { obterDadosFinanceirosAgrupados } from "./reports.js";
 

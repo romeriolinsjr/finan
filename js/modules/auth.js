@@ -1,6 +1,5 @@
 import { elements } from "./elements.js";
 import { state } from "./state.js";
-import { db } from "./firebase-config.js";
 
 export function mostrarFeedbackAuth(mensagem, isError = false) {
   elements.authFeedback.textContent = mensagem;

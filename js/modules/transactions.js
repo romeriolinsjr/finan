@@ -269,8 +269,6 @@ export function resetModalNovaTransacao() {
       ".form-note-injected",
     );
     notes?.forEach((n) => n.remove());
-    if (elements.quickAddFeedback)
-      elements.quickAddFeedback.style.display = "none";
 
     // Destrava campos de patrimônio que podem ter sido travados em operações anteriores
     if (elements.operacaoPatrimonioSelect)
@@ -290,34 +288,6 @@ export function resetModalNovaTransacao() {
   } catch (err) {
     console.error("Erro ao resetar modal:", err);
   }
-}
-
-// Função para limpar apenas os valores durante a adição rápida (dentro da fatura)
-export function resetFormParaNovaDespesaCartao() {
-  if (!elements.nomeTransacaoInput || !elements.quickAddFeedback) return;
-
-  // Limpa apenas os campos de preenchimento, mantendo o cartão travado
-  elements.nomeTransacaoInput.value = "";
-  elements.valorDespesaCartao.value = "";
-  elements.frequenciaDespesaCartao.value = "unica";
-  elements.qtdParcelasCartao.value = "";
-  elements.parcelaAtualCartao.value = "1";
-  elements.orcamentoVinculado.value = "";
-
-  // Mantém a cascata visível
-  atualizarVisibilidadeFormulario();
-
-  // Feedback visual de sucesso
-  elements.quickAddFeedback.textContent = "✅ Operação salva com sucesso!";
-  elements.quickAddFeedback.style.display = "block";
-  elements.quickAddFeedback.style.color = "#27ae60";
-
-  setTimeout(() => {
-    if (elements.quickAddFeedback)
-      elements.quickAddFeedback.style.display = "none";
-  }, 3000);
-
-  elements.nomeTransacaoInput.focus();
 }
 
 export function preencherModalParaEdicao(id) {

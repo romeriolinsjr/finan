@@ -161,7 +161,6 @@ export const elements = {
   btnAjustesFatura: document.getElementById("btnAjustesFatura"),
   btnFaturaAnterior: document.getElementById("btnFaturaAnterior"),
   btnFaturaProxima: document.getElementById("btnFaturaProxima"),
-  quickAddFeedback: document.getElementById("quickAddFeedback"),
   modalOrcamentos: document.getElementById("modalOrcamentos"),
   btnAbrirModalCadastroOrcamento: document.getElementById(
     "btnAbrirModalCadastroOrcamento",
